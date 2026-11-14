@@ -47,7 +47,7 @@ canvas{width:100%;height:100%;display:block;object-fit:contain}
     <div class="chip"><i class="coin"></i><b id="coins">0</b></div>
     <div class="chip lv"><span id="lvl">Lv 1</span><div class="bar"><div id="xpbar"></div></div><small id="xptxt"></small></div>
   </div>
-  <div class="top2"><a class="mini" href="game.html">Menu game</a><button class="mini" onclick="openRank()">Peringkat</button></div>
+  <div class="top2"><a class="mini" href="game.html">Menu game</a><button class="mini" onclick="openHow()" title="Cara bermain" aria-label="Cara bermain">?</button><button class="mini" onclick="openRank()">Peringkat</button></div>
   <div id="joyZone"><div id="knob"></div></div>
   <button id="act" disabled>Dekati kebun</button>
   <div id="toast" class="hidden"></div>
@@ -176,6 +176,15 @@ function openHouse() {
 function buyHouse(i) {
   const h = HOUSES[i]; if (S.house >= i || S.coins < h.p) return;
   S.coins -= h.p; S.house = i; save(); hud(); openHouse(); toast('Kini kamu punya ' + h.n + '!');
+}
+function openHow() {
+  setPanel('<h2>Cara bermain</h2>' + [
+    ['Gerak', 'Seret <b>joystick</b> di kiri bawah (atau WASD / panah).'],
+    ['Tanam', 'Dekati petak kosong sampai muncul kotak putih, tekan <b>Tanam</b>, lalu pilih padi, jagung, atau tebu (dibuka sesuai level).'],
+    ['Panen', 'Tunggu hitung mundur (5 menit di level 1, makin lama di level tinggi). Saat tombol berubah <b>Panen</b>, tekan untuk menjual otomatis jadi koin + EXP.'],
+    ['Rumah', 'Dekati rumah di atas peta, beli <b>Rumah Kayu / Batu / Villa</b> dengan koin untuk bonus koin panen.'],
+    ['Rekor', 'Rekor terbaik dihitung dari <b>EXP dan rumah</b>. Lihat di tombol Peringkat.']
+  ].map(r => '<div class="opt" style="cursor:default"><b>' + r[0] + '</b><span style="color:var(--text);font-size:13px">' + r[1] + '</span></div>').join(''));
 }
 async function openRank() {
   if (!ready) return setPanel('<h2>Peringkat</h2><p>Belum tersambung ke Supabase.</p>');
