@@ -511,8 +511,25 @@
                 <div class="wave-bar"></div>
             </div>
 
-            <!-- Hidden Remote Audio Element for WebRTC Stream -->
-            <audio id="remoteAudioElement" autoplay></audio>
+            <!-- Live Mic Audio Level Bar -->
+            <div id="micLevelWrapper" class="hidden max-w-[200px] mx-auto my-2">
+                <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                    <span><i class="fa-solid fa-microphone-lines text-emerald-400 mr-1"></i>Level Suara</span>
+                    <span id="micLevelText" class="font-mono text-emerald-400">Aktif</span>
+                </div>
+                <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="micLevelBar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-75" style="width: 8%"></div>
+                </div>
+            </div>
+
+            <!-- Fallback Unlock Audio Button for Mobile Autoplay Policy -->
+            <button id="unlockAudioBtn" type="button" onclick="forceUnlockRemoteAudio()" class="hidden mx-auto mt-2 mb-1 px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer">
+                <i class="fa-solid fa-volume-high"></i>
+                <span>🔊 Aktifkan Suara / Speaker</span>
+            </button>
+
+            <!-- Remote Audio Element for WebRTC Stream (playsinline & autoplay required on mobile) -->
+            <audio id="remoteAudio" autoplay playsinline></audio>
 
             <!-- Incoming Call Buttons (Answer / Reject) -->
             <div id="incomingCallActions" class="hidden flex items-center justify-center gap-6 mt-6">
@@ -630,6 +647,144 @@
         let pendingImageBase64 = null; // Gambar yang akan dikirim di chat
         let editModalTempAvatar = null;
 
+        // Konstanta batas waktu 3 hari untuk penghapusan otomatis foto (3 * 24 * 60 * 60 * 1000 ms)
+        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+        // Daftar ID pesan foto yang sudah diunduh oleh penerima pada perangkat ini
+        let downloadedPhotosSet = new Set(JSON.parse(localStorage.getItem('nexchat_downloaded_photos') || '[]'));
+
+        function markPhotoAsDownloaded(msgKey) {
+            if (!msgKey) return;
+            downloadedPhotosSet.add(String(msgKey));
+            localStorage.setItem('nexchat_downloaded_photos', JSON.stringify(Array.from(downloadedPhotosSet)));
+        }
+
+        function isPhotoDownloaded(msgKey) {
+            return msgKey && downloadedPhotosSet.has(String(msgKey));
+        }
+
+        // Hitung ukuran file Base64 dalam KB
+        function getBase64SizeKB(base64Str) {
+            if (!base64Str || typeof base64Str !== 'string') return 0;
+            const cleaned = base64Str.split(',')[1] || base64Str;
+            const sizeBytes = (cleaned.length * 3) / 4;
+            return Math.max(1, Math.round(sizeBytes / 1024));
+        }
+
+        // Hitung sisa waktu sebelum foto dihapus otomatis (3 hari sejak dikirim)
+        function getPhotoExpiryStatus(createdAtIso) {
+            const createdTime = createdAtIso ? new Date(createdAtIso).getTime() : Date.now();
+            const expiresAt = createdTime + THREE_DAYS_MS;
+            const remainingMs = expiresAt - Date.now();
+
+            if (remainingMs <= 0) {
+                return { expired: true, label: 'Telah lewat 3 hari' };
+            }
+
+            const totalHours = Math.floor(remainingMs / (1000 * 60 * 60));
+            const days = Math.floor(totalHours / 24);
+            const hours = totalHours % 24;
+            const mins = Math.max(1, Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60)));
+
+            let label = '';
+            if (days > 0) {
+                label = `${days}h ${hours}j lagi`;
+            } else if (hours > 0) {
+                label = `${hours}j ${mins}m lagi`;
+            } else {
+                label = `${mins} menit lagi`;
+            }
+
+            return { expired: false, label };
+        }
+
+        // Pembersihan otomatis foto > 3 hari di Supabase Database & LocalStorage agar storage tidak penuh
+        async function cleanupExpiredPhotos() {
+            const cutoffTime = Date.now() - THREE_DAYS_MS;
+            const cutoffIso = new Date(cutoffTime).toISOString();
+
+            // 1. Bersihkan di semua cache percakapan localStorage
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('nexchat_msgs_')) {
+                        const raw = localStorage.getItem(key);
+                        if (!raw) continue;
+                        const msgs = JSON.parse(raw);
+                        let changed = false;
+
+                        const updated = msgs.map(m => {
+                            const t = m.created_at ? new Date(m.created_at).getTime() : Date.now();
+                            if (m.image_data && m.image_data !== '__EXPIRED__' && t < cutoffTime) {
+                                changed = true;
+                                return {
+                                    ...m,
+                                    image_data: null,
+                                    image_expired: true,
+                                    message_text: m.message_text || '[Foto telah dihapus otomatis (lewat 3 hari)]'
+                                };
+                            }
+                            return m;
+                        });
+
+                        if (changed) {
+                            localStorage.setItem(key, JSON.stringify(updated));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Gagal membersihkan cache foto lokal:', e);
+            }
+
+            // 2. Bersihkan di Supabase tabel `chat_messages` untuk pesan yang berusia > 3 hari dan memiliki foto
+            if (dbTablesReady) {
+                try {
+                    // Kosongkan kolom image_data untuk pesan yang lebih tua dari 3 hari namun memiliki teks
+                    await supabaseClient
+                        .from('chat_messages')
+                        .update({
+                            image_data: null,
+                            message_text: '[Foto telah dihapus otomatis (lewat batas 3 hari)]'
+                        })
+                        .lt('created_at', cutoffIso)
+                        .not('image_data', 'is', null);
+
+                    // Hapus baris pesan yang murni hanya foto tanpa teks dan sudah berusia > 3 hari
+                    await supabaseClient
+                        .from('chat_messages')
+                        .delete()
+                        .lt('created_at', cutoffIso)
+                        .is('message_text', null)
+                        .not('image_data', 'is', null);
+                } catch (err) {
+                    console.warn('Info auto-clean foto 3 hari Supabase:', err.message);
+                }
+            }
+        }
+
+        // Fungsi untuk mengunduh foto ke perangkat penerima sekaligus membuka tampilan foto di chat
+        function downloadAndUnlockPhoto(msgKey) {
+            const msg = messagesList.find(m => String(m.client_msg_id || m.id || m.created_at) === String(msgKey));
+            if (!msg || !msg.image_data) {
+                showToast('Data foto sudah tidak tersedia atau telah terhapus otomatis.', 'error');
+                return;
+            }
+
+            // Trigger unduhan file gambar ke perangkat
+            const link = document.createElement('a');
+            link.href = msg.image_data;
+            const timeSuffix = new Date(msg.created_at || Date.now()).toISOString().slice(0, 10);
+            link.download = `NexChat_Foto_${msg.sender_phone}_${timeSuffix}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Tandai sudah diunduh agar foto terbuka di ruang chat
+            markPhotoAsDownloaded(msgKey);
+            renderMessagesList();
+            showToast('Foto berhasil diunduh ke perangkat Anda!', 'success');
+        }
+
         // Set & Map untuk mencegah pesan / gambar diterima double (ganda)
         const processedMessageIds = new Set();
         const processedSignatures = new Map(); // signatureKey -> timestamp (ms)
@@ -738,6 +893,7 @@
         window.addEventListener('DOMContentLoaded', async () => {
             renderPresetAvatars();
             await verifySupabaseTables();
+            await cleanupExpiredPhotos();
 
             // Cek apakah user sudah punya sesi tersimpan di localStorage
             const savedSession = localStorage.getItem('nexchat_session_user');
@@ -1333,6 +1489,9 @@
             if (!currentUser || !activeContactPhone) return;
             messagesList = [];
 
+            // Jalankan pembersihan foto > 3 hari setiap membuka ruang obrolan
+            await cleanupExpiredPhotos();
+
             const cacheKey = getConversationCacheKey(currentUser.phone_4, activeContactPhone);
             const cachedMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
             messagesList = deduplicateMessagesArray(cachedMsgs);
@@ -1346,7 +1505,19 @@
                     .limit(200);
 
                 if (!error && data) {
-                    messagesList = deduplicateMessagesArray(data);
+                    const cutoffTime = Date.now() - THREE_DAYS_MS;
+                    const sanitizedData = data.map(m => {
+                        const msgTime = m.created_at ? new Date(m.created_at).getTime() : Date.now();
+                        if (m.image_data && msgTime < cutoffTime) {
+                            return {
+                                ...m,
+                                image_data: null,
+                                image_expired: true
+                            };
+                        }
+                        return m;
+                    });
+                    messagesList = deduplicateMessagesArray(sanitizedData);
                     localStorage.setItem(cacheKey, JSON.stringify(messagesList));
                 }
             }
@@ -1371,27 +1542,95 @@
             container.innerHTML = messagesList.map(msg => {
                 const isMe = msg.sender_phone === currentUser.phone_4;
                 const timeStr = formatTimeShort(msg.created_at);
+                const msgKey = String(msg.client_msg_id || msg.id || msg.created_at);
+                const expiry = getPhotoExpiryStatus(msg.created_at);
+                const isExpiredPhoto = msg.image_expired || (msg.image_data && expiry.expired) || (msg.message_text && msg.message_text.includes('[Foto telah dihapus otomatis'));
+                const hasActivePhoto = Boolean(msg.image_data && !expiry.expired);
+                const isUnlockedForViewer = isMe || isPhotoDownloaded(msgKey);
+                const sizeKB = hasActivePhoto ? getBase64SizeKB(msg.image_data) : 0;
+
+                // Tampilan khusus foto (wajib unduh dulu bagi penerima, dan otomatis hapus dalam 3 hari)
+                let photoSectionHtml = '';
+                if (isExpiredPhoto && !hasActivePhoto) {
+                    photoSectionHtml = `
+                        <div class="mb-1.5 px-3 py-2 rounded-xl border ${isMe ? 'bg-slate-950/20 border-slate-900/30 text-slate-900' : 'bg-slate-950/60 border-slate-800 text-slate-400'} flex items-center gap-2 text-xs italic">
+                            <i class="fa-regular fa-trash-can"></i>
+                            <span>🗑️ Foto telah dihapus otomatis (lewat batas 3 hari)</span>
+                        </div>
+                    `;
+                } else if (hasActivePhoto) {
+                    if (!isUnlockedForViewer) {
+                        // Penerima wajib mengunduh foto terlebih dahulu sebelum foto ditampilkan
+                        photoSectionHtml = `
+                            <div class="mb-1.5 p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-slate-100 w-56 sm:w-64">
+                                <div class="flex items-center gap-2.5 mb-2">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                                        <i class="fa-regular fa-image text-lg"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-white truncate">Foto Masuk (~${sizeKB} KB)</p>
+                                        <p class="text-[10px] text-amber-400 flex items-center gap-1 mt-0.5">
+                                            <i class="fa-regular fa-clock"></i> Hapus otomatis: ${expiry.label}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-slate-400 mb-2.5 leading-snug">
+                                    Unduh foto terlebih dahulu untuk menyimpan & melihat gambar ini.
+                                </p>
+                                <button
+                                    type="button"
+                                    onclick="downloadAndUnlockPhoto('${escapeHtml(msgKey)}')"
+                                    class="w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
+                                >
+                                    <i class="fa-solid fa-download"></i>
+                                    <span>⬇ Unduh & Lihat Foto</span>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        // Sudah diunduh oleh penerima ATAU pengirim sendiri
+                        photoSectionHtml = `
+                            <div class="mb-1.5 overflow-hidden rounded-xl border ${isMe ? 'border-emerald-700/30 bg-slate-950/25' : 'border-slate-700 bg-slate-950/50'} p-1.5">
+                                <img
+                                    src="${msg.image_data}"
+                                    alt="Gambar Chat"
+                                    onload="scrollToBottomChat()"
+                                    onclick="openImageLightbox('${msg.image_data}')"
+                                    class="max-w-[210px] sm:max-w-[260px] max-h-[230px] sm:max-h-[270px] w-auto h-auto object-contain rounded-lg cursor-zoom-in hover:opacity-95 transition block mx-auto"
+                                >
+                                <div class="flex items-center justify-between gap-2 mt-1.5 px-1 pt-1 border-t ${isMe ? 'border-slate-900/15 text-slate-900' : 'border-slate-800 text-slate-300'} text-[10px]">
+                                    <span class="flex items-center gap-1 font-medium">
+                                        <i class="fa-regular fa-clock"></i> ⏳ Hapus: ${expiry.label}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onclick="downloadAndUnlockPhoto('${escapeHtml(msgKey)}')"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded ${isMe ? 'bg-slate-900/20 hover:bg-slate-900/30 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-emerald-400'} font-semibold transition cursor-pointer"
+                                        title="Simpan / Unduh Ulang Foto"
+                                    >
+                                        <i class="fa-solid fa-download"></i> Unduh (${sizeKB} KB)
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Sembunyikan teks placeholder otomatis jika sudah dirender oleh badge expired
+                const displayMsgText = (msg.message_text && !msg.message_text.includes('[Foto telah dihapus otomatis'))
+                    ? msg.message_text
+                    : '';
 
                 return `
                     <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} shrink-0">
-                        <div class="max-w-[82%] sm:max-w-[70%] rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-md ${
+                        <div class="max-w-[85%] sm:max-w-[72%] rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-md ${
                             isMe
                                 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 rounded-br-sm'
                                 : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-sm'
                         }">
-                            ${msg.image_data ? `
-                                <div class="mb-1.5 overflow-hidden rounded-xl border ${isMe ? 'border-emerald-700/30' : 'border-slate-700'} bg-slate-950/30">
-                                    <img
-                                        src="${msg.image_data}"
-                                        alt="Gambar Chat"
-                                        onload="scrollToBottomChat()"
-                                        onclick="openImageLightbox('${msg.image_data}')"
-                                        class="max-w-[210px] sm:max-w-[270px] max-h-[240px] sm:max-h-[280px] w-auto h-auto object-contain rounded-xl cursor-zoom-in hover:opacity-95 transition block mx-auto"
-                                    >
-                                </div>
-                            ` : ''}
-                            ${msg.message_text ? `
-                                <p class="text-xs sm:text-sm leading-relaxed break-words ${isMe ? 'font-medium text-slate-950' : 'text-slate-100'}">${escapeHtml(msg.message_text)}</p>
+                            ${photoSectionHtml}
+                            ${displayMsgText ? `
+                                <p class="text-xs sm:text-sm leading-relaxed break-words ${isMe ? 'font-medium text-slate-950' : 'text-slate-100'}">${escapeHtml(displayMsgText)}</p>
                             ` : ''}
                             <div class="flex items-center justify-end gap-1 mt-1">
                                 <span class="text-[10px] ${isMe ? 'text-slate-900/75 font-medium' : 'text-slate-400'}">${timeStr}</span>
@@ -1497,6 +1736,11 @@
 
                 if (error) {
                     console.warn('Gagal insert chat_messages:', error.message);
+                }
+
+                // Jika mengirim gambar, jalankan juga pembersihan foto lama > 3 hari di background
+                if (newMsg.image_data) {
+                    cleanupExpiredPhotos();
                 }
             }
         }
@@ -1673,6 +1917,8 @@
          **************************************************************/
         let peerConnection = null;
         let localAudioStream = null;
+        let remoteMediaStream = null;
+        let iceCandidateQueue = []; // Antrean ICE Candidate sebelum remoteDescription siap
         let callPartnerPhone = null;
         let incomingOfferPayload = null;
         let callTimerInterval = null;
@@ -1680,13 +1926,94 @@
         let isMicMuted = false;
         let ringtoneTimer = null;
         let audioCtx = null;
+        let micAnalyserInterval = null;
+        let micAudioCtx = null;
 
         const RTC_CONFIG = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
             ]
         };
+
+        // Fungsi untuk memutar paksa stream suara lawan bicara (mengatasi blokir autoplay browser mobile)
+        async function forceUnlockRemoteAudio() {
+            const remoteAudio = document.getElementById('remoteAudio');
+            const unlockBtn = document.getElementById('unlockAudioBtn');
+            if (!remoteAudio) return;
+
+            try {
+                remoteAudio.muted = false;
+                remoteAudio.volume = 1.0;
+                if (remoteMediaStream && remoteAudio.srcObject !== remoteMediaStream) {
+                    remoteAudio.srcObject = remoteMediaStream;
+                }
+                await remoteAudio.play();
+                if (unlockBtn) unlockBtn.classList.add('hidden');
+                showToast('Speaker panggilan suara aktif!', 'success');
+            } catch (err) {
+                if (unlockBtn) unlockBtn.classList.remove('hidden');
+            }
+        }
+
+        // Flush semua ICE Candidate yang sempat mengantre sebelum setRemoteDescription selesai
+        async function flushQueuedIceCandidates() {
+            if (!peerConnection || !peerConnection.remoteDescription) return;
+            while (iceCandidateQueue.length > 0) {
+                const candidateInit = iceCandidateQueue.shift();
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidateInit));
+                } catch (err) {
+                    console.warn('Gagal menambahkan queued ICE candidate:', err);
+                }
+            }
+        }
+
+        // Visualizer level suara mikrofon selama panggilan berlangsung
+        function startMicVisualizer(stream) {
+            stopMicVisualizer();
+            if (!stream) return;
+            try {
+                micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = micAudioCtx.createMediaStreamSource(stream);
+                const analyser = micAudioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                const wrapper = document.getElementById('micLevelWrapper');
+                const bar = document.getElementById('micLevelBar');
+                if (wrapper) wrapper.classList.remove('hidden');
+
+                micAnalyserInterval = setInterval(() => {
+                    if (isMicMuted) {
+                        if (bar) bar.style.width = '0%';
+                        return;
+                    }
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    const avg = sum / dataArray.length;
+                    const pct = Math.min(100, Math.max(8, Math.round((avg / 90) * 100)));
+                    if (bar) bar.style.width = `${pct}%`;
+                }, 100);
+            } catch (e) {}
+        }
+
+        function stopMicVisualizer() {
+            if (micAnalyserInterval) {
+                clearInterval(micAnalyserInterval);
+                micAnalyserInterval = null;
+            }
+            if (micAudioCtx) {
+                micAudioCtx.close().catch(() => {});
+                micAudioCtx = null;
+            }
+            const wrapper = document.getElementById('micLevelWrapper');
+            if (wrapper) wrapper.classList.add('hidden');
+        }
 
         // Efek suara dering telepon menggunakan Web Audio API (tanpa file eksternal)
         function startRingtoneSound() {
@@ -1742,13 +2069,211 @@
             const contact = contactsMap.get(activeContactPhone);
             if (!contact) return;
 
+            // Siapkan elemen audio langsung dari klik pengguna (user gesture) agar tidak diblokir browser
+            const remoteAudio = document.getElementById('remoteAudio');
+            if (remoteAudio) {
+                remoteAudio.muted = false;
+                remoteAudio.volume = 1.0;
+            }
+
             try {
-                // Hanya meminta izin AUDIO (video: false) sesuai spesifikasi
-                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                // Minta izin AUDIO dengan echoCancellation & noiseSuppression agar suara jernih
+                localAudioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
             } catch (err) {
                 showToast('Izin mikrofon diperlukan untuk melakukan Voice Call!', 'error');
                 return;
             }
+
+            callPartnerPhone = activeContactPhone;
+            iceCandidateQueue = [];
+
+            openVoiceCallModalUI({
+                name: contact.display_name,
+                phone: contact.phone_4,
+                avatar: contact.avatar_url,
+                status: 'Memanggil (Voice Call)...',
+                isIncoming: false
+            });
+
+            startRingtoneSound();
+            startMicVisualizer(localAudioStream);
+            await createWebRTCPeerConnection();
+
+            const offer = await peerConnection.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: false
+            });
+            await peerConnection.setLocalDescription(offer);
+
+            sendVoiceSignal('call_offer', { sdp: { type: offer.type, sdp: offer.sdp } });
+        }
+
+        async function createWebRTCPeerConnection() {
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            peerConnection = new RTCPeerConnection(RTC_CONFIG);
+            remoteMediaStream = new MediaStream();
+
+            const remoteAudio = document.getElementById('remoteAudio');
+            if (remoteAudio) {
+                remoteAudio.srcObject = remoteMediaStream;
+                remoteAudio.volume = 1.0;
+                remoteAudio.muted = false;
+            }
+
+            if (localAudioStream) {
+                localAudioStream.getTracks().forEach(track => {
+                    track.enabled = true;
+                    peerConnection.addTrack(track, localAudioStream);
+                });
+            }
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendVoiceSignal('ice_candidate', { candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate });
+                }
+            };
+
+            peerConnection.ontrack = async (event) => {
+                const audioEl = document.getElementById('remoteAudio');
+                if (!audioEl) return;
+
+                if (event.streams && event.streams[0]) {
+                    remoteMediaStream = event.streams[0];
+                    audioEl.srcObject = remoteMediaStream;
+                } else if (event.track) {
+                    if (!remoteMediaStream) remoteMediaStream = new MediaStream();
+                    remoteMediaStream.addTrack(event.track);
+                    audioEl.srcObject = remoteMediaStream;
+                }
+
+                audioEl.muted = false;
+                audioEl.volume = 1.0;
+
+                try {
+                    await audioEl.play();
+                    document.getElementById('unlockAudioBtn')?.classList.add('hidden');
+                } catch (playErr) {
+                    // Tampilkan tombol manual apabila browser HP menahan autoplay audio
+                    document.getElementById('unlockAudioBtn')?.classList.remove('hidden');
+                }
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                if (!peerConnection) return;
+                const state = peerConnection.iceConnectionState;
+                if (state === 'connected' || state === 'completed') {
+                    onVoiceCallConnected();
+                    forceUnlockRemoteAudio();
+                } else if (state === 'failed' || state === 'closed') {
+                    endVoiceCall(false);
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                if (!peerConnection) return;
+                if (peerConnection.connectionState === 'connected') {
+                    onVoiceCallConnected();
+                    forceUnlockRemoteAudio();
+                } else if (['failed', 'closed'].includes(peerConnection.connectionState)) {
+                    endVoiceCall(false);
+                }
+            };
+        }
+
+        async function handleIncomingWebRTCSignal(payload) {
+            const { type, from, from_name, from_avatar, sdp, candidate } = payload;
+
+            if (type === 'call_offer') {
+                // Jika sedang dalam panggilan lain, abaikan
+                if (peerConnection) return;
+                callPartnerPhone = from;
+                incomingOfferPayload = payload;
+                iceCandidateQueue = [];
+
+                openVoiceCallModalUI({
+                    name: from_name || `Kontak #${from}`,
+                    phone: from,
+                    avatar: from_avatar || PRESET_AVATARS[1],
+                    status: 'Panggilan Suara Masuk...',
+                    isIncoming: true
+                });
+                startRingtoneSound();
+            } else if (type === 'call_answer') {
+                stopRingtoneSound();
+                if (peerConnection && sdp) {
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+                        await flushQueuedIceCandidates();
+                        onVoiceCallConnected();
+                        await forceUnlockRemoteAudio();
+                    } catch (err) {
+                        console.error('Gagal menerapkan call_answer SDP:', err);
+                    }
+                }
+            } else if (type === 'ice_candidate') {
+                if (!candidate) return;
+                // Jika peerConnection belum dibuat atau remoteDescription belum terpasang, simpan di antrean!
+                if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (e) {
+                        console.warn('Gagal addIceCandidate langsung:', e);
+                    }
+                } else {
+                    iceCandidateQueue.push(candidate);
+                }
+            } else if (type === 'call_hangup' || type === 'call_rejected') {
+                stopRingtoneSound();
+                showToast(type === 'call_rejected' ? 'Panggilan suara ditolak.' : 'Panggilan suara diakhiri.', 'info');
+                endVoiceCall(false);
+            }
+        }
+
+        async function acceptIncomingCall() {
+            if (!incomingOfferPayload) return;
+            stopRingtoneSound();
+
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
+            } catch (err) {
+                showToast('Gagal mengakses mikrofon untuk menerima panggilan!', 'error');
+                rejectIncomingCall();
+                return;
+            }
+
+            document.getElementById('incomingCallActions').classList.add('hidden');
+            document.getElementById('activeCallActions').classList.remove('hidden');
+
+            startMicVisualizer(localAudioStream);
+            await createWebRTCPeerConnection();
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferPayload.sdp));
+
+            // Segera proses semua ICE candidate dari penelepon yang masuk saat telepon masih berdering!
+            await flushQueuedIceCandidates();
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            sendVoiceSignal('call_answer', { sdp: { type: answer.type, sdp: answer.sdp } });
+            onVoiceCallConnected();
+            await forceUnlockRemoteAudio();
+        }
 
             callPartnerPhone = activeContactPhone;
             openVoiceCallModalUI({
@@ -1766,7 +2291,6 @@
             await peerConnection.setLocalDescription(offer);
 
             sendVoiceSignal('call_offer', { sdp: offer });
-        }
 
         async function createWebRTCPeerConnection() {
             if (peerConnection) {
@@ -1914,9 +2438,41 @@
 
         function endVoiceCall(notifyPeer = true) {
             stopRingtoneSound();
+            stopMicVisualizer();
             if (notifyPeer && callPartnerPhone) {
                 sendVoiceSignal('call_hangup');
             }
+
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            if (localAudioStream) {
+                localAudioStream.getTracks().forEach(t => t.stop());
+                localAudioStream = null;
+            }
+
+            const remoteAudio = document.getElementById('remoteAudio');
+            if (remoteAudio) {
+                remoteAudio.srcObject = null;
+            }
+            remoteMediaStream = null;
+            iceCandidateQueue = [];
+            callPartnerPhone = null;
+            incomingOfferPayload = null;
+            isMicMuted = false;
+
+            document.getElementById('voiceCallModal').classList.add('hidden');
+            document.getElementById('callTimerLabel').classList.add('hidden');
+            document.getElementById('callWaveIndicator').classList.add('hidden');
+            document.getElementById('unlockAudioBtn')?.classList.add('hidden');
+        }
 
             if (callTimerInterval) {
                 clearInterval(callTimerInterval);
@@ -1940,7 +2496,6 @@
             document.getElementById('voiceCallModal').classList.add('hidden');
             document.getElementById('callTimerLabel').classList.add('hidden');
             document.getElementById('callWaveIndicator').classList.add('hidden');
-        }
 
         function openVoiceCallModalUI({ name, phone, avatar, status, isIncoming }) {
             document.getElementById('callPartnerName').textContent = name;
