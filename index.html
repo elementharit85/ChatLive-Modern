@@ -1,501 +1,2202 @@
 <!DOCTYPE html>
 <html lang="id" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AeroChat - Live Student Messenger</title>
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- Google Fonts Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexChat 4-Digit — Live Chat & Voice Call Supabase</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS v2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-  <!-- Supabase JS Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
             }
-          }
         }
-      }
-    }
-  </script>
-  <style>
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
-    ::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: #1d4ed8; }
-    .custom-scroll { scrollbar-width: thin; scrollbar-color: #2563eb rgba(15, 23, 42, 0.4); }
-  </style>
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.6);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.7);
+        }
+
+        /* Pulse Ring Animation for Voice Call */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            70% { transform: scale(1.35); opacity: 0; }
+            100% { transform: scale(1.35); opacity: 0; }
+        }
+        .animate-call-ring::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 9999px;
+            border: 3px solid #10b981;
+            animation: pulse-ring 2s infinite;
+        }
+
+        /* Sound Wave Bars Animation */
+        @keyframes sound-wave {
+            0%, 100% { height: 6px; }
+            50% { height: 24px; }
+        }
+        .wave-bar {
+            width: 4px;
+            background-color: #34d399;
+            border-radius: 9999px;
+            animation: sound-wave 1s ease-in-out infinite;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+
+        /* Chat Pattern Background */
+        .chat-bg {
+            background-color: #0b1120;
+            background-image: radial-gradient(rgba(16, 185, 129, 0.07) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+    </style>
 </head>
-<body class="bg-[#080d1f] text-slate-100 font-sans antialiased h-screen overflow-hidden select-none">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white overflow-hidden h-screen w-screen flex flex-col">
 
-  <!-- ================= NOTIFICATION TOAST ================= -->
-  <div id="toastNotification" class="fixed top-5 right-5 z-50 transform translate-y-[-120%] opacity-0 transition-all duration-300 max-w-sm flex items-center gap-3 p-4 rounded-2xl bg-slate-900 border border-blue-500/40 text-slate-100 shadow-2xl backdrop-blur-md">
-    <div id="toastIcon" class="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center shrink-0">
-      <i class="fa-solid fa-check text-sm"></i>
+    <!-- ==========================================
+         TOP BAR STATUS & SQL GUIDE BUTTON
+    =========================================== -->
+    <div class="h-10 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-6 flex items-center justify-between text-xs z-30 shrink-0">
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span id="supabaseStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="supabaseStatusText">Menghubungkan Supabase...</span>
+            </span>
+            <span class="hidden md:inline text-slate-500 font-mono text-[11px]">zyddldgtefrtwjgymbtk.supabase.co</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="openSqlModal()" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                <i class="fa-solid fa-database text-emerald-400"></i>
+                <span>Setup SQL Supabase</span>
+            </button>
+        </div>
     </div>
-    <div class="flex-1 text-xs font-medium" id="toastMessage">Pemberitahuan</div>
-  </div>
 
-  <!-- ================= 1. AUTH SCREEN (LOGIN & REGISTER) ================= -->
-  <div id="authScreen" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-gradient-to-br from-[#060a17] via-[#0d1633] to-[#080e22]">
-    <div class="absolute w-96 h-96 bg-blue-600/15 rounded-full blur-[100px] pointer-events-none -top-20 -left-20"></div>
-    <div class="absolute w-96 h-96 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none -bottom-20 -right-20"></div>
+    <!-- ==========================================
+         TOAST NOTIFICATION CONTAINER
+    =========================================== -->
+    <div id="toastContainer" class="fixed top-14 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 
-    <div class="w-full max-w-md bg-slate-900/90 border border-slate-700/60 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative z-10">
-      <!-- Logo & Brand -->
-      <div class="text-center mb-6">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 text-white text-3xl shadow-lg shadow-blue-500/30 mb-3">
-          <i class="fa-brands fa-whatsapp"></i>
-        </div>
-        <h1 class="text-2xl font-bold text-white tracking-wide">AeroChat Live</h1>
-        <p class="text-xs text-blue-300/80 mt-1">Sistem Obrolan Siswa & Pertukaran ID 4-Digit</p>
-      </div>
+    <!-- ==========================================
+         PAGE 1: LOGIN / REGISTER (4-DIGIT + PIN)
+    =========================================== -->
+    <main id="authPage" class="flex-1 overflow-y-auto flex items-center justify-center p-4 chat-bg">
+        <div class="w-full max-w-md bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 relative overflow-hidden">
+            <!-- Decorative Glow -->
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      <!-- Auth Switcher Tabs -->
-      <div class="grid grid-cols-2 p-1 bg-slate-800/80 rounded-xl mb-6 border border-slate-700/50">
-        <button type="button" id="tabLoginBtn" onclick="switchAuthTab('login')" class="py-2.5 text-xs font-semibold rounded-lg transition-all text-white bg-blue-600 shadow-md">
-          Masuk
-        </button>
-        <button type="button" id="tabRegisterBtn" onclick="switchAuthTab('register')" class="py-2.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition-all">
-          Buat Akun Baru
-        </button>
-      </div>
-
-      <!-- Auth Form -->
-      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
-        <!-- Name Field (Register Only) -->
-        <div id="nameFieldGroup" class="hidden">
-          <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-              <i class="fa-regular fa-user text-xs"></i>
-            </span>
-            <input type="text" id="authNameInput" placeholder="Contoh: Alex Pratama" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all" />
-          </div>
-        </div>
-
-        <!-- Email Field -->
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Email Mahasiswa / Akun</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-              <i class="fa-regular fa-envelope text-xs"></i>
-            </span>
-            <input type="email" id="authEmailInput" required placeholder="nama@kampus.ac.id" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all" />
-          </div>
-        </div>
-
-        <!-- Password Field -->
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Kata Sandi</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-              <i class="fa-solid fa-lock text-xs"></i>
-            </span>
-            <input type="password" id="authPasswordInput" required placeholder="••••••••" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all" />
-            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200">
-              <i class="fa-regular fa-eye text-xs" id="togglePasswordIcon"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Info 4 Digit Code Lock -->
-        <div id="codeLockNotice" class="hidden p-3 rounded-xl bg-blue-950/40 border border-blue-500/30 text-[11px] text-blue-200">
-          <i class="fa-solid fa-lock text-blue-400 mr-1.5"></i>
-          Sistem akan men-generate <strong>Kode Unik 4-Digit Permanen (Locked)</strong> untuk Anda setelah pendaftaran akun berhasil.
-        </div>
-
-        <!-- Submit Button -->
-        <button type="submit" id="authSubmitBtn" class="w-full mt-2 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white text-xs font-semibold rounded-xl shadow-lg shadow-blue-600/30 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
-          <span>Masuk ke Akun</span>
-          <i class="fa-solid fa-arrow-right text-xs"></i>
-        </button>
-      </form>
-
-      <div class="mt-5 pt-3 border-t border-slate-800 text-center">
-        <span class="text-[11px] text-slate-400">
-          <i class="fa-solid fa-cloud text-emerald-400 mr-1"></i> Terhubung ke Supabase Cloud Backend
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= 2. MAIN CHAT SHELL ================= -->
-  <div id="mainChatApp" class="h-full flex overflow-hidden bg-[#090f24]">
-
-    <!-- ================= LEFT SIDEBAR (USER BAR & CONTACTS) ================= -->
-    <aside id="chatSidebar" class="w-full md:w-[360px] lg:w-[400px] h-full flex flex-col bg-[#0e1738] border-r border-slate-800/80 shrink-0 z-20">
-      
-      <!-- User Profile Header -->
-      <div class="p-3.5 bg-[#121d45] border-b border-slate-800/90 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <!-- Profile Avatar (Clickable to Edit) -->
-          <div class="relative cursor-pointer group" onclick="openEditProfileModal()" title="Klik untuk ubah foto atau nama">
-            <img id="myAvatar" src="" alt="Avatar" class="w-11 h-11 rounded-full object-cover border-2 border-blue-500 p-0.5 group-hover:opacity-80 transition" />
-            <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#121d45] rounded-full"></span>
-            <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-              <i class="fa-solid fa-camera text-white text-[10px]"></i>
-            </div>
-          </div>
-
-          <!-- Profile Details & Locked 4-Digit Badge -->
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span id="myDisplayName" class="font-semibold text-xs text-white truncate max-w-[120px]">Memuat...</span>
-              <button onclick="openEditProfileModal()" class="text-slate-400 hover:text-blue-400 text-[10px]">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-            </div>
-            
-            <!-- Unique Code Badge (Locked - Non Editable) -->
-            <div class="flex items-center gap-1 mt-0.5">
-              <span class="text-[10px] text-slate-400">ID Unik:</span>
-              <button onclick="copyMyCode()" class="flex items-center gap-1 bg-blue-950/70 hover:bg-blue-900 border border-blue-500/40 text-blue-300 hover:text-white px-2 py-0.5 rounded-md text-[11px] font-mono transition-all" title="Kode permanen Anda (Terkunci)">
-                <span class="font-bold text-blue-400">#</span><span id="myFriendCode">0000</span>
-                <i class="fa-solid fa-lock text-[9px] text-amber-400 ml-0.5" title="Kode unik terkunci permanen"></i>
-                <i class="fa-regular fa-copy text-[10px] opacity-70 ml-1"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sidebar Navigation Buttons -->
-        <div class="flex items-center gap-1.5">
-          <button onclick="openSqlModal()" class="w-8 h-8 rounded-xl flex items-center justify-center text-emerald-400 hover:text-white hover:bg-emerald-600/30 transition-all" title="Panduan SQL Supabase">
-            <i class="fa-solid fa-database text-xs"></i>
-          </button>
-          <button onclick="openAddFriendModal()" class="w-8 h-8 rounded-xl flex items-center justify-center text-blue-400 hover:text-white hover:bg-blue-600/30 transition-all" title="Tambah Teman via 4-Digit">
-            <i class="fa-solid fa-user-plus text-xs"></i>
-          </button>
-          <button onclick="logoutCurrentUser()" class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Keluar">
-            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Search Contacts Input -->
-      <div class="p-3 border-b border-slate-800/80 bg-[#0c1432]">
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-            <i class="fa-solid fa-magnifying-glass text-xs"></i>
-          </span>
-          <input type="text" id="searchFriendInput" oninput="handleFriendSearch(this.value)" placeholder="Cari nama atau #kode teman..." class="w-full bg-[#142048] border border-slate-700/50 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all" />
-        </div>
-      </div>
-
-      <!-- Contacts Container (Pure user contacts only, initially empty) -->
-      <div id="contactsContainer" class="flex-1 overflow-y-auto custom-scroll divide-y divide-slate-800/40">
-        <!-- Rendered via chat.js -->
-      </div>
-    </aside>
-
-    <!-- ================= RIGHT CHAT CONTAINER ================= -->
-    <main id="mainChatArea" class="flex-1 flex flex-col h-full bg-[#080d21] relative">
-
-      <!-- Empty State (No Active Contact Selected) -->
-      <div id="emptyChatPlaceholder" class="h-full flex flex-col items-center justify-center text-center p-6 bg-[#080d21]">
-        <div class="w-20 h-20 rounded-3xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-3xl mb-4 shadow-xl shadow-blue-950/50">
-          <i class="fa-solid fa-comments"></i>
-        </div>
-        <h3 class="text-base font-bold text-white mb-1">AeroChat Live Mahasiswa</h3>
-        <p class="text-xs text-slate-400 max-w-sm mb-5 leading-relaxed">
-          Belum ada percakapan terbuka. Bagikan kode unik 4-digit Anda ke teman sekelas atau klik tombol di bawah untuk menambahkan teman.
-        </p>
-        <button onclick="openAddFriendModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
-          <i class="fa-solid fa-user-plus"></i> Tambah Teman Sekelas
-        </button>
-      </div>
-
-      <!-- Active Chat Window -->
-      <div id="activeChatWindow" class="h-full flex flex-col hidden">
-        <!-- Chat Header -->
-        <header class="p-3.5 bg-[#0f193f] border-b border-slate-800/90 flex items-center justify-between z-10 shadow-md">
-          <div class="flex items-center gap-3">
-            <!-- Mobile back button -->
-            <button onclick="backToSidebarMobile()" class="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:bg-slate-800">
-              <i class="fa-solid fa-arrow-left text-xs"></i>
-            </button>
-
-            <!-- Friend Avatar -->
-            <div class="relative">
-              <img id="activeContactAvatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-blue-500/40" />
-              <span id="activeContactOnlineDot" class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0f193f] rounded-full"></span>
+            <!-- Header Logo -->
+            <div class="text-center mb-6 relative">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/25">
+                    <i class="fa-solid fa-comments text-2xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">NexChat 4-Digit</h1>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                    Masukkan <span class="text-emerald-400 font-semibold">Nomor 4-Digit</span> & <span class="text-emerald-400 font-semibold">PIN</span> untuk masuk atau membuat kontak baru secara otomatis.
+                </p>
             </div>
 
-            <!-- Friend Name and Status -->
-            <div>
-              <h2 id="activeContactName" class="text-xs font-semibold text-white tracking-wide">Pilih Teman</h2>
-              <div class="flex items-center gap-1.5">
-                <span id="activeContactStatusLabel" class="text-[11px] text-emerald-400 font-medium">Online</span>
-                <span class="text-slate-600 text-[10px]">•</span>
-                <span id="activeContactCodeTag" class="text-[10px] font-mono text-blue-300">#0000</span>
-              </div>
+            <!-- DB Warning Banner if Table Not Created Yet -->
+            <div id="dbMissingBanner" class="hidden mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
+                <div class="flex items-start gap-2.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-sm mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-semibold text-amber-300">Tabel Supabase Belum Dibuat / Mode Hybrid Aktif</p>
+                        <p class="mt-0.5 text-amber-200/80">Klik tombol <b>Setup SQL Supabase</b> di kanan atas untuk menyalin script SQL ke Supabase Anda. Saat ini aplikasi juga mendukung sinkronisasi Realtime Broadcast langsung.</p>
+                    </div>
+                </div>
             </div>
-          </div>
 
-          <!-- Header Voice & Video Call Action Buttons -->
-          <div class="flex items-center gap-2">
-            <button onclick="initiateCall('voice')" class="w-9 h-9 rounded-xl text-blue-400 hover:bg-blue-600/20 flex items-center justify-center transition-all" title="Panggilan Suara">
-              <i class="fa-solid fa-phone text-xs"></i>
-            </button>
-            <button onclick="initiateCall('video')" class="w-9 h-9 rounded-xl text-cyan-400 hover:bg-cyan-600/20 flex items-center justify-center transition-all" title="Panggilan Video">
-              <i class="fa-solid fa-video text-xs"></i>
-            </button>
-          </div>
-        </header>
+            <!-- Auth Form -->
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4 relative">
+                <!-- 4-Digit Number Input -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                            Nomor Kontak (4 Digit) <span class="text-rose-400">*</span>
+                        </label>
+                        <button type="button" onclick="generateRandom4Digit()" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-dice"></i> Acak Nomor
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 font-mono font-bold">#</span>
+                        <input
+                            type="text"
+                            id="authPhone4"
+                            maxlength="4"
+                            pattern="\d{4}"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, ''); checkExistingUserPreview(this.value)"
+                            placeholder="1024"
+                            required
+                            class="w-full pl-9 pr-28 py-3 bg-slate-950/90 border border-slate-700/80 rounded-xl text-lg font-mono tracking-widest text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+                        >
+                        <span id="userCheckBadge" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400">
+                            4 Angka
+                        </span>
+                    </div>
+                </div>
 
-        <!-- Message History List -->
-        <div id="messagesList" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 custom-scroll bg-[radial-gradient(#1e3a8a_0.6px,transparent_0.6px)] [background-size:20px_20px] bg-opacity-10">
-          <!-- Rendered via chat.js -->
+                <!-- PIN Input -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        PIN Rahasia (Akses Masuk Kembali) <span class="text-rose-400">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                            <i class="fa-solid fa-lock text-xs"></i>
+                        </span>
+                        <input
+                            type="password"
+                            id="authPin"
+                            maxlength="6"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            placeholder="Masukkan 4 - 6 digit PIN"
+                            required
+                            class="w-full pl-10 pr-10 py-3 bg-slate-950/90 border border-slate-700/80 rounded-xl text-sm font-mono tracking-widest text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+                        >
+                        <button type="button" onclick="togglePinVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200">
+                            <i id="pinEyeIcon" class="fa-regular fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        Jika nomor sudah terdaftar, cukup masukkan PIN yang sama tanpa daftar ulang.
+                    </p>
+                </div>
+
+                <!-- Profile Fields (Shown for new users or optional update) -->
+                <div id="newProfileFields" class="space-y-4 pt-2 border-t border-slate-800/80">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                            Nama Tampilan
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                                <i class="fa-regular fa-user text-xs"></i>
+                            </span>
+                            <input
+                                type="text"
+                                id="authName"
+                                maxlength="30"
+                                placeholder="Contoh: Budi Santoso (Opsional saat login)"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-950/90 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Avatar Picker & Upload -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                            Foto Profil Kontak
+                        </label>
+                        <div class="flex items-center gap-3.5">
+                            <div class="relative group shrink-0">
+                                <img id="authAvatarPreview" src="" alt="Preview Profil" class="w-14 h-14 rounded-2xl object-cover border-2 border-emerald-500/60 bg-slate-800 shadow-md">
+                                <label for="authAvatarFile" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center text-xs cursor-pointer shadow-lg transition" title="Upload Foto">
+                                    <i class="fa-solid fa-camera"></i>
+                                </label>
+                                <input type="file" id="authAvatarFile" accept="image/*" class="hidden" onchange="handleAuthAvatarUpload(event)">
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs text-slate-300 mb-1.5">Pilih cepat atau upload foto (JPG/PNG):</p>
+                                <div class="flex items-center gap-1.5 flex-wrap" id="presetAvatarsContainer">
+                                    <!-- Generated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Alert Box -->
+                <div id="authErrorBox" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-rose-400 shrink-0"></i>
+                    <span id="authErrorText">PIN tidak sesuai.</span>
+                </div>
+
+                <!-- Submit Button -->
+                <button
+                    type="submit"
+                    id="authSubmitBtn"
+                    class="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition transform active:scale-[0.99] cursor-pointer"
+                >
+                    <span id="authSubmitText">Masuk / Buat Kontak 4-Digit</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
         </div>
-
-        <!-- Photo Send Preview Bar (Before Submission) -->
-        <div id="photoPreviewBar" class="hidden p-3 bg-[#111c44] border-t border-slate-700/80 flex items-center gap-3">
-          <div class="relative w-14 h-14 rounded-lg overflow-hidden border border-blue-500/50">
-            <img id="photoPreviewImg" src="" alt="Pratinjau Foto" class="w-full h-full object-cover" />
-            <button onclick="cancelPhotoSelection()" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow">
-              <i class="fa-solid fa-times"></i>
-            </button>
-          </div>
-          <div class="flex-1 text-[11px]">
-            <p class="text-white font-medium">Foto siap dikirim</p>
-            <p class="text-slate-400">Ketik pesan pendamping jika diinginkan lalu klik kirim.</p>
-          </div>
-        </div>
-
-        <!-- Chat Input Bar -->
-        <footer class="p-3 md:p-3.5 bg-[#0e173a] border-t border-slate-800/80 flex items-center gap-2">
-          <!-- Photo Upload Button (Image Only, Strictly No Videos) -->
-          <label for="chatPhotoInput" class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-blue-600/20 cursor-pointer transition-all shrink-0" title="Kirim Foto (Hanya Gambar)">
-            <i class="fa-regular fa-image text-base"></i>
-            <input type="file" id="chatPhotoInput" accept="image/*" class="hidden" onchange="onPhotoPicked(event)" />
-          </label>
-
-          <!-- Text Message Field -->
-          <div class="flex-1 relative">
-            <input type="text" id="chatTextInput" onkeydown="onChatInputKeydown(event)" placeholder="Ketik pesan..." class="w-full bg-[#15214b] border border-slate-700/70 rounded-2xl px-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all" />
-          </div>
-
-          <!-- Send Action Button -->
-          <button onclick="dispatchCurrentMessage()" class="w-10 h-10 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 active:scale-95 transition-all shrink-0">
-            <i class="fa-solid fa-paper-plane text-xs"></i>
-          </button>
-        </footer>
-      </div>
     </main>
 
-  </div>
+    <!-- ==========================================
+         PAGE 2: LIVE CHAT MAIN APPLICATION
+    =========================================== -->
+    <div id="chatAppPage" class="hidden flex-1 flex overflow-hidden relative">
 
-  <!-- ================= 3. MODAL: EDIT PROFILE & AVATAR ================= -->
-  <div id="editProfileModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden">
-    <div class="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl relative">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-user-pen text-blue-500"></i> Edit Profil Pengguna
-        </h3>
-        <button onclick="closeEditProfileModal()" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white">
-          <i class="fa-solid fa-times text-xs"></i>
-        </button>
-      </div>
+        <!-- LEFT SIDEBAR: PROFILE + INVITE + CONTACT LIST -->
+        <aside id="sidebarPanel" class="w-full md:w-80 lg:w-96 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-20">
+            
+            <!-- Current User Profile Header -->
+            <div class="p-3.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="relative shrink-0 group cursor-pointer" onclick="triggerChangeOwnAvatar()" title="Klik untuk ganti Foto Profil">
+                        <img id="myAvatarImg" src="" alt="Avatar Saya" class="w-11 h-11 rounded-2xl object-cover border border-slate-700 bg-slate-800">
+                        <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-slate-900" title="Status Anda: Online"></span>
+                        <div class="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                            <i class="fa-solid fa-camera text-white text-xs"></i>
+                        </div>
+                        <input type="file" id="changeOwnAvatarInput" accept="image/*" class="hidden" onchange="handleChangeOwnAvatar(event)">
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <h2 id="myNameDisplay" class="font-semibold text-sm text-white truncate">Nama User</h2>
+                            <button onclick="openEditProfileModal()" class="text-slate-400 hover:text-emerald-400 text-xs" title="Ubah Nama / Foto">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <button onclick="copyMyNumber()" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-semibold transition" title="Salin Nomor 4-Digit Saya">
+                                <span id="myNumberDisplay">#0000</span>
+                                <i class="fa-regular fa-copy text-[10px]"></i>
+                            </button>
+                            <span class="text-[11px] text-emerald-400 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Online
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-      <div class="space-y-4 text-xs">
-        <!-- Avatar Preview & Upload -->
-        <div class="flex flex-col items-center">
-          <div class="relative w-20 h-20 rounded-full overflow-hidden border-2 border-blue-500 mb-2">
-            <img id="editAvatarPreview" src="" alt="Avatar" class="w-full h-full object-cover" />
-          </div>
-          <label for="profilePhotoInput" class="cursor-pointer text-blue-400 hover:underline font-medium">
-            Ganti Foto Profil
-            <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" onchange="onProfileAvatarPicked(event)" />
-          </label>
-        </div>
+                <!-- Action Buttons (Logout) -->
+                <div class="flex items-center gap-1">
+                    <button onclick="handleLogout()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-slate-700/80 transition cursor-pointer" title="Keluar (Logout)">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </div>
 
-        <!-- Name Edit -->
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1 text-[10px]">Nama Lengkap</label>
-          <input type="text" id="editNameInput" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500" />
-        </div>
+            <!-- Invite Contact by 4-Digit Bar -->
+            <div class="p-3 bg-slate-900/60 border-b border-slate-800">
+                <form onsubmit="handleInviteContact(event)" class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-plus text-emerald-400"></i>
+                            Invite Kontak via Nomor 4-Digit
+                        </label>
+                        <button type="button" onclick="openDirectoryModal()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-users-viewfinder"></i> Lihat User Aktif
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-mono text-xs font-bold">#</span>
+                            <input
+                                type="text"
+                                id="inviteNumberInput"
+                                maxlength="4"
+                                inputmode="numeric"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                placeholder="Masukkan 4 digit (mis: 2048)"
+                                class="w-full pl-7 pr-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                            >
+                        </div>
+                        <button
+                            type="submit"
+                            id="inviteBtn"
+                            class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs flex items-center gap-1.5 shrink-0 transition shadow-sm cursor-pointer"
+                        >
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Invite</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-        <!-- Locked 4-Digit Code View -->
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1 text-[10px]">ID Kode Teman (Permanen)</label>
-          <div class="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 font-mono">
-            <span class="flex items-center gap-1.5 text-blue-300 font-bold">
-              <i class="fa-solid fa-lock text-amber-400 text-xs"></i>
-              #<span id="editCodeView">0000</span>
-            </span>
-            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Terkunci</span>
-          </div>
-          <p class="text-[10px] text-slate-500 mt-1">Kode acak dibuat saat pendaftaran dan dikunci agar teman kelas tidak kehilangan kontak Anda.</p>
-        </div>
+            <!-- Search Filter in Contact List -->
+            <div class="px-3 py-2 border-b border-slate-800/60">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input
+                        type="text"
+                        id="searchContactInput"
+                        oninput="renderContactList()"
+                        placeholder="Cari nama atau nomor 4-digit..."
+                        class="w-full pl-8 pr-3 py-1.5 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-700"
+                    >
+                </div>
+            </div>
 
-        <button onclick="saveUserProfileChanges()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-600/30">
-          Simpan Perubahan
-        </button>
-      </div>
+            <!-- Contacts List Scrollable Area -->
+            <div id="contactListContainer" class="flex-1 overflow-y-auto divide-y divide-slate-800/50">
+                <!-- Dynamic Contacts Rendered Here -->
+            </div>
+        </aside>
+
+        <!-- RIGHT PANEL: ACTIVE CHAT ROOM -->
+        <section id="chatRoomPanel" class="hidden md:flex flex-1 flex-col bg-slate-950 chat-bg relative overflow-hidden">
+            
+            <!-- EMPTY STATE (When no contact is selected yet) -->
+            <div id="emptyChatState" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                <div class="w-20 h-20 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 shadow-xl">
+                    <i class="fa-regular fa-paper-plane text-3xl text-emerald-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Pilih atau Invite Kontak 4-Digit</h3>
+                <p class="text-xs sm:text-sm text-slate-400 max-w-sm mt-1.5 leading-relaxed">
+                    Bagikan nomor 4-digit Anda <span id="emptyStateMyNumber" class="font-mono text-emerald-400 font-bold">#0000</span> ke teman Anda, atau masukkan nomor 4-digit mereka di kolom <b>Invite Kontak</b>.
+                </p>
+                <div class="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
+                    <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-emerald-400"></i> Chat Real-time
+                    </span>
+                    <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-1.5">
+                        <i class="fa-regular fa-image text-emerald-400"></i> Kirim Gambar
+                    </span>
+                    <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-phone-volume text-emerald-400"></i> Voice Call (Tanpa Video)
+                    </span>
+                </div>
+            </div>
+
+            <!-- ACTIVE CHAT ROOM WRAPPER -->
+            <div id="activeChatWrapper" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+                
+                <!-- Chat Room Header -->
+                <header class="h-16 px-4 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between gap-3 shrink-0 z-10">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- Back Button for Mobile -->
+                        <button onclick="closeMobileChat()" class="md:hidden p-2 -ml-1 rounded-xl text-slate-300 hover:bg-slate-800">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+
+                        <div class="relative shrink-0">
+                            <img id="activeContactAvatar" src="" alt="Avatar Kontak" class="w-10 h-10 rounded-2xl object-cover border border-slate-700 bg-slate-800">
+                            <span id="activeContactDot" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-slate-500 ring-2 ring-slate-900"></span>
+                        </div>
+
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h3 id="activeContactName" class="font-semibold text-sm text-white truncate">Nama Kontak</h3>
+                                <span id="activeContactNumber" class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[11px] font-semibold">#0000</span>
+                            </div>
+                            <p id="activeContactStatusText" class="text-xs text-slate-400 truncate">Offline</p>
+                        </div>
+                    </div>
+
+                    <!-- Voice Call Button Only (NO Video Call per user instruction) -->
+                    <div class="flex items-center gap-2">
+                        <button
+                            onclick="startVoiceCall()"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-semibold text-xs transition cursor-pointer shadow-sm"
+                            title="Panggilan Suara (Voice Call)"
+                        >
+                            <i class="fa-solid fa-phone"></i>
+                            <span class="hidden sm:inline">Voice Call</span>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Chat Messages Container -->
+                <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
+                    <!-- Dynamic Messages Rendered Here -->
+                </div>
+
+                <!-- Selected Image Preview Bar Before Sending -->
+                <div id="pendingImageBanner" class="hidden px-4 py-2.5 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <img id="pendingImageThumb" src="" alt="Preview Gambar" class="w-12 h-12 rounded-xl object-cover border border-emerald-500/50">
+                        <div class="min-w-0">
+                            <p class="text-xs font-medium text-emerald-300">Gambar siap dikirim</p>
+                            <p id="pendingImageInfo" class="text-[11px] text-slate-400 truncate">Ter-kompresi otomatis agar cepat</p>
+                        </div>
+                    </div>
+                    <button onclick="clearPendingImage()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs">
+                        <i class="fa-solid fa-xmark"></i> Batal
+                    </button>
+                </div>
+
+                <!-- Chat Input Bar (Text + Image Only, Rejects Video) -->
+                <form onsubmit="handleSendMessage(event)" class="p-3 bg-slate-900 border-t border-slate-800 flex items-end gap-2 shrink-0">
+                    <!-- Image Picker Button (Strictly Images Only) -->
+                    <label for="chatImageInput" class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700/80 cursor-pointer transition shrink-0 flex items-center justify-center" title="Kirim Gambar (Tanpa Video)">
+                        <i class="fa-regular fa-image text-base"></i>
+                    </label>
+                    <input
+                        type="file"
+                        id="chatImageInput"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        class="hidden"
+                        onchange="handleSelectChatImage(event)"
+                    >
+
+                    <!-- Text Input -->
+                    <div class="flex-1 relative">
+                        <input
+                            type="text"
+                            id="chatMessageInput"
+                            placeholder="Ketik pesan atau kirim gambar..."
+                            autocomplete="off"
+                            class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                        >
+                    </div>
+
+                    <!-- Send Button -->
+                    <button
+                        type="submit"
+                        id="sendMsgBtn"
+                        class="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-1.5 shrink-0 shadow-md shadow-emerald-500/10 cursor-pointer"
+                    >
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span class="hidden sm:inline">Kirim</span>
+                    </button>
+                </form>
+            </div>
+        </section>
     </div>
-  </div>
 
-  <!-- ================= 4. MODAL: ADD FRIEND VIA 4-DIGIT CODE ================= -->
-  <div id="addFriendModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden">
-    <div class="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl relative">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-user-plus text-blue-500"></i> Tambah Kontak Teman
-        </h3>
-        <button onclick="closeAddFriendModal()" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white">
-          <i class="fa-solid fa-times text-xs"></i>
-        </button>
-      </div>
+    <!-- ==========================================
+         MODAL 1: VOICE CALL OVERLAY (NO VIDEO)
+    =========================================== -->
+    <div id="voiceCallModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-lg flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center shadow-2xl relative overflow-hidden">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-5">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Voice Call Audio Real-time (Tanpa Video)</span>
+            </div>
 
-      <p class="text-xs text-slate-400 mb-4">
-        Masukkan 4 digit kode unik milik teman sekelas yang sudah terdaftar.
-      </p>
+            <!-- Caller / Callee Avatar -->
+            <div class="relative w-24 h-24 mx-auto mb-4 animate-call-ring">
+                <img id="callPartnerAvatar" src="" alt="Avatar Call" class="w-24 h-24 rounded-full object-cover border-4 border-emerald-500/50 bg-slate-800 relative z-10">
+            </div>
 
-      <div class="space-y-4">
-        <div>
-          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Kode 4-Digit Teman</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-blue-400 font-bold font-mono text-sm">#</span>
-            <input type="text" id="targetFriendCode" maxlength="4" placeholder="Contoh: 4892" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-2.5 text-base font-mono tracking-widest text-white focus:outline-none focus:border-blue-500" />
-          </div>
+            <h3 id="callPartnerName" class="text-xl font-bold text-white">Nama Kontak</h3>
+            <p id="callPartnerNumber" class="text-xs font-mono text-emerald-400 mt-0.5">#0000</p>
+            <p id="callStatusLabel" class="text-sm text-slate-300 mt-3 font-medium">Memanggil...</p>
+            <p id="callTimerLabel" class="hidden text-lg font-mono font-bold text-emerald-400 mt-1">00:00</p>
+
+            <!-- Audio Wave Indicator when Connected -->
+            <div id="callWaveIndicator" class="hidden h-8 flex items-center justify-center gap-1.5 my-3">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+
+            <!-- Hidden Remote Audio Element for WebRTC Stream -->
+            <audio id="remoteAudioElement" autoplay></audio>
+
+            <!-- Incoming Call Buttons (Answer / Reject) -->
+            <div id="incomingCallActions" class="hidden flex items-center justify-center gap-6 mt-6">
+                <button onclick="rejectIncomingCall()" class="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center text-xl shadow-lg shadow-rose-500/30 transition cursor-pointer" title="Tolak Panggilan">
+                    <i class="fa-solid fa-phone-slash"></i>
+                </button>
+                <button onclick="acceptIncomingCall()" class="w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center text-xl shadow-lg shadow-emerald-500/30 transition animate-bounce cursor-pointer" title="Terima Panggilan Suara">
+                    <i class="fa-solid fa-phone"></i>
+                </button>
+            </div>
+
+            <!-- Active / Outgoing Call Buttons (Mute / End Call) -->
+            <div id="activeCallActions" class="flex items-center justify-center gap-5 mt-6">
+                <button id="muteMicBtn" onclick="toggleMuteMic()" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center text-base transition cursor-pointer" title="Bisukan Mikrofon">
+                    <i id="muteMicIcon" class="fa-solid fa-microphone"></i>
+                </button>
+                <button onclick="endVoiceCall(true)" class="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center text-xl shadow-lg shadow-rose-500/30 transition cursor-pointer" title="Akhiri Panggilan">
+                    <i class="fa-solid fa-phone-slash"></i>
+                </button>
+            </div>
         </div>
-
-        <button onclick="executeAddFriend()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
-          <i class="fa-solid fa-plus"></i> Tambahkan Teman
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= 5. ACTIVE CALL SCREEN (VOICE / VIDEO) ================= -->
-  <div id="callOverlay" class="fixed inset-0 z-50 bg-[#070b1a] flex flex-col justify-between hidden">
-    <div class="p-6 text-center z-10 flex flex-col items-center">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
-        <i id="callHeaderIcon" class="fa-solid fa-phone"></i>
-        <span id="callHeaderType">Panggilan Suara</span>
-      </div>
-      <h2 id="callPeerName" class="text-lg font-bold text-white tracking-wide">Nama Teman</h2>
-      <p id="callStatusText" class="text-xs text-slate-400 mt-1">Menghubungkan...</p>
     </div>
 
-    <div class="flex-1 relative flex items-center justify-center overflow-hidden">
-      <!-- Voice Avatar Mode -->
-      <div id="callAvatarArea" class="flex flex-col items-center justify-center">
-        <div class="relative">
-          <div class="absolute -inset-4 rounded-full bg-blue-600/20 blur-xl animate-pulse"></div>
-          <img id="callPeerAvatar" src="" alt="User" class="relative w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-2xl" />
+    <!-- ==========================================
+         MODAL 2: IMAGE LIGHTBOX PREVIEW
+    =========================================== -->
+    <div id="imageLightboxModal" onclick="closeImageLightbox()" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out">
+        <div class="relative max-w-3xl max-h-[90vh] flex flex-col items-center">
+            <img id="lightboxImage" src="" alt="Preview Gambar Penuh" class="max-h-[82vh] max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl">
+            <button onclick="closeImageLightbox()" class="mt-3 px-4 py-1.5 rounded-full bg-slate-800 text-slate-200 text-xs hover:bg-slate-700">
+                Tutup Preview
+            </button>
         </div>
-      </div>
+    </div>
 
-      <!-- Video Stream Mode -->
-      <div id="callVideoArea" class="absolute inset-0 w-full h-full hidden">
-        <video id="remoteVideoStream" autoplay playsinline class="w-full h-full object-cover bg-slate-950"></video>
-        <div class="absolute bottom-6 right-6 w-32 h-44 bg-slate-900 rounded-2xl overflow-hidden border-2 border-blue-500/60 shadow-2xl z-20">
-          <video id="localVideoStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+    <!-- ==========================================
+         MODAL 3: EDIT PROFILE (NAME & PHOTO)
+    =========================================== -->
+    <div id="editProfileModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base text-white">Ubah Profil Kontak</h3>
+                <button onclick="closeEditProfileModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form onsubmit="handleSaveProfileUpdate(event)" class="space-y-4">
+                <div class="flex flex-col items-center gap-2">
+                    <img id="editProfileAvatarPreview" src="" class="w-20 h-20 rounded-2xl object-cover border-2 border-emerald-500">
+                    <label for="editProfileAvatarInput" class="text-xs text-emerald-400 hover:underline cursor-pointer">
+                        <i class="fa-solid fa-camera mr-1"></i>Pilih Foto Baru
+                    </label>
+                    <input type="file" id="editProfileAvatarInput" accept="image/*" class="hidden" onchange="handleEditModalAvatarChange(event)">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Nama Tampilan</label>
+                    <input type="text" id="editProfileNameInput" required maxlength="30" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeEditProfileModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300">Batal</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Simpan Perubahan</button>
+                </div>
+            </form>
         </div>
-      </div>
     </div>
 
-    <!-- Call Controls -->
-    <div class="p-6 pb-10 flex items-center justify-center gap-4 z-10">
-      <button onclick="toggleAudioMute()" id="muteMicBtn" class="w-12 h-12 rounded-full bg-slate-800 text-white flex items-center justify-center transition shadow-lg">
-        <i class="fa-solid fa-microphone" id="muteMicIcon"></i>
-      </button>
-      <button onclick="toggleCameraStream()" id="toggleCamBtn" class="w-12 h-12 rounded-full bg-slate-800 text-white flex items-center justify-center transition shadow-lg hidden">
-        <i class="fa-solid fa-video" id="toggleCamIcon"></i>
-      </button>
-      <button onclick="endActiveCall()" class="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center text-lg shadow-xl shadow-red-600/40">
-        <i class="fa-solid fa-phone-slash"></i>
-      </button>
+    <!-- ==========================================
+         MODAL 4: DIRECTORY / REGISTERED USERS
+    =========================================== -->
+    <div id="directoryModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h3 class="font-bold text-base text-white">Daftar Nomor 4-Digit Terdaftar</h3>
+                    <p class="text-xs text-slate-400">Klik tombol Invite untuk langsung menambahkan ke kontak Anda</p>
+                </div>
+                <button onclick="closeDirectoryModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="directoryListContainer" class="flex-1 overflow-y-auto divide-y divide-slate-800 my-2">
+                <!-- Populated by JS -->
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- ================= 6. MODAL: PANDUAN SQL SUPABASE ================= -->
-  <div id="sqlModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
-    <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between mb-3 shrink-0">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-database text-emerald-400"></i> Setup Tabel Database Supabase
-        </h3>
-        <button onclick="closeSqlModal()" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white">
-          <i class="fa-solid fa-times text-xs"></i>
-        </button>
-      </div>
+    <!-- ==========================================
+         MODAL 5: SUPABASE SQL SETUP SCRIPT
+    =========================================== -->
+    <div id="sqlSetupModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[88vh]">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-database text-emerald-400 text-lg"></i>
+                    <div>
+                        <h3 class="font-bold text-base text-white">Setup Tabel SQL Supabase</h3>
+                        <p class="text-xs text-slate-400">Jalankan perintah SQL ini sekali saja di menu <b>SQL Editor</b> pada dashboard Supabase Anda (`zyddldgtefrtwjgymbtk`).</p>
+                    </div>
+                </div>
+                <button onclick="closeSqlModal()" class="text-slate-400 hover:text-white p-1.5">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
 
-      <p class="text-xs text-slate-300 mb-3 shrink-0">
-        Jalankan perintah SQL ini sekali di tab <strong class="text-emerald-400">SQL Editor</strong> pada Dashboard Supabase Anda agar fitur Live Chat, Foto, dan Profil multi-device aktif sempurna.
-      </p>
-
-      <div class="flex-1 overflow-y-auto bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-300 custom-scroll select-text mb-4">
-<pre id="sqlSnippet">
--- 1. Buat Tabel Profil Mahasiswa
-CREATE TABLE IF NOT EXISTS profiles (
-  id TEXT PRIMARY KEY,
-  code VARCHAR(4) UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  avatar TEXT,
-  status TEXT DEFAULT 'online',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+            <div class="my-3 flex-1 overflow-y-auto bg-slate-950 border border-slate-800 rounded-2xl p-4 font-mono text-xs text-emerald-300 select-all">
+<pre id="sqlCodeBlock" class="whitespace-pre-wrap leading-relaxed">-- 1. Tabel User dengan Nomor 4-Digit & PIN
+CREATE TABLE IF NOT EXISTS public.chat_users (
+    phone_4 VARCHAR(4) PRIMARY KEY,
+    pin VARCHAR(10) NOT NULL,
+    display_name TEXT NOT NULL,
+    avatar_url TEXT,
+    is_online BOOLEAN DEFAULT true,
+    last_seen TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Buat Tabel Pesan Obrolan
-CREATE TABLE IF NOT EXISTS messages (
-  id BIGSERIAL PRIMARY KEY,
-  sender_code VARCHAR(4) NOT NULL,
-  receiver_code VARCHAR(4) NOT NULL,
-  type TEXT DEFAULT 'text',
-  text TEXT,
-  photo_url TEXT,
-  time VARCHAR(10),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- 2. Tabel Kontak (Invite Nomor 4-Digit)
+CREATE TABLE IF NOT EXISTS public.chat_contacts (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    owner_phone VARCHAR(4) NOT NULL,
+    contact_phone VARCHAR(4) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(owner_phone, contact_phone)
 );
 
--- 3. Aktifkan Realtime Replication untuk Tabel
-ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+-- 3. Tabel Pesan Live Chat (Teks & Gambar Base64, Tanpa Video)
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    sender_phone VARCHAR(4) NOT NULL,
+    receiver_phone VARCHAR(4) NOT NULL,
+    message_text TEXT,
+    image_data TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 4. Buka Akses RLS untuk demo
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+-- 4. Matikan RLS (Atau Buka Akses Public Anon) Agar Langsung Jalan
+ALTER TABLE public.chat_users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_contacts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages DISABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public profiles access" ON profiles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public messages access" ON messages FOR ALL USING (true) WITH CHECK (true);
-</pre>
-      </div>
+-- 5. Aktifkan Supabase Realtime untuk Ketiga Tabel
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_users;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_contacts;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
+            </div>
 
-      <div class="flex items-center justify-between gap-3 shrink-0">
-        <span class="text-[10px] text-slate-400 font-mono">Project: zyddldgtefrtwjgymbtk</span>
-        <button onclick="copySqlCode()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition">
-          <i class="fa-regular fa-copy"></i> Salin SQL
-        </button>
-      </div>
+            <div class="flex items-center justify-between gap-3 pt-2">
+                <p class="text-[11px] text-slate-400">
+                    Setelah klik <b>Run</b> di SQL Editor Supabase, klik tombol <b>Cek Ulang Koneksi</b>.
+                </p>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="copySqlScript()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-semibold text-xs border border-slate-700 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-regular fa-copy"></i> Salin SQL
+                    </button>
+                    <button onclick="verifySupabaseTables()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-rotate"></i> Cek Ulang Koneksi
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- LOAD THE SEPARATE JAVASCRIPT FILES -->
-  <script src="auth.js"></script>
-  <script src="chat.js"></script>
+    <!-- ==========================================
+         JAVASCRIPT LOGIC & SUPABASE INTEGRATION
+    =========================================== -->
+    <script>
+        /**************************************************************
+         * 1. KONFIGURASI SUPABASE SESUAI PERMINTAAN USER
+         **************************************************************/
+        const SUPABASE_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-';
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            realtime: {
+                params: {
+                    eventsPerSecond: 20
+                }
+            }
+        });
+
+        /**************************************************************
+         * 2. STATE GLOBAL APLIKASI
+         **************************************************************/
+        let currentUser = null; // { phone_4, pin, display_name, avatar_url }
+        let contactsMap = new Map(); // Map<phone_4, { phone_4, display_name, avatar_url, is_online, last_seen, last_msg }>
+        let activeContactPhone = null;
+        let messagesList = []; // Array pesan untuk room aktif
+        let onlineUsersSet = new Set(); // Set nomor 4-digit yang sedang online di Presence
+        let dbTablesReady = false; // Apakah tabel SQL di Supabase sudah dibuat oleh user
+        let globalChannel = null; // Channel Supabase Realtime untuk Presence, Broadcast Chat & WebRTC Voice Call
+        let pendingImageBase64 = null; // Gambar yang akan dikirim di chat
+        let editModalTempAvatar = null;
+
+        // Preset Avatar SVG Data URI yang ringan
+        const PRESET_AVATARS = [
+            `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Alpha&backgroundColor=10b981`,
+            `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Bravo&backgroundColor=0ea5e9`,
+            `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Charlie&backgroundColor=8b5cf6`,
+            `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Delta&backgroundColor=f59e0b`,
+            `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Echo&backgroundColor=ec4899`
+        ];
+        let selectedAuthAvatar = PRESET_AVATARS[0];
+
+        /**************************************************************
+         * 3. INISIALISASI SAAT HALAMAN DIMUAT
+         **************************************************************/
+        window.addEventListener('DOMContentLoaded', async () => {
+            renderPresetAvatars();
+            await verifySupabaseTables();
+
+            // Cek apakah user sudah punya sesi tersimpan di localStorage
+            const savedSession = localStorage.getItem('nexchat_session_user');
+            if (savedSession) {
+                try {
+                    const parsed = JSON.parse(savedSession);
+                    if (parsed && parsed.phone_4) {
+                        currentUser = parsed;
+                        await enterChatApplication();
+                    }
+                } catch (e) {
+                    console.error('Gagal memuat sesi tersimpan:', e);
+                }
+            }
+        });
+
+        // Tampilkan pilihan avatar preset di halaman login
+        function renderPresetAvatars() {
+            const container = document.getElementById('presetAvatarsContainer');
+            const preview = document.getElementById('authAvatarPreview');
+            preview.src = selectedAuthAvatar;
+
+            container.innerHTML = PRESET_AVATARS.map((url, idx) => `
+                <button type="button" onclick="selectPresetAvatar('${url}')" class="w-8 h-8 rounded-lg overflow-hidden border border-slate-700 hover:border-emerald-400 transition focus:outline-none">
+                    <img src="${url}" class="w-full h-full object-cover" alt="Preset ${idx + 1}">
+                </button>
+            `).join('');
+        }
+
+        function selectPresetAvatar(url) {
+            selectedAuthAvatar = url;
+            document.getElementById('authAvatarPreview').src = url;
+        }
+
+        function generateRandom4Digit() {
+            const randomNum = Math.floor(1000 + Math.random() * 9000).toString();
+            const input = document.getElementById('authPhone4');
+            input.value = randomNum;
+            checkExistingUserPreview(randomNum);
+        }
+
+        function togglePinVisibility() {
+            const pinInput = document.getElementById('authPin');
+            const icon = document.getElementById('pinEyeIcon');
+            if (pinInput.type === 'password') {
+                pinInput.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash text-sm';
+            } else {
+                pinInput.type = 'password';
+                icon.className = 'fa-regular fa-eye text-sm';
+            }
+        }
+
+        /**************************************************************
+         * 4. CEK KONEKSI & TABEL SUPABASE + FALLBACK LOKAL
+         **************************************************************/
+        async function verifySupabaseTables() {
+            const dot = document.getElementById('supabaseStatusDot');
+            const text = document.getElementById('supabaseStatusText');
+            const banner = document.getElementById('dbMissingBanner');
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('chat_users')
+                    .select('phone_4')
+                    .limit(1);
+
+                if (error) {
+                    // Tabel belum dibuat di SQL Editor, tetap aktifkan Realtime Broadcast & Local Fallback
+                    dbTablesReady = false;
+                    dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+                    text.textContent = 'Supabase Realtime Aktif (Tabel SQL Belum Dibuat)';
+                    banner.classList.remove('hidden');
+                } else {
+                    dbTablesReady = true;
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+                    text.textContent = 'Terhubung Penuh ke Supabase DB & Realtime';
+                    banner.classList.add('hidden');
+                    closeSqlModal();
+                }
+            } catch (err) {
+                dbTablesReady = false;
+                dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+                text.textContent = 'Mode Realtime Hybrid';
+            }
+        }
+
+        // Cek apakah nomor 4 digit sudah terdaftar saat user mengetik
+        async function checkExistingUserPreview(val) {
+            const badge = document.getElementById('userCheckBadge');
+            const errBox = document.getElementById('authErrorBox');
+            errBox.classList.add('hidden');
+
+            if (val.length !== 4) {
+                badge.textContent = '4 Angka';
+                badge.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400';
+                return;
+            }
+
+            badge.textContent = 'Mengecek...';
+            const existing = await fetchUserByPhone4(val);
+
+            if (existing) {
+                badge.textContent = 'Terdaftar (Masukkan PIN)';
+                badge.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                document.getElementById('authName').value = existing.display_name || '';
+                if (existing.avatar_url) {
+                    selectedAuthAvatar = existing.avatar_url;
+                    document.getElementById('authAvatarPreview').src = existing.avatar_url;
+                }
+                document.getElementById('authSubmitText').textContent = `Masuk Kembali ke #${val}`;
+            } else {
+                badge.textContent = 'Nomor Baru Tersedia';
+                badge.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30';
+                document.getElementById('authSubmitText').textContent = `Daftar & Masuk #${val}`;
+            }
+        }
+
+        /**************************************************************
+         * 5. KOMPRESI GAMBAR KE BASE64 RINGAN (UNTUK AVATAR & CHAT)
+         **************************************************************/
+        function compressImageFile(file, maxWidth = 720, quality = 0.72) {
+            return new Promise((resolve, reject) => {
+                if (!file.type.startsWith('image/')) {
+                    reject(new Error('Hanya file gambar yang diizinkan (bukan video).'));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressedDataUrl);
+                    };
+                    img.onerror = () => reject(new Error('Gagal memuat file gambar.'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('Gagal membaca file.'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleAuthAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+                const compressed = await compressImageFile(file, 250, 0.75);
+                selectedAuthAvatar = compressed;
+                document.getElementById('authAvatarPreview').src = compressed;
+                showToast('Foto profil siap digunakan!', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        /**************************************************************
+         * 6. PROSES LOGIN ATAU REGISTER NOMOR 4-DIGIT & PIN
+         **************************************************************/
+        async function fetchUserByPhone4(phone4) {
+            if (dbTablesReady) {
+                const { data, error } = await supabaseClient
+                    .from('chat_users')
+                    .select('*')
+                    .eq('phone_4', phone4)
+                    .maybeSingle();
+                if (!error && data) return data;
+            }
+            // Fallback ke penyimpanan lokal jika tabel SQL belum dieksekusi
+            const localUsers = JSON.parse(localStorage.getItem('nexchat_local_users') || '{}');
+            return localUsers[phone4] || null;
+        }
+
+        async function saveUserToStorage(userObj) {
+            // Simpan juga di local cache
+            const localUsers = JSON.parse(localStorage.getItem('nexchat_local_users') || '{}');
+            localUsers[userObj.phone_4] = userObj;
+            localStorage.setItem('nexchat_local_users', JSON.stringify(localUsers));
+
+            if (dbTablesReady) {
+                const { error } = await supabaseClient
+                    .from('chat_users')
+                    .upsert({
+                        phone_4: userObj.phone_4,
+                        pin: userObj.pin,
+                        display_name: userObj.display_name,
+                        avatar_url: userObj.avatar_url,
+                        is_online: true,
+                        last_seen: new Date().toISOString()
+                    }, { onConflict: 'phone_4' });
+
+                if (error) {
+                    console.warn('Info simpan ke tabel chat_users:', error.message);
+                }
+            }
+        }
+
+        async function handleAuthSubmit(event) {
+            event.preventDefault();
+            const phone4 = document.getElementById('authPhone4').value.trim();
+            const pin = document.getElementById('authPin').value.trim();
+            const nameInput = document.getElementById('authName').value.trim();
+            const errBox = document.getElementById('authErrorBox');
+            const errText = document.getElementById('authErrorText');
+            const btn = document.getElementById('authSubmitBtn');
+
+            errBox.classList.add('hidden');
+
+            if (!/^\d{4}$/.test(phone4)) {
+                errText.textContent = 'Nomor kontak wajib terdiri dari 4 digit angka (contoh: 1024).';
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (pin.length < 4) {
+                errText.textContent = 'PIN minimal terdiri dari 4 digit angka.';
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            const existingUser = await fetchUserByPhone4(phone4);
+
+            if (existingUser) {
+                // Nomor 4-digit sudah terdaftar -> Verifikasi PIN untuk langsung masuk tanpa daftar ulang
+                if (existingUser.pin !== pin) {
+                    errText.textContent = `Nomor #${phone4} sudah terdaftar, namun PIN yang Anda masukkan salah!`;
+                    errBox.classList.remove('hidden');
+                    btn.disabled = false;
+                    return;
+                }
+
+                // PIN Cocok -> Update status online & masuk
+                currentUser = {
+                    phone_4: existingUser.phone_4,
+                    pin: existingUser.pin,
+                    display_name: nameInput || existingUser.display_name || `User #${phone4}`,
+                    avatar_url: selectedAuthAvatar || existingUser.avatar_url || PRESET_AVATARS[0]
+                };
+
+                await saveUserToStorage(currentUser);
+                showToast(`Selamat datang kembali, ${currentUser.display_name} (#${phone4})!`, 'success');
+            } else {
+                // Nomor 4-digit belum ada -> Buat kontak baru otomatis
+                const finalName = nameInput || `Kontak #${phone4}`;
+                currentUser = {
+                    phone_4: phone4,
+                    pin: pin,
+                    display_name: finalName,
+                    avatar_url: selectedAuthAvatar || PRESET_AVATARS[0]
+                };
+
+                await saveUserToStorage(currentUser);
+                showToast(`Nomor baru #${phone4} berhasil dibuat!`, 'success');
+            }
+
+            localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
+            btn.disabled = false;
+            await enterChatApplication();
+        }
+
+        /**************************************************************
+         * 7. MASUK KE HALAMAN UTAMA LIVE CHAT & SETUP REALTIME
+         **************************************************************/
+        async function enterChatApplication() {
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('chatAppPage').classList.remove('hidden');
+
+            // Render Header Profil Sendiri
+            updateMyProfileUI();
+
+            // Muat Daftar Kontak yang sudah pernah di-invite
+            await loadMyContacts();
+
+            // Hubungkan ke Supabase Realtime (Presence Online Status + Postgres Changes + WebRTC Signaling)
+            setupSupabaseRealtime();
+        }
+
+        function updateMyProfileUI() {
+            if (!currentUser) return;
+            document.getElementById('myAvatarImg').src = currentUser.avatar_url;
+            document.getElementById('myNameDisplay').textContent = currentUser.display_name;
+            document.getElementById('myNumberDisplay').textContent = `#${currentUser.phone_4}`;
+            document.getElementById('emptyStateMyNumber').textContent = `#${currentUser.phone_4}`;
+        }
+
+        function copyMyNumber() {
+            if (!currentUser) return;
+            const tempInput = document.createElement('input');
+            tempInput.value = currentUser.phone_4;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(`Nomor 4-digit Anda (${currentUser.phone_4}) berhasil disalin!`, 'success');
+        }
+
+        async function handleLogout() {
+            if (currentUser && dbTablesReady) {
+                await supabaseClient
+                    .from('chat_users')
+                    .update({ is_online: false, last_seen: new Date().toISOString() })
+                    .eq('phone_4', currentUser.phone_4);
+            }
+            if (globalChannel) {
+                await globalChannel.untrack();
+                supabaseClient.removeChannel(globalChannel);
+                globalChannel = null;
+            }
+            localStorage.removeItem('nexchat_session_user');
+            currentUser = null;
+            activeContactPhone = null;
+            contactsMap.clear();
+
+            document.getElementById('chatAppPage').classList.add('hidden');
+            document.getElementById('authPage').classList.remove('hidden');
+            document.getElementById('authPin').value = '';
+            showToast('Anda telah keluar dari sesi chat.', 'info');
+        }
+
+        /**************************************************************
+         * 8. MANAJEMEN KONTAK & INVITE NOMOR 4-DIGIT
+         **************************************************************/
+        async function loadMyContacts() {
+            contactsMap.clear();
+
+            // 1. Muat dari localStorage terlebih dahulu
+            const localContactsKey = `nexchat_contacts_${currentUser.phone_4}`;
+            const savedLocalContacts = JSON.parse(localStorage.getItem(localContactsKey) || '[]');
+            for (const c of savedLocalContacts) {
+                contactsMap.set(c.phone_4, c);
+            }
+
+            if (dbTablesReady) {
+                // 2. Ambil daftar nomor kontak yang di-invite oleh user maupun yang meng-invite user
+                const { data: relations } = await supabaseClient
+                    .from('chat_contacts')
+                    .select('owner_phone, contact_phone')
+                    .or(`owner_phone.eq.${currentUser.phone_4},contact_phone.eq.${currentUser.phone_4}`);
+
+                const relatedPhones = new Set();
+                if (relations) {
+                    relations.forEach(r => {
+                        if (r.owner_phone !== currentUser.phone_4) relatedPhones.add(r.owner_phone);
+                        if (r.contact_phone !== currentUser.phone_4) relatedPhones.add(r.contact_phone);
+                    });
+                }
+
+                // 3. Cek juga pesan masuk dari nomor lain supaya otomatis muncul di daftar kontak
+                const { data: msgPeers } = await supabaseClient
+                    .from('chat_messages')
+                    .select('sender_phone, receiver_phone')
+                    .or(`sender_phone.eq.${currentUser.phone_4},receiver_phone.eq.${currentUser.phone_4}`);
+
+                if (msgPeers) {
+                    msgPeers.forEach(m => {
+                        if (m.sender_phone !== currentUser.phone_4) relatedPhones.add(m.sender_phone);
+                        if (m.receiver_phone !== currentUser.phone_4) relatedPhones.add(m.receiver_phone);
+                    });
+                }
+
+                if (relatedPhones.size > 0) {
+                    const phoneArray = Array.from(relatedPhones);
+                    const { data: usersData } = await supabaseClient
+                        .from('chat_users')
+                        .select('*')
+                        .in('phone_4', phoneArray);
+
+                    if (usersData) {
+                        usersData.forEach(u => {
+                            contactsMap.set(u.phone_4, {
+                                phone_4: u.phone_4,
+                                display_name: u.display_name,
+                                avatar_url: u.avatar_url || PRESET_AVATARS[1],
+                                is_online: u.is_online,
+                                last_seen: u.last_seen
+                            });
+                        });
+                    }
+                }
+            }
+
+            saveContactsToLocalCache();
+            renderContactList();
+        }
+
+        function saveContactsToLocalCache() {
+            if (!currentUser) return;
+            const localContactsKey = `nexchat_contacts_${currentUser.phone_4}`;
+            localStorage.setItem(localContactsKey, JSON.stringify(Array.from(contactsMap.values())));
+        }
+
+        async function handleInviteContact(event) {
+            event.preventDefault();
+            const input = document.getElementById('inviteNumberInput');
+            const targetPhone = input.value.trim();
+
+            if (!/^\d{4}$/.test(targetPhone)) {
+                showToast('Masukkan nomor kontak 4 digit yang valid!', 'error');
+                return;
+            }
+
+            if (targetPhone === currentUser.phone_4) {
+                showToast('Tidak dapat meng-invite nomor 4-digit milik Anda sendiri!', 'error');
+                return;
+            }
+
+            await inviteContactByNumber(targetPhone);
+            input.value = '';
+        }
+
+        async function inviteContactByNumber(targetPhone) {
+            let targetUser = await fetchUserByPhone4(targetPhone);
+
+            if (!targetUser) {
+                if (dbTablesReady) {
+                    showToast(`Nomor #${targetPhone} belum terdaftar di Supabase! Pastikan teman Anda sudah membuat nomor tersebut.`, 'error');
+                    return;
+                } else {
+                    // Jika mode hybrid/broadcast, buat placeholder kontak agar bisa langsung ditest
+                    targetUser = {
+                        phone_4: targetPhone,
+                        display_name: `Kontak #${targetPhone}`,
+                        avatar_url: PRESET_AVATARS[Number(targetPhone) % PRESET_AVATARS.length],
+                        is_online: onlineUsersSet.has(targetPhone)
+                    };
+                }
+            }
+
+            // Simpan relasi dua arah di Supabase agar kedua user saling melihat di daftar kontak
+            if (dbTablesReady) {
+                await supabaseClient.from('chat_contacts').upsert([
+                    { owner_phone: currentUser.phone_4, contact_phone: targetPhone },
+                    { owner_phone: targetPhone, contact_phone: currentUser.phone_4 }
+                ], { onConflict: 'owner_phone,contact_phone' });
+            }
+
+            contactsMap.set(targetPhone, {
+                phone_4: targetUser.phone_4,
+                display_name: targetUser.display_name,
+                avatar_url: targetUser.avatar_url || PRESET_AVATARS[1],
+                is_online: targetUser.is_online || onlineUsersSet.has(targetPhone),
+                last_seen: targetUser.last_seen || new Date().toISOString()
+            });
+
+            saveContactsToLocalCache();
+            renderContactList();
+
+            // Kirim sinyal broadcast invite agar layar teman langsung muncul kontak kita
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'contact_invited',
+                    payload: {
+                        from_user: {
+                            phone_4: currentUser.phone_4,
+                            display_name: currentUser.display_name,
+                            avatar_url: currentUser.avatar_url,
+                            is_online: true
+                        },
+                        to_phone: targetPhone
+                    }
+                });
+            }
+
+            showToast(`Kontak #${targetPhone} (${targetUser.display_name}) berhasil ditambahkan!`, 'success');
+            selectContactRoom(targetPhone);
+        }
+
+        function isContactOnline(phone4) {
+            if (onlineUsersSet.has(phone4)) return true;
+            const c = contactsMap.get(phone4);
+            return c ? Boolean(c.is_online) : false;
+        }
+
+        function renderContactList() {
+            const container = document.getElementById('contactListContainer');
+            const query = (document.getElementById('searchContactInput').value || '').toLowerCase().trim();
+
+            const list = Array.from(contactsMap.values()).filter(c => {
+                if (!query) return true;
+                return c.phone_4.includes(query) || (c.display_name || '').toLowerCase().includes(query);
+            });
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-500">
+                        <i class="fa-regular fa-address-book text-2xl mb-2 text-slate-600"></i>
+                        <p class="text-xs font-medium text-slate-400">Belum ada kontak</p>
+                        <p class="text-[11px] mt-1">Masukkan nomor 4-digit teman di atas atau klik <b>Lihat User Aktif</b> untuk meng-invite.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(contact => {
+                const online = isContactOnline(contact.phone_4);
+                const isSelected = activeContactPhone === contact.phone_4;
+                return `
+                    <div
+                        onclick="selectContactRoom('${contact.phone_4}')"
+                        class="p-3.5 flex items-center justify-between gap-3 cursor-pointer transition ${isSelected ? 'bg-emerald-500/10 border-l-4 border-emerald-500' : 'hover:bg-slate-800/60'}"
+                    >
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="relative shrink-0">
+                                <img src="${contact.avatar_url || PRESET_AVATARS[0]}" alt="${escapeHtml(contact.display_name)}" class="w-11 h-11 rounded-2xl object-cover border border-slate-700 bg-slate-800">
+                                <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full ${online ? 'bg-emerald-400' : 'bg-slate-500'} ring-2 ring-slate-900"></span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="font-semibold text-sm text-white truncate">${escapeHtml(contact.display_name)}</h4>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[10px] font-bold">#${contact.phone_4}</span>
+                                </div>
+                                <p class="text-xs ${online ? 'text-emerald-400 font-medium' : 'text-slate-400'} truncate mt-0.5">
+                                    ${contact.last_msg ? escapeHtml(contact.last_msg) : (online ? '● Sedang Online' : 'Offline')}
+                                </p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                    </div>
+                `;
+            }).join('');
+
+            // Update juga header kontak aktif jika sedang dibuka
+            if (activeContactPhone && contactsMap.has(activeContactPhone)) {
+                updateActiveContactHeader();
+            }
+        }
+
+        /**************************************************************
+         * 9. ROOM CHAT AKTIF, LOAD & KIRIM PESAN (TEKS & GAMBAR SAJA)
+         **************************************************************/
+        async function selectContactRoom(phone4) {
+            activeContactPhone = phone4;
+            renderContactList();
+
+            // Responsif Mobile: Sembunyikan sidebar, tampilkan chat room
+            const sidebar = document.getElementById('sidebarPanel');
+            const chatPanel = document.getElementById('chatRoomPanel');
+            sidebar.classList.add('hidden', 'md:flex');
+            chatPanel.classList.remove('hidden');
+            chatPanel.classList.add('flex');
+
+            document.getElementById('emptyChatState').classList.add('hidden');
+            document.getElementById('activeChatWrapper').classList.remove('hidden');
+
+            updateActiveContactHeader();
+            await loadMessagesForActiveContact();
+        }
+
+        function closeMobileChat() {
+            activeContactPhone = null;
+            const sidebar = document.getElementById('sidebarPanel');
+            const chatPanel = document.getElementById('chatRoomPanel');
+            sidebar.classList.remove('hidden');
+            chatPanel.classList.add('hidden');
+            chatPanel.classList.remove('flex');
+            renderContactList();
+        }
+
+        function updateActiveContactHeader() {
+            if (!activeContactPhone) return;
+            const contact = contactsMap.get(activeContactPhone);
+            if (!contact) return;
+
+            const online = isContactOnline(activeContactPhone);
+            document.getElementById('activeContactAvatar').src = contact.avatar_url || PRESET_AVATARS[0];
+            document.getElementById('activeContactName').textContent = contact.display_name;
+            document.getElementById('activeContactNumber').textContent = `#${contact.phone_4}`;
+
+            const dot = document.getElementById('activeContactDot');
+            const statusText = document.getElementById('activeContactStatusText');
+            if (online) {
+                dot.className = 'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-900';
+                statusText.textContent = 'Online sekarang';
+                statusText.className = 'text-xs text-emerald-400 font-medium truncate';
+            } else {
+                dot.className = 'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-slate-500 ring-2 ring-slate-900';
+                statusText.textContent = 'Offline';
+                statusText.className = 'text-xs text-slate-400 truncate';
+            }
+        }
+
+        function getConversationCacheKey(phoneA, phoneB) {
+            const sorted = [phoneA, phoneB].sort();
+            return `nexchat_msgs_${sorted[0]}_${sorted[1]}`;
+        }
+
+        async function loadMessagesForActiveContact() {
+            if (!currentUser || !activeContactPhone) return;
+            messagesList = [];
+
+            const cacheKey = getConversationCacheKey(currentUser.phone_4, activeContactPhone);
+            const cachedMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            messagesList = cachedMsgs;
+
+            if (dbTablesReady) {
+                const { data, error } = await supabaseClient
+                    .from('chat_messages')
+                    .select('*')
+                    .or(`and(sender_phone.eq.${currentUser.phone_4},receiver_phone.eq.${activeContactPhone}),and(sender_phone.eq.${activeContactPhone},receiver_phone.eq.${currentUser.phone_4})`)
+                    .order('created_at', { ascending: true })
+                    .limit(200);
+
+                if (!error && data) {
+                    messagesList = data;
+                    localStorage.setItem(cacheKey, JSON.stringify(messagesList));
+                }
+            }
+
+            renderMessagesList();
+        }
+
+        function renderMessagesList() {
+            const container = document.getElementById('messagesContainer');
+            if (!messagesList || messagesList.length === 0) {
+                container.innerHTML = `
+                    <div class="my-auto text-center p-6">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 text-emerald-400 mb-2">
+                            <i class="fa-regular fa-comments text-xl"></i>
+                        </div>
+                        <p class="text-xs text-slate-400">Belum ada percakapan. Kirim sapaan atau gambar pertama Anda!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = messagesList.map(msg => {
+                const isMe = msg.sender_phone === currentUser.phone_4;
+                const timeStr = formatTimeShort(msg.created_at);
+
+                return `
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                        <div class="max-w-[80%] sm:max-w-[68%] rounded-2xl px-3.5 py-2.5 shadow-md ${
+                            isMe
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 rounded-br-xs'
+                                : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-xs'
+                        }">
+                            ${msg.image_data ? `
+                                <div class="mb-1.5 overflow-hidden rounded-xl border ${isMe ? 'border-emerald-700/30' : 'border-slate-700'}">
+                                    <img
+                                        src="${msg.image_data}"
+                                        alt="Gambar Chat"
+                                        onclick="openImageLightbox('${msg.image_data}')"
+                                        class="max-h-64 w-auto object-cover cursor-zoom-in hover:opacity-95 transition"
+                                    >
+                                </div>
+                            ` : ''}
+                            ${msg.message_text ? `
+                                <p class="text-xs sm:text-sm leading-relaxed break-words ${isMe ? 'font-medium text-slate-950' : 'text-slate-100'}">${escapeHtml(msg.message_text)}</p>
+                            ` : ''}
+                            <div class="flex items-center justify-end gap-1 mt-1">
+                                <span class="text-[10px] ${isMe ? 'text-slate-900/75 font-medium' : 'text-slate-400'}">${timeStr}</span>
+                                ${isMe ? '<i class="fa-solid fa-check-double text-[10px] text-slate-900/80"></i>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Validasi Ketat: Hanya Gambar, Tolak File Video!
+        async function handleSelectChatImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type.startsWith('video/') || !file.type.startsWith('image/')) {
+                showToast('Pengiriman video tidak diizinkan! Silakan pilih file Gambar (JPG/PNG/WebP).', 'error');
+                event.target.value = '';
+                return;
+            }
+
+            try {
+                const compressedBase64 = await compressImageFile(file, 800, 0.72);
+                pendingImageBase64 = compressedBase64;
+                document.getElementById('pendingImageThumb').src = compressedBase64;
+                document.getElementById('pendingImageBanner').classList.remove('hidden');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+            event.target.value = '';
+        }
+
+        function clearPendingImage() {
+            pendingImageBase64 = null;
+            document.getElementById('pendingImageBanner').classList.add('hidden');
+            document.getElementById('pendingImageThumb').src = '';
+        }
+
+        async function handleSendMessage(event) {
+            event.preventDefault();
+            if (!currentUser || !activeContactPhone) return;
+
+            const inputEl = document.getElementById('chatMessageInput');
+            const text = inputEl.value.trim();
+            const imgData = pendingImageBase64;
+
+            if (!text && !imgData) return;
+
+            inputEl.value = '';
+            clearPendingImage();
+
+            const newMsg = {
+                id: Date.now(),
+                sender_phone: currentUser.phone_4,
+                receiver_phone: activeContactPhone,
+                message_text: text || null,
+                image_data: imgData || null,
+                created_at: new Date().toISOString()
+            };
+
+            // Render optimistik langsung di layar pengirim
+            appendIncomingOrOutgoingMessage(newMsg);
+
+            // 1. Kirim ke Tabel Supabase `chat_messages`
+            if (dbTablesReady) {
+                const { error } = await supabaseClient
+                    .from('chat_messages')
+                    .insert({
+                        sender_phone: newMsg.sender_phone,
+                        receiver_phone: newMsg.receiver_phone,
+                        message_text: newMsg.message_text,
+                        image_data: newMsg.image_data
+                    });
+
+                if (error) {
+                    console.warn('Gagal insert chat_messages:', error.message);
+                }
+            }
+
+            // 2. Kirim via Supabase Realtime Broadcast agar lawan bicara langsung menerima secara instan
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'live_chat_message',
+                    payload: {
+                        message: newMsg,
+                        sender_profile: {
+                            phone_4: currentUser.phone_4,
+                            display_name: currentUser.display_name,
+                            avatar_url: currentUser.avatar_url
+                        }
+                    }
+                });
+            }
+        }
+
+        function appendIncomingOrOutgoingMessage(msgObj, senderProfile = null) {
+            const peerPhone = msgObj.sender_phone === currentUser.phone_4 ? msgObj.receiver_phone : msgObj.sender_phone;
+
+            // Jika pengirim belum ada di daftar kontak, otomatis tambahkan ke daftar kontak
+            if (!contactsMap.has(peerPhone)) {
+                contactsMap.set(peerPhone, {
+                    phone_4: peerPhone,
+                    display_name: senderProfile?.display_name || `Kontak #${peerPhone}`,
+                    avatar_url: senderProfile?.avatar_url || PRESET_AVATARS[1],
+                    is_online: true
+                });
+            }
+
+            // Update preview pesan terakhir di sidebar kontak
+            const contact = contactsMap.get(peerPhone);
+            if (contact) {
+                contact.last_msg = msgObj.message_text
+                    ? msgObj.message_text
+                    : (msgObj.image_data ? '📷 Mengirim Gambar' : '');
+                contactsMap.set(peerPhone, contact);
+                saveContactsToLocalCache();
+            }
+
+            // Simpan ke cache percakapan
+            const cacheKey = getConversationCacheKey(currentUser.phone_4, peerPhone);
+            const existingMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            const isDuplicate = existingMsgs.some(m =>
+                m.created_at === msgObj.created_at &&
+                m.sender_phone === msgObj.sender_phone &&
+                m.message_text === msgObj.message_text
+            );
+
+            if (!isDuplicate) {
+                existingMsgs.push(msgObj);
+                localStorage.setItem(cacheKey, JSON.stringify(existingMsgs));
+            }
+
+            if (activeContactPhone === peerPhone) {
+                messagesList = existingMsgs;
+                renderMessagesList();
+            } else if (msgObj.sender_phone !== currentUser.phone_4) {
+                showToast(`Pesan baru dari #${msgObj.sender_phone}: ${msgObj.message_text || '📷 Gambar'}`, 'info');
+            }
+
+            renderContactList();
+        }
+
+        /**************************************************************
+         * 10. SUPABASE REALTIME (PRESENCE ONLINE, CHAT & SIGNALING CALL)
+         **************************************************************/
+        function setupSupabaseRealtime() {
+            if (globalChannel) {
+                supabaseClient.removeChannel(globalChannel);
+            }
+
+            globalChannel = supabaseClient.channel('nexchat_global_room', {
+                config: {
+                    presence: {
+                        key: currentUser.phone_4
+                    },
+                    broadcast: {
+                        self: false
+                    }
+                }
+            });
+
+            // A. REALTIME PRESENCE (Deteksi Status Online Real-time Antar Nomor 4-Digit)
+            globalChannel.on('presence', { event: 'sync' }, () => {
+                const state = globalChannel.presenceState();
+                onlineUsersSet.clear();
+
+                Object.keys(state).forEach(phoneKey => {
+                    onlineUsersSet.add(phoneKey);
+                    const presences = state[phoneKey];
+                    if (presences && presences.length > 0) {
+                        const info = presences[0];
+                        if (contactsMap.has(phoneKey)) {
+                            const c = contactsMap.get(phoneKey);
+                            c.is_online = true;
+                            if (info.display_name) c.display_name = info.display_name;
+                            if (info.avatar_url) c.avatar_url = info.avatar_url;
+                            contactsMap.set(phoneKey, c);
+                        }
+                    }
+                });
+                renderContactList();
+            });
+
+            // B. REALTIME BROADCAST CHAT MESSAGE
+            globalChannel.on('broadcast', { event: 'live_chat_message' }, ({ payload }) => {
+                if (!currentUser || !payload || !payload.message) return;
+                const msg = payload.message;
+                if (msg.receiver_phone === currentUser.phone_4) {
+                    appendIncomingOrOutgoingMessage(msg, payload.sender_profile);
+                }
+            });
+
+            // C. REALTIME BROADCAST CONTACT INVITE
+            globalChannel.on('broadcast', { event: 'contact_invited' }, ({ payload }) => {
+                if (!currentUser || !payload) return;
+                if (payload.to_phone === currentUser.phone_4 && payload.from_user) {
+                    const u = payload.from_user;
+                    contactsMap.set(u.phone_4, {
+                        phone_4: u.phone_4,
+                        display_name: u.display_name,
+                        avatar_url: u.avatar_url,
+                        is_online: true
+                    });
+                    saveContactsToLocalCache();
+                    renderContactList();
+                    showToast(`${u.display_name} (#${u.phone_4}) menambahkan Anda ke kontak!`, 'success');
+                }
+            });
+
+            // D. REALTIME BROADCAST WEBRTC VOICE CALL SIGNALING (TANPA VIDEO)
+            globalChannel.on('broadcast', { event: 'webrtc_voice_signal' }, async ({ payload }) => {
+                if (!currentUser || !payload || payload.to !== currentUser.phone_4) return;
+                await handleIncomingWebRTCSignal(payload);
+            });
+
+            // E. POSTGRES CHANGES (Sinkronisasi Database Supabase)
+            if (dbTablesReady) {
+                globalChannel.on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `receiver_phone=eq.${currentUser.phone_4}`
+                }, async (payload) => {
+                    const newMsg = payload.new;
+                    if (newMsg) {
+                        const senderUser = await fetchUserByPhone4(newMsg.sender_phone);
+                        appendIncomingOrOutgoingMessage(newMsg, senderUser);
+                    }
+                });
+
+                globalChannel.on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'chat_users'
+                }, (payload) => {
+                    const updated = payload.new;
+                    if (updated && contactsMap.has(updated.phone_4)) {
+                        const c = contactsMap.get(updated.phone_4);
+                        c.display_name = updated.display_name;
+                        c.avatar_url = updated.avatar_url;
+                        c.is_online = updated.is_online;
+                        contactsMap.set(updated.phone_4, c);
+                        renderContactList();
+                    }
+                });
+            }
+
+            globalChannel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED' && currentUser) {
+                    await globalChannel.track({
+                        phone_4: currentUser.phone_4,
+                        display_name: currentUser.display_name,
+                        avatar_url: currentUser.avatar_url,
+                        online_at: new Date().toISOString()
+                    });
+                }
+            });
+        }
+
+        /**************************************************************
+         * 11. FITUR VOICE CALL REAL-TIME (WEBRTC AUDIO ONLY - TANPA VIDEO)
+         **************************************************************/
+        let peerConnection = null;
+        let localAudioStream = null;
+        let callPartnerPhone = null;
+        let incomingOfferPayload = null;
+        let callTimerInterval = null;
+        let callSeconds = 0;
+        let isMicMuted = false;
+        let ringtoneTimer = null;
+        let audioCtx = null;
+
+        const RTC_CONFIG = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Efek suara dering telepon menggunakan Web Audio API (tanpa file eksternal)
+        function startRingtoneSound() {
+            stopRingtoneSound();
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                ringtoneTimer = setInterval(() => {
+                    if (!audioCtx) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(660, audioCtx.currentTime + 0.18);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.45);
+                }, 1400);
+            } catch (e) {}
+        }
+
+        function stopRingtoneSound() {
+            if (ringtoneTimer) {
+                clearInterval(ringtoneTimer);
+                ringtoneTimer = null;
+            }
+            if (audioCtx) {
+                audioCtx.close().catch(() => {});
+                audioCtx = null;
+            }
+        }
+
+        function sendVoiceSignal(type, data = {}) {
+            if (!globalChannel || !callPartnerPhone) return;
+            globalChannel.send({
+                type: 'broadcast',
+                event: 'webrtc_voice_signal',
+                payload: {
+                    type,
+                    from: currentUser.phone_4,
+                    from_name: currentUser.display_name,
+                    from_avatar: currentUser.avatar_url,
+                    to: callPartnerPhone,
+                    ...data
+                }
+            });
+        }
+
+        async function startVoiceCall() {
+            if (!activeContactPhone) return;
+            const contact = contactsMap.get(activeContactPhone);
+            if (!contact) return;
+
+            try {
+                // Hanya meminta izin AUDIO (video: false) sesuai spesifikasi
+                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            } catch (err) {
+                showToast('Izin mikrofon diperlukan untuk melakukan Voice Call!', 'error');
+                return;
+            }
+
+            callPartnerPhone = activeContactPhone;
+            openVoiceCallModalUI({
+                name: contact.display_name,
+                phone: contact.phone_4,
+                avatar: contact.avatar_url,
+                status: 'Memanggil (Voice Call)...',
+                isIncoming: false
+            });
+
+            startRingtoneSound();
+            await createWebRTCPeerConnection();
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            sendVoiceSignal('call_offer', { sdp: offer });
+        }
+
+        async function createWebRTCPeerConnection() {
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            peerConnection = new RTCPeerConnection(RTC_CONFIG);
+
+            if (localAudioStream) {
+                localAudioStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localAudioStream);
+                });
+            }
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendVoiceSignal('ice_candidate', { candidate: event.candidate });
+                }
+            };
+
+            peerConnection.ontrack = (event) => {
+                const remoteAudio = document.getElementById('remoteAudioElement');
+                if (remoteAudio.srcObject !== event.streams[0]) {
+                    remoteAudio.srcObject = event.streams[0];
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                if (!peerConnection) return;
+                if (peerConnection.connectionState === 'connected') {
+                    onVoiceCallConnected();
+                } else if (['disconnected', 'failed', 'closed'].includes(peerConnection.connectionState)) {
+                    endVoiceCall(false);
+                }
+            };
+        }
+
+        async function handleIncomingWebRTCSignal(payload) {
+            const { type, from, from_name, from_avatar, sdp, candidate } = payload;
+
+            if (type === 'call_offer') {
+                // Jika sedang dalam panggilan lain, tolak otomatis
+                if (peerConnection) return;
+                callPartnerPhone = from;
+                incomingOfferPayload = payload;
+
+                openVoiceCallModalUI({
+                    name: from_name || `Kontak #${from}`,
+                    phone: from,
+                    avatar: from_avatar || PRESET_AVATARS[1],
+                    status: 'Panggilan Suara Masuk...',
+                    isIncoming: true
+                });
+                startRingtoneSound();
+            } else if (type === 'call_answer') {
+                stopRingtoneSound();
+                if (peerConnection && sdp) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+                    onVoiceCallConnected();
+                }
+            } else if (type === 'ice_candidate') {
+                if (peerConnection && candidate) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (e) {}
+                }
+            } else if (type === 'call_hangup' || type === 'call_rejected') {
+                stopRingtoneSound();
+                showToast(type === 'call_rejected' ? 'Panggilan suara ditolak.' : 'Panggilan suara diakhiri.', 'info');
+                endVoiceCall(false);
+            }
+        }
+
+        async function acceptIncomingCall() {
+            if (!incomingOfferPayload) return;
+            stopRingtoneSound();
+
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            } catch (err) {
+                showToast('Gagal mengakses mikrofon untuk menerima panggilan!', 'error');
+                rejectIncomingCall();
+                return;
+            }
+
+            document.getElementById('incomingCallActions').classList.add('hidden');
+            document.getElementById('activeCallActions').classList.remove('hidden');
+
+            await createWebRTCPeerConnection();
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferPayload.sdp));
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            sendVoiceSignal('call_answer', { sdp: answer });
+            onVoiceCallConnected();
+        }
+
+        function rejectIncomingCall() {
+            stopRingtoneSound();
+            sendVoiceSignal('call_rejected');
+            endVoiceCall(false);
+        }
+
+        function onVoiceCallConnected() {
+            stopRingtoneSound();
+            document.getElementById('callStatusLabel').textContent = 'Terhubung — Suara Jernih';
+            document.getElementById('callTimerLabel').classList.remove('hidden');
+            document.getElementById('callWaveIndicator').classList.remove('hidden');
+            document.getElementById('incomingCallActions').classList.add('hidden');
+            document.getElementById('activeCallActions').classList.remove('hidden');
+
+            if (!callTimerInterval) {
+                callSeconds = 0;
+                updateCallTimerText();
+                callTimerInterval = setInterval(() => {
+                    callSeconds++;
+                    updateCallTimerText();
+                }, 1000);
+            }
+        }
+
+        function updateCallTimerText() {
+            const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+            const secs = String(callSeconds % 60).padStart(2, '0');
+            document.getElementById('callTimerLabel').textContent = `${mins}:${secs}`;
+        }
+
+        function toggleMuteMic() {
+            if (!localAudioStream) return;
+            isMicMuted = !isMicMuted;
+            localAudioStream.getAudioTracks().forEach(track => {
+                track.enabled = !isMicMuted;
+            });
+
+            const btn = document.getElementById('muteMicBtn');
+            const icon = document.getElementById('muteMicIcon');
+            if (isMicMuted) {
+                btn.className = 'w-12 h-12 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-base transition cursor-pointer';
+                icon.className = 'fa-solid fa-microphone-slash';
+            } else {
+                btn.className = 'w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center text-base transition cursor-pointer';
+                icon.className = 'fa-solid fa-microphone';
+            }
+        }
+
+        function endVoiceCall(notifyPeer = true) {
+            stopRingtoneSound();
+            if (notifyPeer && callPartnerPhone) {
+                sendVoiceSignal('call_hangup');
+            }
+
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            if (localAudioStream) {
+                localAudioStream.getTracks().forEach(t => t.stop());
+                localAudioStream = null;
+            }
+
+            callPartnerPhone = null;
+            incomingOfferPayload = null;
+            isMicMuted = false;
+
+            document.getElementById('voiceCallModal').classList.add('hidden');
+            document.getElementById('callTimerLabel').classList.add('hidden');
+            document.getElementById('callWaveIndicator').classList.add('hidden');
+        }
+
+        function openVoiceCallModalUI({ name, phone, avatar, status, isIncoming }) {
+            document.getElementById('callPartnerName').textContent = name;
+            document.getElementById('callPartnerNumber').textContent = `#${phone}`;
+            document.getElementById('callPartnerAvatar').src = avatar || PRESET_AVATARS[0];
+            document.getElementById('callStatusLabel').textContent = status;
+            document.getElementById('callTimerLabel').classList.add('hidden');
+            document.getElementById('callWaveIndicator').classList.add('hidden');
+
+            if (isIncoming) {
+                document.getElementById('incomingCallActions').classList.remove('hidden');
+                document.getElementById('activeCallActions').classList.add('hidden');
+            } else {
+                document.getElementById('incomingCallActions').classList.add('hidden');
+                document.getElementById('activeCallActions').classList.remove('hidden');
+            }
+
+            document.getElementById('voiceCallModal').classList.remove('hidden');
+        }
+
+        /**************************************************************
+         * 12. FITUR EDIT PROFIL, DIREKTORI USER & MODAL SQL
+         **************************************************************/
+        function triggerChangeOwnAvatar() {
+            document.getElementById('changeOwnAvatarInput').click();
+        }
+
+        async function handleChangeOwnAvatar(event) {
+            const file = event.target.files[0];
+            if (!file || !currentUser) return;
+            try {
+                const compressed = await compressImageFile(file, 250, 0.75);
+                currentUser.avatar_url = compressed;
+                localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
+                await saveUserToStorage(currentUser);
+                updateMyProfileUI();
+                if (globalChannel) {
+                    await globalChannel.track({
+                        phone_4: currentUser.phone_4,
+                        display_name: currentUser.display_name,
+                        avatar_url: currentUser.avatar_url,
+                        online_at: new Date().toISOString()
+                    });
+                }
+                showToast('Foto profil berhasil diperbarui!', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function openEditProfileModal() {
+            if (!currentUser) return;
+            editModalTempAvatar = currentUser.avatar_url;
+            document.getElementById('editProfileAvatarPreview').src = currentUser.avatar_url;
+            document.getElementById('editProfileNameInput').value = currentUser.display_name;
+            document.getElementById('editProfileModal').classList.remove('hidden');
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('editProfileModal').classList.add('hidden');
+        }
+
+        async function handleEditModalAvatarChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+                editModalTempAvatar = await compressImageFile(file, 250, 0.75);
+                document.getElementById('editProfileAvatarPreview').src = editModalTempAvatar;
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function handleSaveProfileUpdate(event) {
+            event.preventDefault();
+            if (!currentUser) return;
+            const newName = document.getElementById('editProfileNameInput').value.trim();
+            if (!newName) return;
+
+            currentUser.display_name = newName;
+            if (editModalTempAvatar) currentUser.avatar_url = editModalTempAvatar;
+
+            localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
+            await saveUserToStorage(currentUser);
+            updateMyProfileUI();
+
+            if (globalChannel) {
+                await globalChannel.track({
+                    phone_4: currentUser.phone_4,
+                    display_name: currentUser.display_name,
+                    avatar_url: currentUser.avatar_url,
+                    online_at: new Date().toISOString()
+                });
+            }
+
+            closeEditProfileModal();
+            showToast('Profil kontak berhasil disimpan!', 'success');
+        }
+
+        // Direktori Nomor 4-Digit yang terdaftar di Supabase atau Online
+        async function openDirectoryModal() {
+            const modal = document.getElementById('directoryModal');
+            const container = document.getElementById('directoryListContainer');
+            modal.classList.remove('hidden');
+            container.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">Memuat daftar pengguna...</p>`;
+
+            const usersMap = new Map();
+
+            if (dbTablesReady) {
+                const { data } = await supabaseClient
+                    .from('chat_users')
+                    .select('phone_4, display_name, avatar_url, is_online')
+                    .order('last_seen', { ascending: false })
+                    .limit(50);
+
+                if (data) {
+                    data.forEach(u => {
+                        if (u.phone_4 !== currentUser?.phone_4) {
+                            usersMap.set(u.phone_4, u);
+                        }
+                    });
+                }
+            }
+
+            // Gabungkan dengan user yang sedang aktif di Presence
+            if (globalChannel) {
+                const state = globalChannel.presenceState();
+                Object.keys(state).forEach(phoneKey => {
+                    if (phoneKey !== currentUser?.phone_4 && state[phoneKey]?.length > 0) {
+                        const p = state[phoneKey][0];
+                        usersMap.set(phoneKey, {
+                            phone_4: phoneKey,
+                            display_name: p.display_name || `User #${phoneKey}`,
+                            avatar_url: p.avatar_url || PRESET_AVATARS[0],
+                            is_online: true
+                        });
+                    }
+                });
+            }
+
+            const list = Array.from(usersMap.values());
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="py-8 text-center text-slate-400 text-xs">
+                        Belum ada user lain yang terdaftar. Anda bisa membuka tab browser baru (atau perangkat lain) dan mendaftar dengan nomor 4-digit berbeda untuk menguji Live Chat & Voice Call.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(u => {
+                const online = onlineUsersSet.has(u.phone_4) || u.is_online;
+                const alreadyAdded = contactsMap.has(u.phone_4);
+                return `
+                    <div class="py-3 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <img src="${u.avatar_url || PRESET_AVATARS[0]}" class="w-10 h-10 rounded-xl object-cover bg-slate-800 border border-slate-700">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <p class="text-sm font-semibold text-white truncate">${escapeHtml(u.display_name)}</p>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[10px] font-bold">#${u.phone_4}</span>
+                                </div>
+                                <span class="text-[11px] ${online ? 'text-emerald-400' : 'text-slate-500'}">${online ? '● Online' : 'Offline'}</span>
+                            </div>
+                        </div>
+                        <button
+                            onclick="inviteFromDirectory('${u.phone_4}')"
+                            class="px-3 py-1.5 rounded-xl ${alreadyAdded ? 'bg-slate-800 text-slate-300' : 'bg-emerald-500 text-slate-950 font-bold'} text-xs transition cursor-pointer"
+                        >
+                            ${alreadyAdded ? 'Buka Chat' : '+ Invite'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function inviteFromDirectory(phone4) {
+            closeDirectoryModal();
+            await inviteContactByNumber(phone4);
+        }
+
+        function closeDirectoryModal() {
+            document.getElementById('directoryModal').classList.add('hidden');
+        }
+
+        function openImageLightbox(src) {
+            document.getElementById('lightboxImage').src = src;
+            document.getElementById('imageLightboxModal').classList.remove('hidden');
+        }
+
+        function closeImageLightbox() {
+            document.getElementById('imageLightboxModal').classList.add('hidden');
+        }
+
+        function openSqlModal() {
+            document.getElementById('sqlSetupModal').classList.remove('hidden');
+        }
+
+        function closeSqlModal() {
+            document.getElementById('sqlSetupModal').classList.add('hidden');
+        }
+
+        function copySqlScript() {
+            const sqlText = document.getElementById('sqlCodeBlock').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = sqlText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('Script SQL berhasil disalin! Tempelkan di SQL Editor Supabase Anda.', 'success');
+        }
+
+        /**************************************************************
+         * 13. UTILITAS HELPER & TOAST NOTIFICATION (TANPA ALERT)
+         **************************************************************/
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            const colors = {
+                success: 'bg-slate-900/95 border-emerald-500/50 text-emerald-300',
+                error: 'bg-slate-900/95 border-rose-500/50 text-rose-300',
+                info: 'bg-slate-900/95 border-sky-500/50 text-sky-300'
+            };
+            const icons = {
+                success: 'fa-circle-check text-emerald-400',
+                error: 'fa-circle-exclamation text-rose-400',
+                info: 'fa-bell text-sky-400'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl border shadow-xl backdrop-blur-md text-xs font-medium transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} text-sm shrink-0"></i>
+                <span class="flex-1 leading-relaxed">${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3600);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatTimeShort(isoString) {
+            if (!isoString) return '';
+            try {
+                const date = new Date(isoString);
+                return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            } catch (e) {
+                return '';
+            }
+        }
+    </script>
 </body>
 </html>
