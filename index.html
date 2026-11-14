@@ -93,61 +93,47 @@
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white overflow-hidden h-screen w-screen flex flex-col">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white overflow-hidden h-[100dvh] max-h-[100dvh] w-screen flex flex-col">
 
     <!-- ==========================================
-         TOP BAR STATUS & SQL GUIDE BUTTON
+         TOP BAR STATUS (CONNECTED SUPABASE REALTIME)
     =========================================== -->
-    <div class="h-10 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-6 flex items-center justify-between text-xs z-30 shrink-0">
+    <div class="h-10 bg-slate-900/95 border-b border-slate-800 px-3 sm:px-6 flex items-center justify-between text-xs z-30 shrink-0">
         <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 shadow-sm">
                 <span id="supabaseStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="supabaseStatusText">Menghubungkan Supabase...</span>
+                <span id="supabaseStatusText">Connected Supabase Realtime</span>
             </span>
-            <span class="hidden md:inline text-slate-500 font-mono text-[11px]">zyddldgtefrtwjgymbtk.supabase.co</span>
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="openSqlModal()" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                <i class="fa-solid fa-database text-emerald-400"></i>
-                <span>Setup SQL Supabase</span>
-            </button>
+        <div class="flex items-center gap-2 text-slate-400 font-mono text-[11px]">
+            <i class="fa-solid fa-bolt text-emerald-400"></i>
+            <span class="hidden sm:inline">Live Sync Active</span>
         </div>
     </div>
 
     <!-- ==========================================
          TOAST NOTIFICATION CONTAINER
     =========================================== -->
-    <div id="toastContainer" class="fixed top-14 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+    <div id="toastContainer" class="fixed top-12 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 
     <!-- ==========================================
          PAGE 1: LOGIN / REGISTER (4-DIGIT + PIN)
     =========================================== -->
-    <main id="authPage" class="flex-1 overflow-y-auto flex items-center justify-center p-4 chat-bg">
-        <div class="w-full max-w-md bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 relative overflow-hidden">
+    <main id="authPage" class="flex-1 min-h-0 overflow-y-auto flex items-center justify-center p-4 chat-bg">
+        <div class="w-full max-w-md bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-8 relative overflow-hidden my-auto">
             <!-- Decorative Glow -->
             <div class="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
             <!-- Header Logo -->
-            <div class="text-center mb-6 relative">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/25">
+            <div class="text-center mb-5 relative">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/25">
                     <i class="fa-solid fa-comments text-2xl text-white"></i>
                 </div>
-                <h1 class="text-2xl font-bold tracking-tight text-white">NexChat 4-Digit</h1>
+                <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">NexChat 4-Digit</h1>
                 <p class="text-xs sm:text-sm text-slate-400 mt-1">
                     Masukkan <span class="text-emerald-400 font-semibold">Nomor 4-Digit</span> & <span class="text-emerald-400 font-semibold">PIN</span> untuk masuk atau membuat kontak baru secara otomatis.
                 </p>
-            </div>
-
-            <!-- DB Warning Banner if Table Not Created Yet -->
-            <div id="dbMissingBanner" class="hidden mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
-                <div class="flex items-start gap-2.5">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-sm mt-0.5"></i>
-                    <div class="flex-1">
-                        <p class="font-semibold text-amber-300">Tabel Supabase Belum Dibuat / Mode Hybrid Aktif</p>
-                        <p class="mt-0.5 text-amber-200/80">Klik tombol <b>Setup SQL Supabase</b> di kanan atas untuk menyalin script SQL ke Supabase Anda. Saat ini aplikasi juga mendukung sinkronisasi Realtime Broadcast langsung.</p>
-                    </div>
-                </div>
             </div>
 
             <!-- Auth Form -->
@@ -274,13 +260,13 @@
     <!-- ==========================================
          PAGE 2: LIVE CHAT MAIN APPLICATION
     =========================================== -->
-    <div id="chatAppPage" class="hidden flex-1 flex overflow-hidden relative">
+    <div id="chatAppPage" class="hidden flex-1 min-h-0 w-full flex overflow-hidden relative">
 
         <!-- LEFT SIDEBAR: PROFILE + INVITE + CONTACT LIST -->
-        <aside id="sidebarPanel" class="w-full md:w-80 lg:w-96 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-20">
+        <aside id="sidebarPanel" class="w-full md:w-80 lg:w-96 h-full min-h-0 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-20">
             
             <!-- Current User Profile Header -->
-            <div class="p-3.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between gap-2">
+            <div class="p-3.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="relative shrink-0 group cursor-pointer" onclick="triggerChangeOwnAvatar()" title="Klik untuk ganti Foto Profil">
                         <img id="myAvatarImg" src="" alt="Avatar Saya" class="w-11 h-11 rounded-2xl object-cover border border-slate-700 bg-slate-800">
@@ -318,7 +304,7 @@
             </div>
 
             <!-- Invite Contact by 4-Digit Bar -->
-            <div class="p-3 bg-slate-900/60 border-b border-slate-800">
+            <div class="p-3 bg-slate-900/60 border-b border-slate-800 shrink-0">
                 <form onsubmit="handleInviteContact(event)" class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -355,7 +341,7 @@
             </div>
 
             <!-- Search Filter in Contact List -->
-            <div class="px-3 py-2 border-b border-slate-800/60">
+            <div class="px-3 py-2 border-b border-slate-800/60 shrink-0">
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
                     <input
@@ -369,16 +355,16 @@
             </div>
 
             <!-- Contacts List Scrollable Area -->
-            <div id="contactListContainer" class="flex-1 overflow-y-auto divide-y divide-slate-800/50">
+            <div id="contactListContainer" class="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-800/50">
                 <!-- Dynamic Contacts Rendered Here -->
             </div>
         </aside>
 
         <!-- RIGHT PANEL: ACTIVE CHAT ROOM -->
-        <section id="chatRoomPanel" class="hidden md:flex flex-1 flex-col bg-slate-950 chat-bg relative overflow-hidden">
+        <section id="chatRoomPanel" class="hidden md:flex flex-1 min-w-0 h-full min-h-0 flex-col bg-slate-950 chat-bg relative overflow-hidden">
             
             <!-- EMPTY STATE (When no contact is selected yet) -->
-            <div id="emptyChatState" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div id="emptyChatState" class="flex-1 min-h-0 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
                 <div class="w-20 h-20 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 shadow-xl">
                     <i class="fa-regular fa-paper-plane text-3xl text-emerald-400"></i>
                 </div>
@@ -400,66 +386,67 @@
             </div>
 
             <!-- ACTIVE CHAT ROOM WRAPPER -->
-            <div id="activeChatWrapper" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+            <div id="activeChatWrapper" class="hidden flex-1 w-full h-full min-h-0 flex flex-col overflow-hidden">
                 
                 <!-- Chat Room Header -->
-                <header class="h-16 px-4 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between gap-3 shrink-0 z-10">
-                    <div class="flex items-center gap-3 min-w-0">
+                <header class="h-14 sm:h-16 px-3 sm:px-4 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between gap-2 shrink-0 z-10">
+                    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
                         <!-- Back Button for Mobile -->
-                        <button onclick="closeMobileChat()" class="md:hidden p-2 -ml-1 rounded-xl text-slate-300 hover:bg-slate-800">
-                            <i class="fa-solid fa-arrow-left"></i>
+                        <button type="button" onclick="closeMobileChat()" class="md:hidden p-2 -ml-1 rounded-xl bg-slate-800/80 text-slate-200 hover:bg-slate-700 active:scale-95 transition shrink-0" title="Kembali ke Kontak">
+                            <i class="fa-solid fa-arrow-left text-sm"></i>
                         </button>
 
                         <div class="relative shrink-0">
-                            <img id="activeContactAvatar" src="" alt="Avatar Kontak" class="w-10 h-10 rounded-2xl object-cover border border-slate-700 bg-slate-800">
+                            <img id="activeContactAvatar" src="" alt="Avatar Kontak" class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl object-cover border border-slate-700 bg-slate-800">
                             <span id="activeContactDot" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-slate-500 ring-2 ring-slate-900"></span>
                         </div>
 
                         <div class="min-w-0">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1.5 sm:gap-2">
                                 <h3 id="activeContactName" class="font-semibold text-sm text-white truncate">Nama Kontak</h3>
-                                <span id="activeContactNumber" class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[11px] font-semibold">#0000</span>
+                                <span id="activeContactNumber" class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[11px] font-semibold shrink-0">#0000</span>
                             </div>
-                            <p id="activeContactStatusText" class="text-xs text-slate-400 truncate">Offline</p>
+                            <p id="activeContactStatusText" class="text-[11px] sm:text-xs text-slate-400 truncate">Offline</p>
                         </div>
                     </div>
 
                     <!-- Voice Call Button Only (NO Video Call per user instruction) -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 shrink-0">
                         <button
+                            type="button"
                             onclick="startVoiceCall()"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-semibold text-xs transition cursor-pointer shadow-sm"
+                            class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-semibold text-xs transition cursor-pointer shadow-sm"
                             title="Panggilan Suara (Voice Call)"
                         >
                             <i class="fa-solid fa-phone"></i>
-                            <span class="hidden sm:inline">Voice Call</span>
+                            <span>Voice Call</span>
                         </button>
                     </div>
                 </header>
 
                 <!-- Chat Messages Container -->
-                <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
+                <div id="messagesContainer" class="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden px-3 py-4 sm:p-4 space-y-3 flex flex-col">
                     <!-- Dynamic Messages Rendered Here -->
                 </div>
 
                 <!-- Selected Image Preview Bar Before Sending -->
-                <div id="pendingImageBanner" class="hidden px-4 py-2.5 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-3">
+                <div id="pendingImageBanner" class="hidden px-3 sm:px-4 py-2 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0">
                     <div class="flex items-center gap-3 min-w-0">
-                        <img id="pendingImageThumb" src="" alt="Preview Gambar" class="w-12 h-12 rounded-xl object-cover border border-emerald-500/50">
+                        <img id="pendingImageThumb" src="" alt="Preview Gambar" class="w-11 h-11 rounded-xl object-cover border border-emerald-500/50 shrink-0">
                         <div class="min-w-0">
                             <p class="text-xs font-medium text-emerald-300">Gambar siap dikirim</p>
                             <p id="pendingImageInfo" class="text-[11px] text-slate-400 truncate">Ter-kompresi otomatis agar cepat</p>
                         </div>
                     </div>
-                    <button onclick="clearPendingImage()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs">
+                    <button type="button" onclick="clearPendingImage()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 text-xs shrink-0">
                         <i class="fa-solid fa-xmark"></i> Batal
                     </button>
                 </div>
 
                 <!-- Chat Input Bar (Text + Image Only, Rejects Video) -->
-                <form onsubmit="handleSendMessage(event)" class="p-3 bg-slate-900 border-t border-slate-800 flex items-end gap-2 shrink-0">
+                <form onsubmit="handleSendMessage(event)" class="p-2.5 sm:p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2 shrink-0">
                     <!-- Image Picker Button (Strictly Images Only) -->
-                    <label for="chatImageInput" class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700/80 cursor-pointer transition shrink-0 flex items-center justify-center" title="Kirim Gambar (Tanpa Video)">
+                    <label for="chatImageInput" class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700/80 cursor-pointer transition shrink-0 flex items-center justify-center" title="Kirim Gambar (Tanpa Video)">
                         <i class="fa-regular fa-image text-base"></i>
                     </label>
                     <input
@@ -471,13 +458,13 @@
                     >
 
                     <!-- Text Input -->
-                    <div class="flex-1 relative">
+                    <div class="flex-1 min-w-0 relative">
                         <input
                             type="text"
                             id="chatMessageInput"
                             placeholder="Ketik pesan atau kirim gambar..."
                             autocomplete="off"
-                            class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                            class="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
                         >
                     </div>
 
@@ -485,7 +472,7 @@
                     <button
                         type="submit"
                         id="sendMsgBtn"
-                        class="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-1.5 shrink-0 shadow-md shadow-emerald-500/10 cursor-pointer"
+                        class="h-10 sm:h-11 px-3.5 sm:px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shrink-0 shadow-md shadow-emerald-500/10 cursor-pointer"
                     >
                         <i class="fa-solid fa-paper-plane"></i>
                         <span class="hidden sm:inline">Kirim</span>
@@ -613,82 +600,6 @@
     </div>
 
     <!-- ==========================================
-         MODAL 5: SUPABASE SQL SETUP SCRIPT
-    =========================================== -->
-    <div id="sqlSetupModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[88vh]">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div class="flex items-center gap-2.5">
-                    <i class="fa-solid fa-database text-emerald-400 text-lg"></i>
-                    <div>
-                        <h3 class="font-bold text-base text-white">Setup Tabel SQL Supabase</h3>
-                        <p class="text-xs text-slate-400">Jalankan perintah SQL ini sekali saja di menu <b>SQL Editor</b> pada dashboard Supabase Anda (`zyddldgtefrtwjgymbtk`).</p>
-                    </div>
-                </div>
-                <button onclick="closeSqlModal()" class="text-slate-400 hover:text-white p-1.5">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <div class="my-3 flex-1 overflow-y-auto bg-slate-950 border border-slate-800 rounded-2xl p-4 font-mono text-xs text-emerald-300 select-all">
-<pre id="sqlCodeBlock" class="whitespace-pre-wrap leading-relaxed">-- 1. Tabel User dengan Nomor 4-Digit & PIN
-CREATE TABLE IF NOT EXISTS public.chat_users (
-    phone_4 VARCHAR(4) PRIMARY KEY,
-    pin VARCHAR(10) NOT NULL,
-    display_name TEXT NOT NULL,
-    avatar_url TEXT,
-    is_online BOOLEAN DEFAULT true,
-    last_seen TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 2. Tabel Kontak (Invite Nomor 4-Digit)
-CREATE TABLE IF NOT EXISTS public.chat_contacts (
-    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    owner_phone VARCHAR(4) NOT NULL,
-    contact_phone VARCHAR(4) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(owner_phone, contact_phone)
-);
-
--- 3. Tabel Pesan Live Chat (Teks & Gambar Base64, Tanpa Video)
-CREATE TABLE IF NOT EXISTS public.chat_messages (
-    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    sender_phone VARCHAR(4) NOT NULL,
-    receiver_phone VARCHAR(4) NOT NULL,
-    message_text TEXT,
-    image_data TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Matikan RLS (Atau Buka Akses Public Anon) Agar Langsung Jalan
-ALTER TABLE public.chat_users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_contacts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_messages DISABLE ROW LEVEL SECURITY;
-
--- 5. Aktifkan Supabase Realtime untuk Ketiga Tabel
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_users;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_contacts;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
-            </div>
-
-            <div class="flex items-center justify-between gap-3 pt-2">
-                <p class="text-[11px] text-slate-400">
-                    Setelah klik <b>Run</b> di SQL Editor Supabase, klik tombol <b>Cek Ulang Koneksi</b>.
-                </p>
-                <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="copySqlScript()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-semibold text-xs border border-slate-700 flex items-center gap-1.5 cursor-pointer">
-                        <i class="fa-regular fa-copy"></i> Salin SQL
-                    </button>
-                    <button onclick="verifySupabaseTables()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer">
-                        <i class="fa-solid fa-rotate"></i> Cek Ulang Koneksi
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==========================================
          JAVASCRIPT LOGIC & SUPABASE INTEGRATION
     =========================================== -->
     <script>
@@ -707,17 +618,109 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
         });
 
         /**************************************************************
-         * 2. STATE GLOBAL APLIKASI
+         * 2. STATE GLOBAL APLIKASI & ANTI-DUPLIKAT PESAN
          **************************************************************/
         let currentUser = null; // { phone_4, pin, display_name, avatar_url }
         let contactsMap = new Map(); // Map<phone_4, { phone_4, display_name, avatar_url, is_online, last_seen, last_msg }>
         let activeContactPhone = null;
         let messagesList = []; // Array pesan untuk room aktif
         let onlineUsersSet = new Set(); // Set nomor 4-digit yang sedang online di Presence
-        let dbTablesReady = false; // Apakah tabel SQL di Supabase sudah dibuat oleh user
+        let dbTablesReady = false; // Status tabel SQL di Supabase
         let globalChannel = null; // Channel Supabase Realtime untuk Presence, Broadcast Chat & WebRTC Voice Call
         let pendingImageBase64 = null; // Gambar yang akan dikirim di chat
         let editModalTempAvatar = null;
+
+        // Set & Map untuk mencegah pesan / gambar diterima double (ganda)
+        const processedMessageIds = new Set();
+        const processedSignatures = new Map(); // signatureKey -> timestamp (ms)
+
+        // Buat signature unik dari isi pesan & pengirim agar meskipun datang dari Broadcast + Postgres Changes tidak akan double
+        function createMessageSignature(msg) {
+            if (!msg) return '';
+            const sender = String(msg.sender_phone || '');
+            const receiver = String(msg.receiver_phone || '');
+            const textPart = String(msg.message_text || '').trim().slice(0, 80);
+            const imgData = String(msg.image_data || '');
+            const imgPart = imgData
+                ? `${imgData.length}_${imgData.slice(0, 40)}_${imgData.slice(-40)}`
+                : 'noimg';
+            return `${sender}->${receiver}|${textPart}|${imgPart}`;
+        }
+
+        // Cek apakah pesan ini sudah pernah diproses dalam rentang 8 detik terakhir
+        function isDuplicateMessage(msg, existingMsgs = []) {
+            if (!msg) return true;
+
+            const msgId = msg.client_msg_id || msg.id;
+            if (msgId && processedMessageIds.has(String(msgId))) {
+                return true;
+            }
+
+            const sig = createMessageSignature(msg);
+            const msgTime = msg.created_at ? new Date(msg.created_at).getTime() : Date.now();
+            const now = Date.now();
+
+            // 1. Cek pada memori runtime
+            if (processedSignatures.has(sig)) {
+                const prevTime = processedSignatures.get(sig);
+                if (Math.abs(now - prevTime) < 8000 || Math.abs(msgTime - prevTime) < 8000) {
+                    if (msgId) processedMessageIds.add(String(msgId));
+                    return true;
+                }
+            }
+
+            // 2. Cek pada array pesan yang sudah ada di percakapan
+            for (let i = existingMsgs.length - 1; i >= 0; i--) {
+                const m = existingMsgs[i];
+                if (msgId && (String(m.id) === String(msgId) || String(m.client_msg_id) === String(msgId))) {
+                    return true;
+                }
+                const existingSig = createMessageSignature(m);
+                if (existingSig === sig) {
+                    const existingTime = m.created_at ? new Date(m.created_at).getTime() : 0;
+                    if (Math.abs(msgTime - existingTime) < 8000) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function markMessageProcessed(msg) {
+            if (!msg) return;
+            const msgId = msg.client_msg_id || msg.id;
+            if (msgId) processedMessageIds.add(String(msgId));
+            const sig = createMessageSignature(msg);
+            const msgTime = msg.created_at ? new Date(msg.created_at).getTime() : Date.now();
+            processedSignatures.set(sig, msgTime);
+        }
+
+        // Deduplikasi kumpulan pesan yang dimuat dari database/cache
+        function deduplicateMessagesArray(arr) {
+            const result = [];
+            const seenIds = new Set();
+            const seenSigs = new Map();
+
+            for (const m of arr) {
+                const idKey = m.client_msg_id || m.id;
+                if (idKey && seenIds.has(String(idKey))) continue;
+
+                const sig = createMessageSignature(m);
+                const t = m.created_at ? new Date(m.created_at).getTime() : Date.now();
+
+                if (seenSigs.has(sig)) {
+                    const prevT = seenSigs.get(sig);
+                    if (Math.abs(t - prevT) < 8000) continue;
+                }
+
+                if (idKey) seenIds.add(String(idKey));
+                seenSigs.set(sig, t);
+                markMessageProcessed(m);
+                result.push(m);
+            }
+            return result;
+        }
 
         // Preset Avatar SVG Data URI yang ringan
         const PRESET_AVATARS = [
@@ -794,31 +797,19 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
         async function verifySupabaseTables() {
             const dot = document.getElementById('supabaseStatusDot');
             const text = document.getElementById('supabaseStatusText');
-            const banner = document.getElementById('dbMissingBanner');
+
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+            if (text) text.textContent = 'Connected Supabase Realtime';
 
             try {
-                const { data, error } = await supabaseClient
+                const { error } = await supabaseClient
                     .from('chat_users')
                     .select('phone_4')
                     .limit(1);
 
-                if (error) {
-                    // Tabel belum dibuat di SQL Editor, tetap aktifkan Realtime Broadcast & Local Fallback
-                    dbTablesReady = false;
-                    dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-                    text.textContent = 'Supabase Realtime Aktif (Tabel SQL Belum Dibuat)';
-                    banner.classList.remove('hidden');
-                } else {
-                    dbTablesReady = true;
-                    dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
-                    text.textContent = 'Terhubung Penuh ke Supabase DB & Realtime';
-                    banner.classList.add('hidden');
-                    closeSqlModal();
-                }
+                dbTablesReady = !error;
             } catch (err) {
                 dbTablesReady = false;
-                dot.className = 'w-2 h-2 rounded-full bg-rose-400';
-                text.textContent = 'Mode Realtime Hybrid';
             }
         }
 
@@ -856,7 +847,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
         /**************************************************************
          * 5. KOMPRESI GAMBAR KE BASE64 RINGAN (UNTUK AVATAR & CHAT)
          **************************************************************/
-        function compressImageFile(file, maxWidth = 720, quality = 0.72) {
+        function compressImageFile(file, maxWidth = 720, quality = 0.75) {
             return new Promise((resolve, reject) => {
                 if (!file.type.startsWith('image/')) {
                     reject(new Error('Hanya file gambar yang diizinkan (bukan video).'));
@@ -867,18 +858,21 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                     const img = new Image();
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
+                        let width = Math.round(img.width);
+                        let height = Math.round(img.height);
 
                         if (width > maxWidth) {
                             height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
+                            width = Math.round(maxWidth);
                         }
 
-                        canvas.width = width;
-                        canvas.height = height;
+                        // Pastikan dimensi genap dan valid agar tidak terjadi distorsi piksel bergaris
+                        canvas.width = Math.max(1, width);
+                        canvas.height = Math.max(1, height);
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
                         resolve(compressedDataUrl);
                     };
@@ -1283,7 +1277,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
             activeContactPhone = phone4;
             renderContactList();
 
-            // Responsif Mobile: Sembunyikan sidebar, tampilkan chat room
+            // Responsif Mobile & Desktop: Pada layar HP (< md), sembunyikan daftar kontak dan tampilkan penuh ruang chat
             const sidebar = document.getElementById('sidebarPanel');
             const chatPanel = document.getElementById('chatRoomPanel');
             sidebar.classList.add('hidden', 'md:flex');
@@ -1341,7 +1335,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
 
             const cacheKey = getConversationCacheKey(currentUser.phone_4, activeContactPhone);
             const cachedMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-            messagesList = cachedMsgs;
+            messagesList = deduplicateMessagesArray(cachedMsgs);
 
             if (dbTablesReady) {
                 const { data, error } = await supabaseClient
@@ -1352,7 +1346,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                     .limit(200);
 
                 if (!error && data) {
-                    messagesList = data;
+                    messagesList = deduplicateMessagesArray(data);
                     localStorage.setItem(cacheKey, JSON.stringify(messagesList));
                 }
             }
@@ -1379,19 +1373,20 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                 const timeStr = formatTimeShort(msg.created_at);
 
                 return `
-                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-                        <div class="max-w-[80%] sm:max-w-[68%] rounded-2xl px-3.5 py-2.5 shadow-md ${
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} shrink-0">
+                        <div class="max-w-[82%] sm:max-w-[70%] rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-md ${
                             isMe
-                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 rounded-br-xs'
-                                : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-xs'
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 rounded-br-sm'
+                                : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-sm'
                         }">
                             ${msg.image_data ? `
-                                <div class="mb-1.5 overflow-hidden rounded-xl border ${isMe ? 'border-emerald-700/30' : 'border-slate-700'}">
+                                <div class="mb-1.5 overflow-hidden rounded-xl border ${isMe ? 'border-emerald-700/30' : 'border-slate-700'} bg-slate-950/30">
                                     <img
                                         src="${msg.image_data}"
                                         alt="Gambar Chat"
+                                        onload="scrollToBottomChat()"
                                         onclick="openImageLightbox('${msg.image_data}')"
-                                        class="max-h-64 w-auto object-cover cursor-zoom-in hover:opacity-95 transition"
+                                        class="max-w-[210px] sm:max-w-[270px] max-h-[240px] sm:max-h-[280px] w-auto h-auto object-contain rounded-xl cursor-zoom-in hover:opacity-95 transition block mx-auto"
                                     >
                                 </div>
                             ` : ''}
@@ -1407,7 +1402,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                 `;
             }).join('');
 
-            container.scrollTop = container.scrollHeight;
+            scrollToBottomChat();
+        }
+
+        function scrollToBottomChat() {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
         }
 
         // Validasi Ketat: Hanya Gambar, Tolak File Video!
@@ -1451,8 +1453,10 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
             inputEl.value = '';
             clearPendingImage();
 
+            const uniqueClientId = `${currentUser.phone_4}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
             const newMsg = {
-                id: Date.now(),
+                id: uniqueClientId,
+                client_msg_id: uniqueClientId,
                 sender_phone: currentUser.phone_4,
                 receiver_phone: activeContactPhone,
                 message_text: text || null,
@@ -1460,26 +1464,10 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                 created_at: new Date().toISOString()
             };
 
-            // Render optimistik langsung di layar pengirim
+            // Render optimistik 1x di layar pengirim dan tandai sudah diproses
             appendIncomingOrOutgoingMessage(newMsg);
 
-            // 1. Kirim ke Tabel Supabase `chat_messages`
-            if (dbTablesReady) {
-                const { error } = await supabaseClient
-                    .from('chat_messages')
-                    .insert({
-                        sender_phone: newMsg.sender_phone,
-                        receiver_phone: newMsg.receiver_phone,
-                        message_text: newMsg.message_text,
-                        image_data: newMsg.image_data
-                    });
-
-                if (error) {
-                    console.warn('Gagal insert chat_messages:', error.message);
-                }
-            }
-
-            // 2. Kirim via Supabase Realtime Broadcast agar lawan bicara langsung menerima secara instan
+            // 1. Kirim via Supabase Realtime Broadcast untuk latensi instan
             if (globalChannel) {
                 globalChannel.send({
                     type: 'broadcast',
@@ -1494,10 +1482,37 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                     }
                 });
             }
+
+            // 2. Simpan ke Tabel Supabase `chat_messages`
+            if (dbTablesReady) {
+                const { error } = await supabaseClient
+                    .from('chat_messages')
+                    .insert({
+                        sender_phone: newMsg.sender_phone,
+                        receiver_phone: newMsg.receiver_phone,
+                        message_text: newMsg.message_text,
+                        image_data: newMsg.image_data,
+                        created_at: newMsg.created_at
+                    });
+
+                if (error) {
+                    console.warn('Gagal insert chat_messages:', error.message);
+                }
+            }
         }
 
         function appendIncomingOrOutgoingMessage(msgObj, senderProfile = null) {
+            if (!currentUser || !msgObj) return;
+
             const peerPhone = msgObj.sender_phone === currentUser.phone_4 ? msgObj.receiver_phone : msgObj.sender_phone;
+            const cacheKey = getConversationCacheKey(currentUser.phone_4, peerPhone);
+            const existingMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+
+            // CEK ANTI-DOUBLE KETAT: Jika pesan sudah pernah masuk via Broadcast atau Postgres Changes, abaikan!
+            if (isDuplicateMessage(msgObj, existingMsgs)) {
+                return;
+            }
+            markMessageProcessed(msgObj);
 
             // Jika pengirim belum ada di daftar kontak, otomatis tambahkan ke daftar kontak
             if (!contactsMap.has(peerPhone)) {
@@ -1519,19 +1534,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
                 saveContactsToLocalCache();
             }
 
-            // Simpan ke cache percakapan
-            const cacheKey = getConversationCacheKey(currentUser.phone_4, peerPhone);
-            const existingMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-            const isDuplicate = existingMsgs.some(m =>
-                m.created_at === msgObj.created_at &&
-                m.sender_phone === msgObj.sender_phone &&
-                m.message_text === msgObj.message_text
-            );
-
-            if (!isDuplicate) {
-                existingMsgs.push(msgObj);
-                localStorage.setItem(cacheKey, JSON.stringify(existingMsgs));
-            }
+            existingMsgs.push(msgObj);
+            localStorage.setItem(cacheKey, JSON.stringify(existingMsgs));
 
             if (activeContactPhone === peerPhone) {
                 messagesList = existingMsgs;
@@ -1546,9 +1550,13 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
         /**************************************************************
          * 10. SUPABASE REALTIME (PRESENCE ONLINE, CHAT & SIGNALING CALL)
          **************************************************************/
-        function setupSupabaseRealtime() {
+        async function setupSupabaseRealtime() {
+            // Bersihkan channel lama terlebih dahulu agar listener tidak pernah menumpuk (penyebab pesan double)
             if (globalChannel) {
-                supabaseClient.removeChannel(globalChannel);
+                try {
+                    await supabaseClient.removeChannel(globalChannel);
+                } catch (e) {}
+                globalChannel = null;
             }
 
             globalChannel = supabaseClient.channel('nexchat_global_room', {
@@ -2125,25 +2133,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;</pre>
 
         function closeImageLightbox() {
             document.getElementById('imageLightboxModal').classList.add('hidden');
-        }
-
-        function openSqlModal() {
-            document.getElementById('sqlSetupModal').classList.remove('hidden');
-        }
-
-        function closeSqlModal() {
-            document.getElementById('sqlSetupModal').classList.add('hidden');
-        }
-
-        function copySqlScript() {
-            const sqlText = document.getElementById('sqlCodeBlock').innerText;
-            const textarea = document.createElement('textarea');
-            textarea.value = sqlText;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast('Script SQL berhasil disalin! Tempelkan di SQL Editor Supabase Anda.', 'success');
         }
 
         /**************************************************************
