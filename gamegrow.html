@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NexGrow — Kebun & Rumah</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1120;--panel:#0f172a;--line:#1e293b;--text:#e2e8f0;--mute:#94a3b8;--brand:#34d399;--warn:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:'Fredoka',system-ui,sans-serif;overflow:hidden;touch-action:none}
+#app{height:100%;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#stage{position:relative;height:min(100dvh - 16px,820px);aspect-ratio:2/3;max-width:100%;border-radius:20px;overflow:hidden;border:2px solid var(--line);background:#14532d}
+@media(max-width:600px){#stage{height:100dvh;width:100%;aspect-ratio:auto;border:0;border-radius:0}}
+canvas{width:100%;height:100%;display:block;object-fit:contain}
+.hidden{display:none!important}
+.hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;pointer-events:none}
+.chip{background:rgba(15,23,42,.85);border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700}
+.coin{width:14px;height:14px;border-radius:50%;background:var(--warn);display:inline-block}
+.lv{flex:1;flex-direction:column;align-items:stretch;gap:3px;font-size:13px}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden}
+#xpbar{height:100%;background:var(--brand);width:0}
+.lv small{color:var(--mute);font-weight:500;font-size:11px}
+.top2{position:absolute;top:58px;left:8px;display:flex;gap:6px}
+.mini{font:inherit;font-size:13px;font-weight:700;background:rgba(15,23,42,.85);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-decoration:none;cursor:pointer}
+#joyZone{position:absolute;left:18px;bottom:calc(22px + env(safe-area-inset-bottom));width:130px;height:130px;border-radius:50%;background:rgba(15,23,42,.45);border:2px solid rgba(226,232,240,.35);touch-action:none;display:flex;align-items:center;justify-content:center}
+#knob{width:52px;height:52px;border-radius:50%;background:rgba(52,211,153,.85);border:2px solid #052e22;pointer-events:none}
+#act{position:absolute;right:20px;bottom:calc(36px + env(safe-area-inset-bottom));min-width:104px;height:84px;border-radius:24px;border:0;background:var(--brand);color:#052e22;font:inherit;font-weight:700;font-size:16px;padding:0 14px;cursor:pointer}
+#act:disabled{background:#334155;color:var(--mute)}
+#panel{position:absolute;inset:0;background:rgba(11,17,32,.9);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+.box{width:100%;max-width:340px;max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.box h2{margin:0;font-size:20px}.box p{margin:0;color:var(--mute);font-size:13px}
+.opt{font:inherit;color:var(--text);text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;cursor:pointer}
+.opt b{font-size:16px}.opt span{font-size:12px;color:var(--mute)}
+.opt:disabled{opacity:.5}.opt.on{border-color:var(--brand)}
+.close{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px;background:var(--line);color:var(--text);cursor:pointer;text-align:center;text-decoration:none}
+.row{display:flex;align-items:center;gap:8px;font-size:14px;background:var(--bg);border-radius:10px;padding:6px 8px}
+.row img{width:26px;height:26px;border-radius:8px}.row .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .s{color:var(--brand);font-weight:700;text-align:right;font-size:12px}
+#toast{position:absolute;left:50%;top:104px;transform:translateX(-50%);background:var(--brand);color:#052e22;font-weight:700;padding:8px 14px;border-radius:12px;font-size:14px;z-index:6;white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <canvas id="cv" width="400" height="600"></canvas>
+  <div class="hud">
+    <div class="chip"><i class="coin"></i><b id="coins">0</b></div>
+    <div class="chip lv"><span id="lvl">Lv 1</span><div class="bar"><div id="xpbar"></div></div><small id="xptxt"></small></div>
+  </div>
+  <div class="top2"><a class="mini" href="game.html">Menu game</a><button class="mini" onclick="openRank()">Peringkat</button></div>
+  <div id="joyZone"><div id="knob"></div></div>
+  <button id="act" disabled>Dekati kebun</button>
+  <div id="toast" class="hidden"></div>
+  <div id="panel"><div class="box"><h2>Memeriksa akun…</h2></div></div>
+</div></div>
+
+<script>
+/* ============ SUPABASE ============ */
+const SUPABASE_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ============ DATA GAME ============ */
+const BASE_MIN = 5; // menit tunggu dasar (ubah ke 0.2 untuk uji coba cepat)
+const CROPS = {
+  padi:   { n: 'Padi',   lv: 1, v: 20,  xp: 10, c: '#facc15' },
+  jagung: { n: 'Jagung', lv: 2, v: 60,  xp: 25, c: '#fde047' },
+  tebu:   { n: 'Tebu',   lv: 3, v: 150, xp: 60, c: '#4ade80' }
+};
+const HOUSES = [
+  { n: 'Gubuk', p: 0, b: 1 }, { n: 'Rumah Kayu', p: 400, b: 1.1 },
+  { n: 'Rumah Batu', p: 2000, b: 1.25 }, { n: 'Villa', p: 8000, b: 1.5 }
+];
+const PL = [[50,250],[165,250],[280,250],[50,380],[165,380],[280,380]].map(([x, y]) => ({ x, y }));
+let S = { coins: 0, exp: 0, house: 0, plots: Array(6).fill(null) };
+let U = null, ready = false, LS = '', started = false, saveT = null;
+const level = () => 1 + Math.floor(Math.sqrt(S.exp / 40));
+const growMs = () => Math.min(4, 1 + .2 * (level() - 1)) * BASE_MIN * 60000;
+const bonus = () => HOUSES[S.house].b;
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+/* ============ AUTH + SIMPAN ============ */
+function setPanel(html, closable = true) {
+  $('panel').innerHTML = '<div class="box">' + html + (closable ? '<button class="close" onclick="closePanel()">Tutup</button>' : '') + '</div>';
+  $('panel').classList.remove('hidden');
+}
+function closePanel() { if (started) $('panel').classList.add('hidden'); }
+function bad(m) { setPanel('<h2>Belum masuk</h2><p>' + esc(m) + '</p><a class="close" style="background:var(--brand);color:#052e22" href="index.html">Ke halaman chat</a>', false); }
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.remove('hidden'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.add('hidden'), 2400); }
+
+async function boot() {
+  const ps = new URLSearchParams(location.search); let s = null;
+  try { s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null'); } catch (e) {}
+  const ph = ps.get('phone') || s?.phone_4;
+  if (!ph || !s || s.phone_4 !== ph) return bad('Sesi chat tidak ditemukan. Masuk dulu lewat halaman chat.');
+  U = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+  try {
+    const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', ph).maybeSingle();
+    if (!error && data) {
+      if (data.pin !== s.pin) return bad('PIN tidak cocok. Masuk ulang lewat halaman chat.');
+      U = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url || s.avatar_url };
+    }
+  } catch (e) {}
+  history.replaceState(null, '', location.pathname);
+  LS = 'nexgrow_' + U.phone_4;
+  let local = null, remote = null;
+  try { local = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) {}
+  try {
+    const { error } = await sb.from('game_scores').select('phone_4,game,data').limit(1); ready = !error;
+    if (ready) { const { data } = await sb.from('game_scores').select('data').eq('phone_4', U.phone_4).eq('game', 'grow').maybeSingle(); remote = data?.data; }
+  } catch (e) {}
+  const pick = [remote, local].filter(Boolean).sort((a, b) => (b.exp || 0) - (a.exp || 0))[0];
+  if (pick) S = { coins: pick.coins || 0, exp: pick.exp || 0, house: pick.house || 0, plots: Array.from({ length: 6 }, (_, i) => pick.plots?.[i] || null) };
+  started = true; closePanel(); hud();
+  if (!ready) toast('Supabase belum siap — progres hanya di perangkat ini');
+}
+function save() {
+  localStorage.setItem(LS, JSON.stringify(S));
+  if (!ready) return;
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    const { error } = await sb.from('game_scores').upsert({
+      phone_4: U.phone_4, game: 'grow', display_name: U.display_name, avatar_url: U.avatar_url,
+      best_score: S.exp, data: S, updated_at: new Date().toISOString()
+    }, { onConflict: 'phone_4,game' });
+    if (error) toast('Gagal simpan: ' + error.message);
+  }, 700);
+}
+setInterval(() => { if (started) save(); }, 30000);
+
+/* ============ AKSI ============ */
+let P = { x: 200, y: 215 }, floats = [], keys = {}, jv = { x: 0, y: 0 };
+function near() {
+  let b = null, bd = 62;
+  PL.forEach((q, i) => { const d = Math.hypot(P.x - (q.x + 35), P.y - (q.y + 35)); if (d < bd) { bd = d; b = { t: 'p', i }; } });
+  if (Math.hypot(P.x - 200, P.y - 178) < bd) b = { t: 'h' };
+  return b;
+}
+function act() {
+  if (!started || !$('panel').classList.contains('hidden')) return;
+  const n = near(); if (!n) return;
+  if (n.t === 'h') return openHouse();
+  const q = S.plots[n.i];
+  if (!q) return openCrops(n.i);
+  if (Date.now() >= q.e) harvest(n.i);
+}
+function openCrops(i) {
+  setPanel('<h2>Tanam apa?</h2><p>Waktu tumbuh: ' + fmt(growMs()) + ' (makin lama di level tinggi)</p>' +
+    Object.entries(CROPS).map(([k, c]) => {
+      const lock = level() < c.lv;
+      return `<button class="opt" ${lock ? 'disabled' : ''} onclick="plant(${i},'${k}')"><b>${c.n}</b><span>${lock ? 'Butuh Level ' + c.lv : 'Jual ' + Math.round(c.v * bonus()) + ' koin · +' + c.xp + ' EXP'}</span></button>`;
+    }).join(''));
+}
+function plant(i, k) {
+  if (S.plots[i] || level() < CROPS[k].lv) return;
+  const now = Date.now(); S.plots[i] = { c: k, s: now, e: now + growMs() };
+  save(); closePanel();
+}
+function harvest(i) {
+  const q = S.plots[i], c = CROPS[q.c], gain = Math.round(c.v * bonus()), old = level();
+  S.coins += gain; S.exp += c.xp; S.plots[i] = null;
+  floats.push({ x: PL[i].x + 35, y: PL[i].y, t: 70, s: '+' + gain });
+  if (level() > old) toast('Naik ke Level ' + level() + '! Tanaman makin lama tumbuh.');
+  save(); hud();
+}
+function openHouse() {
+  setPanel('<h2>' + HOUSES[S.house].n + '</h2><p>Bonus koin panen +' + Math.round((bonus() - 1) * 100) + '%. Pilih rumah baru dengan koinmu.</p>' +
+    HOUSES.map((h, i) => {
+      if (!i) return '';
+      const own = S.house === i, lower = S.house > i, can = S.coins >= h.p;
+      return `<button class="opt ${own ? 'on' : ''}" ${own || lower || !can ? 'disabled' : ''} onclick="buyHouse(${i})"><b>${h.n}</b><span>Bonus +${Math.round((h.b - 1) * 100)}% koin · ${own ? 'Rumahmu sekarang' : lower ? 'Sudah terlewati' : h.p + ' koin' + (can ? '' : ' (kurang ' + (h.p - S.coins) + ')')}</span></button>`;
+    }).join(''));
+}
+function buyHouse(i) {
+  const h = HOUSES[i]; if (S.house >= i || S.coins < h.p) return;
+  S.coins -= h.p; S.house = i; save(); hud(); openHouse(); toast('Kini kamu punya ' + h.n + '!');
+}
+async function openRank() {
+  if (!ready) return setPanel('<h2>Peringkat</h2><p>Belum tersambung ke Supabase.</p>');
+  setPanel('<h2>Peringkat</h2><p>Memuat…</p>');
+  const { data } = await sb.from('game_scores').select('phone_4,display_name,avatar_url,best_score,data').eq('game', 'grow').order('best_score', { ascending: false }).limit(10);
+  setPanel('<h2>Peringkat EXP & Rumah</h2>' + ((data || []).map((r, i) => `<div class="row"><span>${i + 1}</span><img src="${esc(r.avatar_url)}" alt=""><span class="n">${esc(r.display_name)}</span><span class="s">${r.best_score} EXP<br>${esc(HOUSES[r.data?.house || 0].n)}</span></div>`).join('') || '<p>Belum ada data.</p>'));
+}
+function hud() {
+  const L = level(), lo = 40 * (L - 1) ** 2, hi = 40 * L * L;
+  $('coins').textContent = S.coins; $('lvl').textContent = 'Lv ' + L + ' · ' + HOUSES[S.house].n;
+  $('xpbar').style.width = Math.min(100, (S.exp - lo) / (hi - lo) * 100) + '%';
+  $('xptxt').textContent = S.exp + ' / ' + hi + ' EXP';
+}
+
+/* ============ GAMBAR ============ */
+const cv = $('cv'), ctx = cv.getContext('2d');
+function drawHouse(t) {
+  const c = [{ w: 70, h: 44, a: '#a16207', r: '#78350f' }, { w: 100, h: 56, a: '#d97706', r: '#7c2d12' }, { w: 120, h: 70, a: '#94a3b8', r: '#475569' }, { w: 140, h: 90, a: '#f1f5f9', r: '#f59e0b' }][t];
+  const cx = 200, by = 160;
+  ctx.fillStyle = c.a; ctx.fillRect(cx - c.w / 2, by - c.h, c.w, c.h);
+  ctx.fillStyle = c.r; ctx.beginPath(); ctx.moveTo(cx - c.w / 2 - 8, by - c.h); ctx.lineTo(cx, by - c.h - 34); ctx.lineTo(cx + c.w / 2 + 8, by - c.h); ctx.fill();
+  ctx.fillStyle = '#3b2410'; ctx.fillRect(cx - 8, by - 26, 16, 26);
+  ctx.fillStyle = '#7dd3fc'; ctx.fillRect(cx - c.w / 2 + 10, by - c.h + 12, 14, 14); ctx.fillRect(cx + c.w / 2 - 24, by - c.h + 12, 14, 14);
+}
+function drawCrop(k, x, y, pr) {
+  const h = k === 'tebu' ? 14 + pr * 44 : 8 + pr * 28;
+  for (let i = -1; i <= 1; i++) {
+    const bx = x + i * 18;
+    ctx.strokeStyle = pr < .7 ? '#22c55e' : (k === 'tebu' ? '#4ade80' : '#65a30d'); ctx.lineWidth = k === 'tebu' ? 5 : 3;
+    ctx.beginPath(); ctx.moveTo(bx, y); ctx.lineTo(bx, y - h); ctx.stroke();
+    if (pr >= .7) {
+      ctx.fillStyle = CROPS[k].c;
+      if (k === 'padi') ctx.fillRect(bx - 4, y - h - 6, 8, 10);
+      else if (k === 'jagung') ctx.fillRect(bx - 4, y - h * .6 - 8, 8, 14);
+      else { ctx.fillStyle = '#7c3aed'; ctx.fillRect(bx - 3, y - h * .5, 6, 3); ctx.fillRect(bx - 3, y - h * .8, 6, 3); }
+    }
+  }
+}
+function draw() {
+  const now = Date.now(), n = started ? near() : null;
+  ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 400, 600);
+  ctx.fillStyle = '#16883f'; for (let y = 0; y < 600; y += 40) ctx.fillRect(0, y, 400, 20);
+  ctx.fillStyle = '#a8a29e'; ctx.fillRect(185, 160, 30, 90);
+  drawHouse(S.house);
+  if (n && n.t === 'h') { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(170, 100, 60, 70); }
+  ctx.textAlign = 'center'; ctx.font = '700 13px Fredoka, sans-serif';
+  PL.forEach((q, i) => {
+    ctx.fillStyle = '#78350f'; ctx.fillRect(q.x, q.y, 70, 70);
+    ctx.fillStyle = '#5b2a0c'; for (let k = 1; k < 4; k++) ctx.fillRect(q.x, q.y + k * 17, 70, 3);
+    const s = S.plots[i];
+    if (s) {
+      const pr = Math.min(1, (now - s.s) / (s.e - s.s));
+      drawCrop(s.c, q.x + 35, q.y + 62, pr);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(pr < 1 ? fmt(s.e - now) : 'Panen!', q.x + 35, q.y - 6 - (pr >= 1 ? Math.abs(Math.sin(now / 200)) * 5 : 0));
+    }
+    if (n && n.t === 'p' && n.i === i) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(q.x - 3, q.y - 3, 76, 76); }
+  });
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(P.x, P.y + 14, 12, 5, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#34d399'; ctx.beginPath(); ctx.arc(P.x, P.y, 14, 0, 7); ctx.fill();
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(P.x - 7, P.y - 4, 14, 8); ctx.fillStyle = '#6ee7b7'; ctx.fillRect(P.x - 5, P.y - 2, 3, 3); ctx.fillRect(P.x + 2, P.y - 2, 3, 3);
+  ctx.fillStyle = '#fbbf24'; ctx.font = '700 16px Fredoka, sans-serif';
+  floats.forEach(f => { ctx.globalAlpha = Math.min(1, f.t / 30); ctx.fillText(f.s, f.x, f.y - (70 - f.t) * .8); f.t--; }); ctx.globalAlpha = 1;
+  floats = floats.filter(f => f.t > 0);
+  // tombol aksi
+  const b = $('act');
+  if (!started || !n) { b.disabled = true; b.textContent = 'Dekati kebun'; }
+  else if (n.t === 'h') { b.disabled = false; b.textContent = 'Rumah'; }
+  else { const q = S.plots[n.i]; b.disabled = !!q && now < q.e; b.textContent = !q ? 'Tanam' : now >= q.e ? 'Panen' : 'Tumbuh ' + fmt(q.e - now); }
+}
+function loop() {
+  let dx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0) + jv.x;
+  let dy = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0) + jv.y;
+  const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
+  if ($('panel').classList.contains('hidden')) {
+    P.x = Math.max(14, Math.min(386, P.x + dx * 3.2));
+    const top = (P.x > 120 && P.x < 280) ? 172 : 100;
+    P.y = Math.max(top, Math.min(580, P.y + dy * 3.2));
+  }
+  draw(); requestAnimationFrame(loop);
+}
+
+/* ============ INPUT ============ */
+addEventListener('keydown', e => {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; keys[k] = true;
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
+  if (k === 'e' || k === ' ' || k === 'Enter') act();
+  if (k === 'Escape') closePanel();
+});
+addEventListener('keyup', e => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
+$('act').onclick = act;
+const jz = $('joyZone'), kn = $('knob'); let jid = null;
+function jmove(e) {
+  const r = jz.getBoundingClientRect(), R = r.width / 2 - 10;
+  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), d = Math.hypot(dx, dy);
+  if (d > R) { dx *= R / d; dy *= R / d; }
+  jv = { x: dx / R, y: dy / R }; kn.style.transform = `translate(${dx}px,${dy}px)`;
+}
+jz.addEventListener('pointerdown', e => { jid = e.pointerId; jz.setPointerCapture(jid); jmove(e); });
+jz.addEventListener('pointermove', e => { if (e.pointerId === jid) jmove(e); });
+const jend = e => { if (e.pointerId === jid) { jid = null; jv = { x: 0, y: 0 }; kn.style.transform = 'translate(0,0)'; } };
+jz.addEventListener('pointerup', jend); jz.addEventListener('pointercancel', jend);
+
+loop(); boot();
+</script>
+</body>
+</html>

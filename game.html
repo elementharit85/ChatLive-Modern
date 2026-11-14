@@ -46,7 +46,7 @@ a.alt{background:var(--line);color:var(--text);padding:9px 16px;font-size:14px;b
       <a class="alt" href="index.html">Kembali ke chat</a>
     </header>
     <h1>Pilih game</h1>
-    <p>Skor tiap game tersimpan terpisah di akunmu.</p>
+    <p>Skor tiap game (NexGrow: EXP dan rumah) tersimpan terpisah di akunmu.</p>
 
     <div class="grid">
       <section class="card jump">
@@ -66,6 +66,16 @@ a.alt{background:var(--line);color:var(--text);padding:9px 16px;font-size:14px;b
           <p>Terbangkan jet, tembak musuh yang turun, bertahan dengan 3 nyawa.</p>
           <div class="stats"><div>Skor terbaikmu<b id="jetMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="jetTopName"></span><b id="jetTop">0</b></div></div>
           <a class="btn" id="goJet" href="gamejet.html">Main NexJet</a>
+        </div>
+      </section>
+
+      <section class="card grow">
+        <div class="art" style="background:linear-gradient(#15803d,#14532d)"><i style="left:150px;top:18px;width:60px;height:40px;background:#d97706;border-radius:4px"></i><i style="left:140px;top:6px;width:80px;height:20px;background:#7c2d12;clip-path:polygon(50% 0,100% 100%,0 100%)"></i><i style="left:50px;bottom:14px;width:60px;height:40px;background:#78350f"></i><i style="left:150px;bottom:14px;width:60px;height:40px;background:#78350f"></i><i style="left:250px;bottom:14px;width:60px;height:40px;background:#78350f"></i><i style="left:74px;bottom:40px;width:6px;height:30px;background:#facc15"></i><i style="left:174px;bottom:40px;width:6px;height:38px;background:#fde047"></i><i style="left:274px;bottom:40px;width:7px;height:50px;background:#4ade80"></i></div>
+        <div class="body">
+          <h2>NexGrow</h2>
+          <p>Bertani padi, jagung, dan tebu. Jual panen, beli rumah baru.</p>
+          <div class="stats"><div>EXP terbaikmu<b id="growMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="growTopName"></span><b id="growTop">0</b></div></div>
+          <a class="btn" id="goGrow" href="gamegrow.html">Main NexGrow</a>
         </div>
       </section>
     </div>
@@ -107,14 +117,15 @@ async function init() {
   await loadScores(user);
 }
 
+const HN = ['Gubuk', 'Rumah Kayu', 'Rumah Batu', 'Villa'];
 async function loadScores(user) {
-  const { data, error } = await sb.from('game_scores').select('phone_4,game,display_name,best_score').order('best_score', { ascending: false }).limit(500);
+  const { data, error } = await sb.from('game_scores').select('phone_4,game,display_name,best_score,data').order('best_score', { ascending: false }).limit(500);
   if (error) { $('msg').textContent = 'Skor belum bisa dimuat. Jalankan SQL terbaru di Supabase (kolom game).'; return; }
-  for (const g of ['jump', 'jet']) {
+  for (const g of ['jump', 'jet', 'grow']) {
     const rows = data.filter(r => r.game === g);
     const mine = rows.find(r => r.phone_4 === user.phone_4);
     $(g + 'Mine').textContent = mine ? mine.best_score : 0;
-    if (rows[0]) { $(g + 'Top').textContent = rows[0].best_score; $(g + 'TopName').textContent = '(' + rows[0].display_name + ')'; }
+    if (rows[0]) { $(g + 'Top').textContent = rows[0].best_score; $(g + 'TopName').textContent = '(' + rows[0].display_name + (g === 'grow' ? ' · ' + (HN[rows[0].data?.house || 0] || '') : '') + ')'; }
   }
   $('msg').textContent = 'Tersambung ke Supabase';
 }
