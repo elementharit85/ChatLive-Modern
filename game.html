@@ -78,6 +78,16 @@ a.alt{background:var(--line);color:var(--text);padding:9px 16px;font-size:14px;b
           <a class="btn" id="goGrow" href="gamegrow.html">Main NexGrow</a>
         </div>
       </section>
+
+      <section class="card multi">
+        <div class="art" style="background:#0b1120"><i style="left:34px;top:22px;width:62px;height:44px;background:#2563eb;border-radius:10px"></i><i style="left:118px;top:48px;width:62px;height:44px;background:#7c3aed;border-radius:10px"></i><i style="left:202px;top:16px;width:62px;height:44px;background:#16a34a;border-radius:10px"></i><i style="left:286px;top:60px;width:62px;height:44px;background:#db2777;border-radius:10px"></i><i style="left:110px;bottom:8px;width:140px;height:22px;background:#0f172a;border:2px solid #34d399;border-radius:8px"></i></div>
+        <div class="body">
+          <h2>NexKelipatan</h2>
+          <p>Ketuk blok yang merupakan kelipatan angka target sebelum jatuh.</p>
+          <div class="stats"><div>Skor terbaikmu<b id="multiMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="multiTopName"></span><b id="multiTop">0</b></div></div>
+          <a class="btn" id="goMulti" href="gamekelipatan.html">Main NexKelipatan</a>
+        </div>
+      </section>
     </div>
     <div id="msg"></div>
   </div>
@@ -121,7 +131,7 @@ const HN = ['Gubuk', 'Rumah Kayu', 'Rumah Batu', 'Villa'];
 async function loadScores(user) {
   const { data, error } = await sb.from('game_scores').select('phone_4,game,display_name,best_score,data').order('best_score', { ascending: false }).limit(500);
   if (error) { $('msg').textContent = 'Skor belum bisa dimuat. Jalankan SQL terbaru di Supabase (kolom game).'; return; }
-  for (const g of ['jump', 'jet', 'grow']) {
+  for (const g of ['jump', 'jet', 'grow', 'multi']) {
     const rows = data.filter(r => r.game === g);
     const mine = rows.find(r => r.phone_4 === user.phone_4);
     $(g + 'Mine').textContent = mine ? mine.best_score : 0;
