@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NexChess 3D</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>html,body{height:100%;overscroll-behavior:none;touch-action:none;-webkit-tap-highlight-color:transparent}#c{touch-action:none}</style>
+<style type="text/tailwindcss">
+@layer components{
+ .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40}
+ .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950}
+ .seg{@apply flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-slate-800 border border-slate-700}
+ .seg.on{@apply bg-emerald-500 text-slate-950 border-emerald-400}
+ .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-emerald-500/60 active:scale-[.99] transition}
+}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-[100dvh] w-screen overflow-hidden select-none font-sans">
+<canvas id="c" class="absolute inset-0 w-full h-full block"></canvas>
+
+<div class="absolute top-0 inset-x-0 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] flex items-center gap-2 pointer-events-none z-10">
+  <button onclick="toMenu()" class="btn pointer-events-auto">☰ Menu</button>
+  <div class="flex-1 min-w-0 text-center bg-slate-900/85 border border-slate-800 rounded-xl px-3 py-1.5">
+    <div id="statusT" class="text-sm font-semibold truncate">NexChess 3D</div>
+    <div id="vs" class="text-[11px] text-slate-400 truncate"></div>
+  </div>
+  <button onclick="openHelp()" class="btn pointer-events-auto w-10 !px-0" aria-label="Cara bermain">?</button>
+</div>
+
+<div id="bar" class="hidden absolute bottom-0 inset-x-0 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex justify-center gap-2 z-10">
+  <button onclick="flipView()" class="btn">⟲ Putar</button>
+  <button onclick="resetView()" class="btn">◎ Kamera</button>
+  <button id="undoBtn" onclick="undo()" class="btn">↶ Undo</button>
+  <button onclick="resign()" class="btn !text-rose-300">⚑ Menyerah</button>
+</div>
+
+<div id="menu" class="absolute inset-0 z-20 bg-slate-950/95 overflow-y-auto"><div class="min-h-full flex items-center justify-center p-4"><div class="w-full max-w-md space-y-3">
+  <div class="text-center mb-2">
+    <h1 class="text-3xl font-bold text-emerald-400">NexChess 3D</h1>
+    <p id="acct" class="text-xs text-slate-400 mt-1">Memeriksa akun…</p>
+  </div>
+  <div id="mHome" class="space-y-3">
+    <button class="card" onclick="panel('mBot')"><b class="text-lg">Lawan Bot</b><div class="text-xs text-slate-400">Pilih warna dan tingkat kesulitan.</div></button>
+    <button class="card" onclick="panel('mOnline')"><b class="text-lg">Multiplayer Online</b><div class="text-xs text-slate-400">Buat ruang atau gabung dengan kode 4 karakter.</div></button>
+    <button class="card" onclick="startLocal()"><b class="text-lg">Dua Pemain</b><div class="text-xs text-slate-400">Bergantian di satu perangkat.</div></button>
+    <a href="game.html" class="btn block text-center">← Kembali ke menu game</a>
+  </div>
+  <div id="mBot" class="hidden space-y-3">
+    <div class="text-sm font-semibold">Warna Anda</div>
+    <div class="flex gap-2"><button class="seg on" onclick="pickOpt('color','w',this)">Putih</button><button class="seg" onclick="pickOpt('color','b',this)">Hitam</button><button class="seg" onclick="pickOpt('color','r',this)">Acak</button></div>
+    <div class="text-sm font-semibold">Tingkat bot</div>
+    <div class="flex gap-2"><button class="seg" onclick="pickOpt('level',1,this)">Mudah</button><button class="seg on" onclick="pickOpt('level',2,this)">Sedang</button><button class="seg" onclick="pickOpt('level',3,this)">Sulit</button></div>
+    <button class="btn btn-p w-full" onclick="startBot()">Mulai</button>
+    <button class="btn w-full" onclick="panel('mHome')">Kembali</button>
+  </div>
+  <div id="mOnline" class="hidden space-y-3">
+    <button class="btn btn-p w-full" onclick="createRoom()">Buat ruang baru</button>
+    <div id="roomBox" class="hidden text-center p-3 rounded-xl bg-slate-900 border border-slate-800">
+      <div class="text-xs text-slate-400">Bagikan kode ini ke teman, lalu tunggu</div>
+      <div id="roomCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400 my-1"></div>
+      <div class="text-xs text-slate-400">Menunggu lawan bergabung…</div>
+    </div>
+    <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="KODE" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
+    <div id="onMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
+    <button class="btn w-full" onclick="closeRoom();panel('mHome')">Kembali</button>
+  </div>
+</div></div></div>
+
+<div id="help" class="hidden absolute inset-0 z-30 bg-slate-950/95 overflow-y-auto"><div class="min-h-full flex items-center justify-center p-4"><div class="w-full max-w-md space-y-2 text-sm">
+  <h2 class="text-xl font-bold text-emerald-400 text-center mb-2">Cara bermain</h2>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Gerakkan bidak:</b> ketuk bidak Anda, titik hijau menunjukkan langkah sah, lalu ketuk tujuan. Lingkaran merah berarti menangkap.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Kamera:</b> geser jari/mouse untuk memutar, cubit atau scroll untuk zoom. Tombol Putar membalik sudut pandang.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Aturan:</b> semua aturan catur resmi berlaku (rokade, en passant, skak, skakmat, remis). Pion yang sampai ujung otomatis jadi Ratu.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Online:</b> satu pemain membuat ruang dan membagikan kode, yang lain memasukkan kode. Warna diacak.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Poin:</b> jika masuk lewat chat, menang melawan bot memberi 10/20/30 poin (sesuai level), menang online 30 poin, remis sebagian poin.</div>
+  <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
+</div></div></div>
+
+<div id="result" class="hidden absolute inset-0 z-30 bg-slate-950/80 flex items-center justify-center p-4"><div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center space-y-2">
+  <h2 id="resT" class="text-2xl font-bold text-emerald-400"></h2>
+  <p id="resR" class="text-sm text-slate-300"></p>
+  <p id="resP" class="text-sm text-amber-300 min-h-[1.25rem]"></p>
+  <div class="flex gap-2 pt-2"><button id="againBtn" class="btn btn-p flex-1" onclick="again()">Main lagi</button><button class="btn flex-1" onclick="toMenu()">Menu</button></div>
+</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const FILES = 'abcdefgh', cname = c => c === 'w' ? 'Putih' : 'Hitam';
+if (typeof THREE === 'undefined' || typeof Chess === 'undefined') { document.body.insertAdjacentHTML('afterbegin', '<div class="absolute inset-0 z-50 bg-slate-950 flex items-center justify-center p-6 text-center">Gagal memuat library (three.js / chess.js). Periksa koneksi internet lalu muat ulang.</div>'); throw new Error('lib'); }
+const sb = window.supabase ? window.supabase.createClient('https://zyddldgtefrtwjgymbtk.supabase.co', 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
+
+/* ===== akun (opsional, untuk menyimpan poin) ===== */
+let user = null; const guest = 'Tamu' + (10 + Math.floor(Math.random() * 90));
+const uname = () => user?.display_name || guest;
+(async () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null');
+    if (s?.phone_4 && sb) {
+      const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', s.phone_4).maybeSingle();
+      if (!error && data) { if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url }; }
+      else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+    }
+  } catch (e) {}
+  $('acct').textContent = user ? 'Masuk sebagai ' + user.display_name + ' (#' + user.phone_4 + ') — poin tersimpan' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk menyimpan poin';
+})();
+async function addPoints(n) {
+  if (!user || !sb || !n) return false;
+  try {
+    const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'chess').maybeSingle();
+    const { error } = await sb.from('game_scores').upsert({ phone_4: user.phone_4, game: 'chess', display_name: user.display_name, avatar_url: user.avatar_url, best_score: (data?.best_score || 0) + n, total_games: (data?.total_games || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: 'phone_4,game' });
+    return !error;
+  } catch (e) { return false; }
+}
+
+/* ===== 3D ===== */
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true }); }
+catch (e) { $('menu').innerHTML = '<p class="p-8 text-center">Browser/perangkat ini tidak mendukung WebGL (3D).</p>'; throw e; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1120);
+const camera = new THREE.PerspectiveCamera(45, 1, .1, 200);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x334155, .95));
+const dl = new THREE.DirectionalLight(0xffffff, .85); dl.position.set(5, 10, 6); scene.add(dl);
+const boardG = new THREE.Group(), pieces = new THREE.Group(), hl = new THREE.Group(); scene.add(boardG, pieces, hl);
+const frame = new THREE.Mesh(new THREE.BoxGeometry(8.8, .3, 8.8), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: .7 })); frame.position.y = -.08; scene.add(frame);
+const sqGeo = new THREE.BoxGeometry(1, .2, 1), mL = new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: .8 }), mD = new THREE.MeshStandardMaterial({ color: 0x4b7a6a, roughness: .8 });
+for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) { const m = new THREE.Mesh(sqGeo, (f + r) % 2 ? mL : mD); m.position.set(f - 3.5, 0, 3.5 - r); m.userData.sq = FILES[f] + (r + 1); boardG.add(m); }
+const pos = sq => new THREE.Vector3(FILES.indexOf(sq[0]) - 3.5, .1, 3.5 - (sq[1] - 1));
+
+const PROF = {
+  p: [[0,0],[.3,0],[.32,.07],[.2,.13],[.14,.28],[.2,.34],[.14,.4],[.16,.5],[.1,.58],[0,.6]],
+  r: [[0,0],[.34,0],[.36,.1],[.24,.17],[.22,.5],[.3,.55],[.3,.72],[.22,.72],[.22,.68],[0,.68]],
+  b: [[0,0],[.32,0],[.34,.08],[.2,.15],[.12,.4],[.2,.5],[.18,.64],[.1,.76],[0,.8]],
+  q: [[0,0],[.34,0],[.36,.1],[.22,.18],[.14,.5],[.22,.72],[.3,.86],[.14,.9],[0,.92]],
+  k: [[0,0],[.34,0],[.36,.1],[.22,.18],[.15,.55],[.24,.78],[.2,.88],[0,.9]],
+  n: [[0,0],[.32,0],[.34,.08],[.22,.16],[.2,.3],[0,.3]]
+};
+const GEO = {}; for (const k in PROF) GEO[k] = new THREE.LatheGeometry(PROF[k].map(([r, y]) => new THREE.Vector2(r, y)), 20);
+const GX = { head: new THREE.BoxGeometry(.3, .46, .4), snout: new THREE.BoxGeometry(.22, .2, .3), sph: new THREE.SphereGeometry(.09, 12, 12), kv: new THREE.BoxGeometry(.07, .32, .07), kh: new THREE.BoxGeometry(.24, .07, .07) };
+const MAT = { w: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: .45, metalness: .1 }), b: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: .4, metalness: .3 }) };
+function mkPiece(t, c) {
+  const g = new THREE.Group(), m = MAT[c], add = (geo, x, y, z, rx) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); if (rx) o.rotation.x = rx; g.add(o); };
+  add(GEO[t], 0, 0, 0);
+  if (t === 'b') add(GX.sph, 0, .85, 0); if (t === 'q') add(GX.sph, 0, .99, 0);
+  if (t === 'k') { add(GX.kv, 0, 1.05, 0); add(GX.kh, 0, 1.08, 0); }
+  if (t === 'n') { add(GX.head, 0, .5, -.02, -.35); add(GX.snout, 0, .56, -.24); if (c === 'b') g.rotation.y = Math.PI; }
+  return g;
+}
+
+/* ===== state ===== */
+let G = new Chess(), mode = null, myColor = 'w', level = 2, started = false, over = false, busy = false, sel = null, targets = [], last = null;
+const opt = { color: 'w', level: 2 }, pm = {}, tw = []; let dirty = true, az = 0, el = .95, zoom = 1;
+
+function buildPieces() {
+  pieces.clear(); for (const k in pm) delete pm[k];
+  const bd = G.board();
+  for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+    const p = bd[r][f]; if (!p) continue; const sq = FILES[f] + (8 - r), g = mkPiece(p.type, p.color);
+    g.position.copy(pos(sq)); g.traverse(o => o.userData.sq = sq); pieces.add(g); pm[sq] = g;
+  }
+  dirty = true;
+}
+const hlGeo = { sq: new THREE.PlaneGeometry(.96, .96).rotateX(-Math.PI / 2), dot: new THREE.CircleGeometry(.17, 20).rotateX(-Math.PI / 2), ring: new THREE.RingGeometry(.36, .47, 28).rotateX(-Math.PI / 2) };
+const hlMat = k => new THREE.MeshBasicMaterial({ color: { sel: 0x34d399, last: 0xfbbf24, chk: 0xef4444, mv: 0x10b981, cap: 0xef4444 }[k], transparent: true, opacity: { sel: .6, last: .4, chk: .65, mv: .85, cap: .9 }[k], depthWrite: false });
+const HM = {}; ['sel', 'last', 'chk', 'mv', 'cap'].forEach(k => HM[k] = hlMat(k));
+function mark(sq, k) { const o = new THREE.Mesh(k === 'cap' ? hlGeo.ring : k === 'mv' ? hlGeo.dot : hlGeo.sq, HM[k]); o.position.copy(pos(sq)); o.position.y = .105 + (k === 'mv' || k === 'cap' ? .01 : 0); hl.add(o); }
+function drawHL() {
+  hl.clear();
+  if (last) last.forEach(s => mark(s, 'last'));
+  if (started && G.in_check()) { const bd = G.board(); for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) { const p = bd[r][f]; if (p && p.type === 'k' && p.color === G.turn()) mark(FILES[f] + (8 - r), 'chk'); } }
+  if (sel) { mark(sel, 'sel'); targets.forEach(t => mark(t, G.get(t) ? 'cap' : 'mv')); }
+  dirty = true;
+}
+
+/* ===== kamera & input ===== */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function cam() {
+  const fit = 5.8 / (Math.tan(camera.fov * Math.PI / 360) * Math.min(camera.aspect, 1)), d = Math.max(12, fit) * zoom;
+  camera.position.set(d * Math.sin(az) * Math.cos(el), d * Math.sin(el), d * Math.cos(az) * Math.cos(el)); camera.lookAt(0, 0, 0);
+}
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); dirty = true; }
+addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 200)); window.visualViewport?.addEventListener('resize', resize);
+const flipView = () => { az += Math.PI; dirty = true; }, resetView = () => { az = myColor === 'b' && mode !== 'local' ? Math.PI : 0; el = .95; zoom = 1; dirty = true; };
+
+const cv = $('c'), ptrs = new Map(), rc = new THREE.Raycaster(); let down = null, pinch0 = 1;
+const d2 = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false }; if (ptrs.size === 2) { pinch0 = d2(); down.moved = true; } });
+cv.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+  if (ptrs.size === 1 && down) { if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) down.moved = true; if (down.moved) { az -= dx * .007; el = clamp(el + dy * .005, .35, 1.4); dirty = true; } }
+  else if (ptrs.size === 2) { const d = d2(); zoom = clamp(zoom * pinch0 / d, .5, 1.5); pinch0 = d; dirty = true; }
+});
+const endPtr = e => { ptrs.delete(e.pointerId); if (!ptrs.size) down = null; };
+cv.addEventListener('pointerup', e => { if (ptrs.size === 1 && down && !down.moved && performance.now() - down.t < 600) pick(e); endPtr(e); });
+cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('wheel', e => { e.preventDefault(); zoom = clamp(zoom * (1 + Math.sign(e.deltaY) * .08), .5, 1.5); dirty = true; }, { passive: false });
+function pick(e) {
+  const r = cv.getBoundingClientRect();
+  rc.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  const h = rc.intersectObjects([boardG, pieces], true)[0]; if (h) onSquare(h.object.userData.sq);
+}
+
+/* ===== permainan ===== */
+const canTouch = () => started && !over && !busy && (mode === 'local' || G.turn() === myColor);
+function onSquare(sq) {
+  if (!sq || !canTouch()) return;
+  if (sel && targets.includes(sq)) { const from = sel; sel = null; targets = []; play(from, sq); return; }
+  const pc = G.get(sq);
+  if (pc && pc.color === G.turn() && (mode === 'local' || pc.color === myColor)) { sel = sq; targets = G.moves({ square: sq, verbose: true }).map(m => m.to); } else { sel = null; targets = []; }
+  drawHL();
+}
+function play(from, to) {
+  const mv = G.move({ from, to, promotion: 'q' }); if (!mv) return;
+  last = [from, to]; if (mode === 'online') send({ t: 'mv', from, to, fen: G.fen() });
+  animateMove(mv);
+}
+function animateMove(mv) {
+  busy = true; drawHL(); const g = pm[mv.from];
+  if (!g) { buildPieces(); busy = false; afterMove(); return; }
+  const a = g.position.clone(), b = pos(mv.to), h = mv.piece === 'n' ? .9 : .35;
+  tw.push({ t0: performance.now(), dur: 300, fn: p => g.position.set(a.x + (b.x - a.x) * p, a.y + Math.sin(p * Math.PI) * h, a.z + (b.z - a.z) * p), done: () => { buildPieces(); busy = false; afterMove(); } });
+  dirty = true;
+}
+function afterMove() {
+  drawHL(); refreshStatus();
+  if (G.game_over()) {
+    if (G.in_checkmate()) finish(G.turn() === 'w' ? 'b' : 'w', 'Skakmat');
+    else finish(null, G.in_stalemate() ? 'Stalemate (tidak ada langkah sah)' : G.in_threefold_repetition() ? 'Pengulangan tiga kali' : G.insufficient_material() ? 'Material tidak cukup' : 'Remis');
+    return;
+  }
+  if (mode === 'bot' && G.turn() !== myColor) botMove();
+}
+function refreshStatus() {
+  if (!started) return; let s;
+  if (over) s = 'Permainan selesai';
+  else { s = (G.in_check() ? 'Skak! ' : '') + 'Giliran ' + cname(G.turn()); if (mode !== 'local') s += G.turn() === myColor ? ' (Anda)' : mode === 'bot' ? ' — Bot berpikir…' : ' (Lawan)'; }
+  $('statusT').textContent = s;
+  $('vs').textContent = mode === 'bot' ? 'Anda ' + cname(myColor) + ' vs Bot ' + ['', 'Mudah', 'Sedang', 'Sulit'][level] : mode === 'online' ? 'Anda ' + cname(myColor) + ' vs ' + oppName + ' · Ruang ' + room : 'Dua pemain · satu perangkat';
+}
+async function finish(winner, reason) {
+  if (over) return; over = true; sel = null; targets = []; drawHL(); refreshStatus();
+  const mine = winner && winner === myColor;
+  $('resT').textContent = !winner ? 'Remis' : mode === 'local' ? cname(winner) + ' menang!' : mine ? 'Kamu menang!' : 'Kamu kalah';
+  $('resR').textContent = reason; $('resP').textContent = '';
+  $('againBtn').textContent = mode === 'online' ? 'Ajak main lagi' : 'Main lagi'; $('againBtn').disabled = false;
+  $('result').classList.remove('hidden');
+  let pts = 0;
+  if (mode === 'bot') pts = mine ? 10 * level : !winner ? 3 * level : 0; else if (mode === 'online') pts = mine ? 30 : !winner ? 10 : 0;
+  if (pts && user) { const ok = await addPoints(pts); $('resP').textContent = ok ? '+' + pts + ' poin tersimpan ke akunmu' : ''; }
+}
+function undo() {
+  if (!started || busy || mode === 'online' || over) return;
+  const n = mode === 'bot' ? (G.turn() === myColor ? 2 : 0) : 1; for (let i = 0; i < n; i++) G.undo();
+  last = null; sel = null; targets = []; buildPieces(); drawHL(); refreshStatus();
+}
+function resign() {
+  if (!started || over || !confirm('Menyerah dan mengakhiri permainan?')) return;
+  if (mode === 'online') send({ t: 'resign' });
+  finish(mode === 'local' ? (G.turn() === 'w' ? 'b' : 'w') : (myColor === 'w' ? 'b' : 'w'), 'Menyerah');
+}
+
+/* ===== bot ===== */
+const V = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+function evalW(g) {
+  let s = 0; const bd = g.board();
+  for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+    const p = bd[r][f]; if (!p) continue; let v = V[p.type]; const c = (3.5 - Math.abs(f - 3.5)) + (3.5 - Math.abs(r - 3.5));
+    if (p.type === 'n' || p.type === 'b') v += c * 6; else if (p.type === 'p') v += c * 2 + (p.color === 'w' ? 6 - r : r - 1) * 6; else if (p.type === 'q') v += c;
+    s += p.color === 'w' ? v : -v;
+  }
+  return s;
+}
+function search(g, d, a, b) {
+  if (d === 0) return evalW(g) * (g.turn() === 'w' ? 1 : -1);
+  const ms = g.moves({ verbose: true }); if (!ms.length) return g.in_check() ? -99999 - d : 0;
+  ms.sort((x, y) => (y.captured ? 1 : 0) - (x.captured ? 1 : 0));
+  for (const m of ms) { g.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' }); const v = -search(g, d - 1, -b, -a); g.undo(); if (v >= b) return b; if (v > a) a = v; }
+  return a;
+}
+function pickBot() {
+  const g = new Chess(G.fen()), ms = g.moves({ verbose: true }); if (!ms.length) return null;
+  ms.sort((x, y) => (y.captured ? 1 : 0) - (x.captured ? 1 : 0));
+  const noise = [0, 150, 10, 5][level]; let best = ms[0], bv = -1e9;
+  for (const m of ms) { g.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' }); const v = -search(g, level - 1, -1e9, 1e9) + Math.random() * noise; g.undo(); if (v > bv) { bv = v; best = m; } }
+  return best;
+}
+function botMove() {
+  busy = true; refreshStatus();
+  setTimeout(() => {
+    if (!started || over || mode !== 'bot') { busy = false; return; }
+    const m = pickBot(); if (!m) { busy = false; return; }
+    const mv = G.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' }); last = [m.from, m.to]; animateMove(mv);
+  }, 450);
+}
+
+/* ===== multiplayer (Supabase Realtime, tanpa tabel) ===== */
+let ch = null, room = '', isHost = false, oppName = 'Lawan'; const myId = Math.random().toString(36).slice(2, 8); const re = { me: false, opp: false };
+const send = p => ch && ch.send({ type: 'broadcast', event: 'm', payload: p });
+function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; $('roomBox').classList.add('hidden'); }
+function openRoom(code, host) {
+  if (!sb) { $('onMsg').textContent = 'Supabase tidak tersedia.'; return; }
+  closeRoom(); room = code; isHost = host; started = false;
+  ch = sb.channel('nexchess_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
+  ch.on('broadcast', { event: 'm' }, ({ payload }) => onNet(payload));
+  ch.on('presence', { event: 'sync' }, () => {
+    const n = Object.keys(ch.presenceState()).length;
+    if (isHost && n === 2 && !started) { const hc = Math.random() < .5 ? 'w' : 'b'; send({ t: 'start', hc, name: uname() }); begin('online', hc); }
+    else if (started && mode === 'online' && n < 2 && !over) $('statusT').textContent = 'Lawan terputus…';
+  });
+  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track({ name: uname() }); });
+}
+function createRoom() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; $('roomCode').textContent = c; $('roomBox').classList.remove('hidden'); $('onMsg').textContent = ''; openRoom(c, true); }
+function joinRoomUI() {
+  const c = $('joinCode').value.trim().toUpperCase(); if (c.length !== 4) { $('onMsg').textContent = 'Masukkan kode 4 karakter.'; return; }
+  $('onMsg').textContent = 'Menghubungkan…'; openRoom(c, false);
+  setTimeout(() => { if (!started && room === c && !isHost) $('onMsg').textContent = 'Ruang tidak ditemukan atau host belum online.'; }, 6000);
+}
+function onNet(p) {
+  if (p.t === 'start' && !started && !isHost) { oppName = p.name || 'Lawan'; begin('online', p.hc === 'w' ? 'b' : 'w'); send({ t: 'hello', name: uname() }); }
+  else if (p.t === 'hello') { oppName = p.name || 'Lawan'; refreshStatus(); }
+  else if (p.t === 'mv' && mode === 'online' && started && !over && G.turn() !== myColor) {
+    sel = null; targets = []; const mv = G.move({ from: p.from, to: p.to, promotion: 'q' });
+    if (!mv) { G.load(p.fen); buildPieces(); afterMove(); return; } last = [p.from, p.to]; animateMove(mv);
+  }
+  else if (p.t === 'resign' && started && !over) finish(myColor, 'Lawan menyerah');
+  else if (p.t === 'rematch') { re.opp = true; if (re.me) rematch(); else $('resP').textContent = 'Lawan mengajak main lagi!'; }
+}
+function rematch() { re.me = re.opp = false; begin('online', myColor === 'w' ? 'b' : 'w'); }
+
+/* ===== alur menu ===== */
+function begin(m, color) {
+  mode = m; myColor = color; G = new Chess(); over = false; busy = false; started = true; sel = null; targets = []; last = null; re.me = re.opp = false;
+  $('menu').classList.add('hidden'); $('result').classList.add('hidden'); $('bar').classList.remove('hidden'); $('undoBtn').classList.toggle('hidden', m === 'online');
+  resetView(); buildPieces(); drawHL(); refreshStatus();
+  if (m === 'bot' && myColor === 'b') botMove();
+}
+function startBot() { level = opt.level; begin('bot', opt.color === 'r' ? (Math.random() < .5 ? 'w' : 'b') : opt.color); }
+function startLocal() { begin('local', 'w'); }
+function again() {
+  if (mode === 'online') { re.me = true; send({ t: 'rematch' }); $('againBtn').disabled = true; $('resP').textContent = re.opp ? '' : 'Menunggu lawan…'; if (re.opp) rematch(); }
+  else begin(mode, mode === 'bot' ? myColor : 'w');
+}
+function toMenu() { closeRoom(); started = false; over = false; busy = false; sel = null; targets = []; last = null; G = new Chess(); buildPieces(); drawHL(); $('bar').classList.add('hidden'); $('result').classList.add('hidden'); $('statusT').textContent = 'NexChess 3D'; $('vs').textContent = ''; panel('mHome'); $('menu').classList.remove('hidden'); }
+function panel(id) { ['mHome', 'mBot', 'mOnline'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+function pickOpt(k, v, el) { opt[k] = v; [...el.parentNode.children].forEach(b => b.classList.remove('on')); el.classList.add('on'); }
+function openHelp() { $('help').classList.remove('hidden'); }
+addEventListener('keydown', e => { if (e.key === 'Escape') $('help').classList.add('hidden'); });
+
+/* ===== loop ===== */
+function loop(t) {
+  requestAnimationFrame(loop);
+  if (tw.length) { for (let i = tw.length - 1; i >= 0; i--) { const w = tw[i], p = clamp((t - w.t0) / w.dur, 0, 1); w.fn(p); if (p >= 1) { tw.splice(i, 1); w.done && w.done(); } } dirty = true; }
+  if (dirty) { cam(); renderer.render(scene, camera); dirty = false; }
+}
+resize(); buildPieces(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

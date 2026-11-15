@@ -88,6 +88,16 @@ a.alt{background:var(--line);color:var(--text);padding:9px 16px;font-size:14px;b
           <a class="btn" id="goMulti" href="gamekelipatan.html">Main NexKelipatan</a>
         </div>
       </section>
+
+      <section class="card chess">
+        <div class="art" style="background:linear-gradient(#0b1120,#13263a)"><i style="left:60px;top:30px;width:240px;height:70px;background:repeating-linear-gradient(90deg,#e8dcc0 0 30px,#4b7a6a 30px 60px);transform:perspective(200px) rotateX(55deg);border-radius:4px"></i><i style="left:150px;top:16px;width:22px;height:46px;background:#f1f5f9;border-radius:10px 10px 4px 4px"></i><i style="left:196px;top:30px;width:20px;height:38px;background:#1e293b;border-radius:10px 10px 4px 4px"></i></div>
+        <div class="body">
+          <h2>NexChess 3D</h2>
+          <p>Catur 3D lawan bot atau teman secara online. Putar kamera dengan jari.</p>
+          <div class="stats"><div>Poinmu<b id="chessMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="chessTopName"></span><b id="chessTop">0</b></div></div>
+          <a class="btn" id="goChess" href="gamechess.html">Main NexChess</a>
+        </div>
+      </section>
     </div>
     <div id="msg"></div>
   </div>
@@ -131,7 +141,7 @@ const HN = ['Gubuk', 'Rumah Kayu', 'Rumah Batu', 'Villa'];
 async function loadScores(user) {
   const { data, error } = await sb.from('game_scores').select('phone_4,game,display_name,best_score,data').order('best_score', { ascending: false }).limit(500);
   if (error) { $('msg').textContent = 'Skor belum bisa dimuat. Jalankan SQL terbaru di Supabase (kolom game).'; return; }
-  for (const g of ['jump', 'jet', 'grow', 'multi']) {
+  for (const g of ['jump', 'jet', 'grow', 'multi', 'chess']) {
     const rows = data.filter(r => r.game === g);
     const mine = rows.find(r => r.phone_4 === user.phone_4);
     $(g + 'Mine').textContent = mine ? mine.best_score : 0;
