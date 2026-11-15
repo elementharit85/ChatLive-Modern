@@ -530,7 +530,7 @@ function toLogical(e) {
 function setAim(p) { const c = balls[0]; aimAng = Math.atan2(p.y - c.y, p.x - c.x); }
 function placeCue(p) { const x = Math.max(L + R, Math.min(bihLimit ? 300 : RT - R, p.x)), y = Math.max(T + R, Math.min(B - R, p.y)); if (free(x, y, 0)) { balls[0].x = x; balls[0].y = y; balls[0].p = false; } }
 cv.addEventListener('pointerdown', e => { if (!canAim()) return; const p = toLogical(e), c = balls[0]; cv.setPointerCapture(e.pointerId); if (bih && (p.x - c.x) ** 2 + (p.y - c.y) ** 2 < 900) dragCue = true; else setAim(p); });
-cv.addEventListener('pointermove', e => { if (!canAim()) return; const p = toLogical(e); if (dragCue) placeCue(p); else if (e.buttons || e.pointerType === 'mouse') setAim(p); });
+cv.addEventListener('pointermove', e => { if (!canAim()) return; const p = toLogical(e); if (dragCue) placeCue(p); else if (e.buttons) setAim(p); });
 const upd = () => { dragCue = false; }; cv.addEventListener('pointerup', upd); cv.addEventListener('pointercancel', upd);
 function holdBtn(id, d) { const el = $(id); let iv; const go = () => { if (canAim()) aimAng += d; }; el.addEventListener('pointerdown', e => { e.preventDefault(); go(); clearInterval(iv); iv = setInterval(go, 40); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, () => clearInterval(iv))); }
 holdBtn('aL', -.004); holdBtn('aR', .004);
