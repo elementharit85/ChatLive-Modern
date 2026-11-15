@@ -1216,7 +1216,7 @@
         function markPhotoAsDownloaded(msgKey) {
             if (!msgKey) return;
             downloadedPhotosMap[String(msgKey)] = true;
-            localStorage.setItem('nexchat_downloaded_photos', JSON.stringify(downloadedPhotosMap));
+            safeLSSet('nexchat_downloaded_photos', JSON.stringify(downloadedPhotosMap));
         }
 
         function isPhotoExpired(createdAtIso) {
@@ -1275,7 +1275,7 @@
                             return m;
                         });
                         if (changed) {
-                            localStorage.setItem(key, JSON.stringify(updated));
+                            safeLSSet(key, JSON.stringify(updated));
                         }
                     }
                 }
@@ -1299,7 +1299,7 @@
                         parsed.avatar_url = ensureValidAvatarUrl(parsed.avatar_url, parsed.phone_4);
                         if (!parsed.presence_mode) parsed.presence_mode = 'online';
                         currentUser = parsed;
-                        localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
+                        safeLSSet('nexchat_session_user', JSON.stringify(currentUser));
                         await enterChatApplication();
                     }
                 } catch (e) {
@@ -1465,7 +1465,7 @@
             const file = event.target.files[0];
             if (!file) return;
             try {
-                const compressed = await compressImageFile(file, 240, 0.8, true);
+                const compressed = await compressImageFile(file, 160, 0.7, true);
                 selectedAuthAvatar = compressed;
                 document.getElementById('authAvatarPreview').src = compressed;
                 renderPresetAvatars();
@@ -1498,7 +1498,7 @@
 
             const localUsers = JSON.parse(localStorage.getItem('nexchat_local_users') || '{}');
             localUsers[userObj.phone_4] = { ...userObj, presence_mode: mode };
-            localStorage.setItem('nexchat_local_users', JSON.stringify(localUsers));
+            safeLSSet('nexchat_local_users', JSON.stringify(localUsers));
 
             if (dbTablesReady) {
                 const { error } = await supabaseClient
@@ -1514,8 +1514,10 @@
 
                 if (error) {
                     console.warn('Info simpan ke tabel chat_users:', error.message);
+                    return false;
                 }
             }
+            return true;
         }
 
         async function handleAuthSubmit(event) {
@@ -1583,7 +1585,7 @@
                 showToast(`Nomor baru #${phone4} berhasil dibuat!`, 'success');
             }
 
-            localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
+            safeLSSet('nexchat_session_user', JSON.stringify(currentUser));
             btn.disabled = false;
             await enterChatApplication();
         }
@@ -1598,6 +1600,8 @@
             updateMyProfileUI();
             await loadMyContacts();
             setupSupabaseRealtime();
+            refreshGroupDbChannel();
+            syncMissedMessages();
         }
 
         function updateMyProfileUI() {
@@ -1657,6 +1661,7 @@
                 supabaseClient.removeChannel(globalChannel);
                 globalChannel = null;
             }
+            if (groupDbChannel) { try { supabaseClient.removeChannel(groupDbChannel); } catch (e) {} groupDbChannel = null; groupDbKey = ''; }
             localStorage.removeItem('nexchat_session_user');
             currentUser = null;
             activeContactPhone = null;
@@ -1721,7 +1726,7 @@
                                 ...prev,
                                 phone_4: u.phone_4,
                                 display_name: u.display_name,
-                                avatar_url: ensureValidAvatarUrl(u.avatar_url, u.phone_4),
+                                avatar_url: u.avatar_url ? ensureValidAvatarUrl(u.avatar_url, u.phone_4) : (prev.avatar_url || ensureValidAvatarUrl(null, u.phone_4)),
                                 is_online: u.is_online,
                                 last_seen: u.last_seen
                             });
@@ -1738,7 +1743,7 @@
         function saveContactsToLocalCache() {
             if (!currentUser) return;
             const localContactsKey = `nexchat_contacts_${currentUser.phone_4}`;
-            localStorage.setItem(localContactsKey, JSON.stringify(Array.from(contactsMap.values())));
+            safeLSSet(localContactsKey, JSON.stringify(Array.from(contactsMap.values())));
         }
 
         async function handleInviteContact(event) {
@@ -1992,8 +1997,8 @@
                     .limit(200);
 
                 if (!error && data) {
-                    messagesList = deduplicateMessagesArray(data);
-                    localStorage.setItem(cacheKey, JSON.stringify(messagesList));
+                    messagesList = deduplicateMessagesArray([...cachedMsgs, ...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+                    safeLSSet(cacheKey, JSON.stringify(messagesList));
                 }
             }
 
@@ -2259,6 +2264,10 @@
 
                 if (error) {
                     console.warn('Gagal insert chat_messages:', error.message);
+                    if (String(newMsg.receiver_phone).startsWith('g_') && !window.__groupInsertWarned) {
+                        window.__groupInsertWarned = true;
+                        showToast('Pesan grup tidak tersimpan di server (' + error.message + '). Anggota yang sedang offline/HP yang tidur tidak akan menerimanya.', 'error');
+                    }
                 }
 
                 if (newMsg.image_data) {
@@ -2267,7 +2276,7 @@
             }
         }
 
-        function appendIncomingOrOutgoingMessage(msgObj, senderProfile = null) {
+        function appendIncomingOrOutgoingMessage(msgObj, senderProfile = null, silent = false) {
             if (!currentUser || !msgObj) return;
 
             const isGroupMsg = String(msgObj.receiver_phone).startsWith('g_');
@@ -2300,12 +2309,13 @@
             }
 
             existingMsgs.push(msgObj);
-            localStorage.setItem(cacheKey, JSON.stringify(existingMsgs));
+            existingMsgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            safeLSSet(cacheKey, JSON.stringify(existingMsgs));
 
             if (activeContactPhone === peerPhone) {
                 messagesList = existingMsgs;
                 renderMessagesList();
-            } else if (msgObj.sender_phone !== currentUser.phone_4) {
+            } else if (msgObj.sender_phone !== currentUser.phone_4 && !silent) {
                 showToast(`Pesan baru dari #${msgObj.sender_phone}: ${parseReplyText(msgObj.message_text).text || '📷 Gambar'}`, 'info');
             }
 
@@ -2487,9 +2497,13 @@
                     const updated = payload.new;
                     if (updated && contactsMap.has(updated.phone_4)) {
                         const c = contactsMap.get(updated.phone_4);
-                        c.display_name = updated.display_name;
-                        c.avatar_url = ensureValidAvatarUrl(updated.avatar_url, updated.phone_4);
-                        c.is_online = updated.is_online;
+                        // Kolom besar (foto base64) sering TIDAK ikut dikirim Supabase bila tidak berubah;
+                        // jangan timpa dengan avatar preset kalau nilainya kosong.
+                        if (updated.display_name) c.display_name = updated.display_name;
+                        if (typeof updated.avatar_url === 'string' && updated.avatar_url) {
+                            c.avatar_url = ensureValidAvatarUrl(updated.avatar_url, updated.phone_4);
+                        }
+                        if (typeof updated.is_online === 'boolean') c.is_online = updated.is_online;
                         contactsMap.set(updated.phone_4, c);
                         renderContactList();
                     }
@@ -2987,7 +3001,7 @@
             const file = event.target.files[0];
             if (!file) return;
             try {
-                settingsModalTempAvatar = await compressImageFile(file, 240, 0.8, true);
+                settingsModalTempAvatar = await compressImageFile(file, 160, 0.7, true);
                 document.getElementById('settingsAvatarPreview').src = settingsModalTempAvatar;
                 showToast('Foto baru siap disimpan!', 'info');
             } catch (err) {
@@ -3054,13 +3068,14 @@
             }
             currentUser.presence_mode = settingsModalTempPresence || 'online';
 
-            localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
-            await saveUserToStorage(currentUser);
+            safeLSSet('nexchat_session_user', JSON.stringify(currentUser));
+            const savedOk = await saveUserToStorage(currentUser);
             updateMyProfileUI();
             await syncMyPresenceState();
 
             closeSettingsModal();
-            showToast('Pengaturan profil, PIN, dan status berhasil disimpan!', 'success');
+            if (savedOk === false) showToast('Tersimpan di perangkat ini, tetapi GAGAL disinkronkan ke server. Teman mungkin belum melihat foto/nama baru.', 'error');
+            else showToast('Pengaturan profil, PIN, dan status berhasil disimpan!', 'success');
         }
 
         // Navigasi Auth ke file baru: game.html
@@ -3078,8 +3093,8 @@
                 presence_mode: currentUser.presence_mode || 'online',
                 auth_timestamp: new Date().toISOString()
             };
-            localStorage.setItem('nexchat_game_auth', JSON.stringify(gameAuthPayload));
-            localStorage.setItem('nexchat_session_user', JSON.stringify(currentUser));
+            safeLSSet('nexchat_game_auth', JSON.stringify(gameAuthPayload));
+            safeLSSet('nexchat_session_user', JSON.stringify(currentUser));
 
             const params = new URLSearchParams({
                 phone: currentUser.phone_4,
@@ -3230,7 +3245,7 @@
         function rememberSenderName(phone, name) {
             if (!phone || !name) return;
             senderNamesCache[phone] = name;
-            try { localStorage.setItem('nexchat_sender_names', JSON.stringify(senderNamesCache)); } catch (e) {}
+            try { safeLSSet('nexchat_sender_names', JSON.stringify(senderNamesCache)); } catch (e) {}
         }
         function getSenderName(phone) {
             if (currentUser && phone === currentUser.phone_4) return currentUser.display_name;
@@ -3403,6 +3418,7 @@
             const prev = contactsMap.get(g.id) || {};
             contactsMap.set(g.id, { ...prev, ...groupContactObj(g), last_msg: prev.last_msg });
             saveContactsToLocalCache();
+            refreshGroupDbChannel();
         }
 
         async function loadGroupsFromDb() {
@@ -3455,10 +3471,11 @@
 
             if (dbTablesReady) {
                 try {
-                    await supabaseClient.from('chat_groups').upsert({
+                    const { error: gErr } = await supabaseClient.from('chat_groups').upsert({
                         id: group.id, name: group.name, avatar_url: group.avatar_url,
                         members: group.members, created_by: group.created_by
                     }, { onConflict: 'id' });
+                    if (gErr) showToast('Grup dibuat, tapi belum tersinkron ke server (jalankan schema.sql di Supabase). Anggota yang offline belum bisa melihatnya.', 'info');
                 } catch (e) {}
             }
             if (globalChannel) {
@@ -3526,6 +3543,118 @@
             localAudioStream.getVideoTracks().forEach(t => { t.enabled = !camOff; });
             document.getElementById('toggleCamIcon').className = camOff ? 'fa-solid fa-video-slash' : 'fa-solid fa-video';
         }
+
+        
+        // ---------- Perbaikan mobile: simpan aman, sinkron saat HP bangun, channel DB grup ----------
+        function safeLSSet(key, val) {
+            try { localStorage.setItem(key, val); return true; } catch (e) {}
+            try {
+                // Penyimpanan penuh (umum di HP): buang gambar dari cache pesan lama lalu coba lagi
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.startsWith('nexchat_msgs_') && k !== key) {
+                        const arr = JSON.parse(localStorage.getItem(k) || '[]');
+                        localStorage.setItem(k, JSON.stringify(arr.map(m => (m && m.image_data) ? { ...m, image_data: null } : m)));
+                    }
+                }
+                localStorage.setItem(key, val);
+                return true;
+            } catch (e2) {
+                try {
+                    const arr = JSON.parse(val);
+                    if (Array.isArray(arr)) {
+                        localStorage.setItem(key, JSON.stringify(arr.map(m => (m && m.image_data) ? { ...m, image_data: null } : m)));
+                        return true;
+                    }
+                } catch (e3) {}
+            }
+            return false;
+        }
+
+        let groupDbChannel = null;
+        let groupDbKey = '';
+
+        function myGroupIds() {
+            return Array.from(contactsMap.values()).filter(c => c.is_group).map(c => c.phone_4);
+        }
+
+        async function ensureSenderNames(phones) {
+            const need = Array.from(new Set(phones)).filter(p => p && !contactsMap.has(p) && !senderNamesCache[p]);
+            if (!need.length || !dbTablesReady) return;
+            try {
+                const { data } = await supabaseClient.from('chat_users').select('phone_4, display_name').in('phone_4', need);
+                if (data) {
+                    data.forEach(u => rememberSenderName(u.phone_4, u.display_name));
+                    renderMessagesList();
+                }
+            } catch (e) {}
+        }
+
+        function refreshGroupDbChannel() {
+            if (!dbTablesReady || !currentUser) return;
+            const ids = myGroupIds().sort().slice(0, 90);
+            const key = ids.join(',');
+            if (key === groupDbKey) return;
+            groupDbKey = key;
+            if (groupDbChannel) {
+                try { supabaseClient.removeChannel(groupDbChannel); } catch (e) {}
+                groupDbChannel = null;
+            }
+            if (!ids.length) return;
+            groupDbChannel = supabaseClient
+                .channel('nexchat_groups_' + currentUser.phone_4 + '_' + Date.now())
+                .on('postgres_changes', {
+                    event: 'INSERT', schema: 'public', table: 'chat_messages',
+                    filter: `receiver_phone=in.(${ids.join(',')})`
+                }, (payload) => {
+                    const m = payload.new;
+                    if (!m || !currentUser || m.sender_phone === currentUser.phone_4) return;
+                    appendIncomingOrOutgoingMessage(m, null);
+                    ensureSenderNames([m.sender_phone]);
+                })
+                .subscribe();
+        }
+
+        async function syncMissedMessages() {
+            if (!dbTablesReady || !currentUser) return;
+            try {
+                const me = currentUser.phone_4;
+                const ids = myGroupIds();
+                let cond = `receiver_phone.eq.${me}`;
+                if (ids.length) cond += `,receiver_phone.in.(${ids.join(',')})`;
+                const { data, error } = await supabaseClient
+                    .from('chat_messages').select('*').or(cond)
+                    .order('created_at', { ascending: false }).limit(60);
+                if (error || !data) return;
+                const senders = [];
+                data.slice().reverse().forEach(m => {
+                    if (m.sender_phone !== me) senders.push(m.sender_phone);
+                    appendIncomingOrOutgoingMessage(m, null, true);
+                });
+                await ensureSenderNames(senders);
+            } catch (e) {}
+        }
+
+        let lastResumeSync = 0;
+        async function handleResume() {
+            if (!currentUser) return;
+            if (Date.now() - lastResumeSync < 3000) return;
+            lastResumeSync = Date.now();
+            try {
+                if (!globalChannel || globalChannel.state !== 'joined') {
+                    await setupSupabaseRealtime();
+                } else {
+                    await syncMyPresenceState();
+                }
+                await loadMyContacts();
+                refreshGroupDbChannel();
+                await syncMissedMessages();
+                if (activeContactPhone) await loadMessagesForActiveContact();
+            } catch (e) { console.warn('Resume sync:', e); }
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') handleResume(); });
+        window.addEventListener('online', handleResume);
+        window.addEventListener('pageshow', handleResume);
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
