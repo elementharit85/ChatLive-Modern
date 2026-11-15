@@ -3,41 +3,97 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>NexRace — Balapan Tap</title>
+<title>NexRace — Balapan Tap &amp; Toko Mobil Sport</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>html,body{height:100%;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}#go{touch-action:none}</style>
+<style>
+  html,body{height:100%;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  #go{touch-action:none}
+</style>
 <style type="text/tailwindcss">
 @layer components{
  .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40}
- .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950}
- .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition}
+ .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950 font-bold}
+ .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition hover:border-slate-700}
 }
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] overflow-hidden font-sans">
 <div id="app" class="h-full max-w-md mx-auto flex flex-col pt-[env(safe-area-inset-top)]">
-  <div class="flex items-center gap-2 p-2 shrink-0">
-    <button class="btn" onclick="toMenu()">☰ Menu</button>
-    <div class="flex-1 min-w-0 text-center"><div id="title" class="font-bold text-emerald-400 truncate">NexRace</div><div id="sub" class="text-[11px] text-slate-400 truncate"></div></div>
-    <button class="btn w-10 !px-0" onclick="$('help').classList.remove('hidden')" aria-label="Cara bermain">?</button>
-  </div>
-
-  <div id="sMenu" class="flex-1 overflow-y-auto p-4 space-y-3">
-    <p id="acct" class="text-xs text-center text-slate-400">Memeriksa akun…</p>
-    <button class="card" onclick="createRoom()"><b class="text-lg">Buat Ruang (jadi host)</b><div class="text-xs text-slate-400">Kode ruang = nomor kontak Anda. Undang teman langsung ke chat.</div></button>
-    <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
-      <b>Gabung ruang teman</b>
-      <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="Nomor host" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
+  <!-- Header & Pojok Indikator Jaringan (ms Bagus / Buruk) -->
+  <div class="flex items-center gap-2 p-2.5 shrink-0 border-b border-slate-900">
+    <button class="btn !px-3 !py-2" onclick="toMenu()">☰ Menu</button>
+    <div class="flex-1 min-w-0 text-center">
+      <div id="title" class="font-extrabold text-emerald-400 truncate tracking-wide">NexRace</div>
+      <div id="sub" class="text-[11px] text-slate-400 truncate"></div>
     </div>
-    <button class="card" onclick="startSolo()"><b class="text-lg">Latihan Solo</b><div class="text-xs text-slate-400">Lawan 2 bot, untuk berlatih menekan GO.</div></button>
-    <div id="mMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
-    <a href="game.html" class="btn block text-center">← Kembali ke menu game</a>
+    <!-- Widget Jaringan di Pojok Kanan Atas -->
+    <div id="netBox" class="shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 transition-colors">
+      <div class="flex items-end gap-0.5 h-3.5" id="netBars">
+        <span class="w-1 h-1.5 rounded-sm bg-slate-600"></span>
+        <span class="w-1 h-2.5 rounded-sm bg-slate-600"></span>
+        <span class="w-1 h-3.5 rounded-sm bg-slate-600"></span>
+      </div>
+      <div class="text-right leading-tight">
+        <div class="text-xs font-mono font-bold flex items-center gap-1 justify-end">
+          <span id="netDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="netMs">-- ms</span>
+        </div>
+        <div id="netLbl" class="text-[10px] font-semibold text-slate-400">Mengecek…</div>
+      </div>
+    </div>
+    <button class="btn w-9 !px-0 !py-2" onclick="$('help').classList.remove('hidden')" aria-label="Cara bermain">?</button>
   </div>
 
+  <!-- Layar Menu Utama -->
+  <div id="sMenu" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <!-- Banner Saldo Poin & Mobil Aktif -->
+    <div class="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/60 border border-slate-800 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <div id="acctName" class="text-xs text-slate-400 truncate">Memeriksa akun…</div>
+        <div class="flex items-baseline gap-2 mt-0.5">
+          <span class="text-xs text-slate-400">Saldo:</span>
+          <span id="menuPts" class="text-lg font-black text-amber-300">0 Poin</span>
+        </div>
+        <div class="text-xs text-emerald-400 font-semibold mt-0.5 truncate">🏎️ Mobil: <span id="menuCar">Standar Hatchback</span></div>
+      </div>
+      <button class="btn btn-p shrink-0 !py-2 !px-3 text-xs" onclick="openGarage()">Toko Mobil</button>
+    </div>
+
+    <button class="card" onclick="createRoom()">
+      <b class="text-base text-emerald-300">🏁 Buat Ruang (Jadi Host)</b>
+      <div class="text-xs text-slate-400 mt-0.5">Kode ruang = nomor kontak Anda. Undang teman langsung ke chat.</div>
+    </button>
+
+    <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <b class="text-sm">Gabung Ruang Teman</b>
+      <div class="flex gap-2">
+        <input id="joinCode" maxlength="4" placeholder="Kode 4 digit" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500">
+        <button class="btn btn-p" onclick="joinRoomUI()">Gabung</button>
+      </div>
+    </div>
+
+    <button class="card" onclick="startSolo()">
+      <b class="text-base">🤖 Latihan Solo vs Bot</b>
+      <div class="text-xs text-slate-400 mt-0.5">Lawan 2 bot untuk mengumpulkan poin (+10 poin juara 1, +4 poin juara 2).</div>
+    </button>
+
+    <button class="card border-amber-500/30 bg-gradient-to-br from-slate-900 to-amber-950/20" onclick="openGarage()">
+      <div class="flex items-center justify-between">
+        <b class="text-base text-amber-300">🔥 Garasi &amp; 5 Mobil Sport Keren</b>
+        <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-semibold">5 Pilihan</span>
+      </div>
+      <div class="text-xs text-slate-400 mt-0.5">Kumpulkan poin dari balapan untuk membeli 5 mobil sport berkecepatan tinggi!</div>
+    </button>
+
+    <div id="mMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
+    <a href="game.html" class="btn block text-center">← Kembali ke Menu Game</a>
+  </div>
+
+  <!-- Layar Lobi -->
   <div id="sLobby" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
     <div class="text-center p-3 rounded-2xl bg-slate-900 border border-slate-800">
-      <div class="text-xs text-slate-400">Kode ruangan</div>
+      <div class="text-xs text-slate-400">Kode Ruangan</div>
       <div id="lobbyCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400"></div>
     </div>
     <div class="text-sm font-semibold">Pemain di ruang (maks 4)</div>
@@ -50,30 +106,90 @@
     </div>
   </div>
 
+  <!-- Layar Garasi & Toko 5 Mobil Sport -->
+  <div id="sGarage" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+      <div>
+        <div class="text-xs text-slate-400">Total Poin Tersedia</div>
+        <div class="flex items-baseline gap-1.5">
+          <span id="gBal" class="text-2xl font-black text-amber-300">0</span>
+          <span class="text-xs text-amber-400 font-semibold">POIN</span>
+        </div>
+      </div>
+      <button class="btn" onclick="toMenu()">← Kembali</button>
+    </div>
+    <div class="text-xs text-slate-400 bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5">
+      💡 <b>Tips:</b> Kumpulkan poin dari mode <b>Multiplayer</b> (+30/15/8/4 poin) atau <b>Latihan Solo</b> (+10 poin Juara 1) untuk membuka <b>5 Mobil Sport Keren</b> di bawah ini!
+    </div>
+    <p id="gMsg" class="text-xs text-emerald-300 font-semibold text-center min-h-[1rem]"></p>
+    <div id="gList" class="space-y-3 pb-4"></div>
+  </div>
+
+  <!-- Layar Balapan -->
   <div id="sRace" class="hidden flex-1 min-h-0 flex flex-col">
-    <div class="relative flex-1 min-h-0"><canvas id="cv" width="400" height="400" class="absolute inset-0 w-full h-full object-contain"></canvas></div>
-    <div class="px-4 pb-2"><div class="flex justify-between text-[11px] text-slate-400 mb-1"><span>Kecepatan</span><span>Tekan GO secepat mungkin!</span></div><div class="h-2 rounded-full bg-slate-800 overflow-hidden"><div id="spd" class="h-full bg-emerald-400" style="width:0%"></div></div></div>
-    <button id="go" class="mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] h-28 shrink-0 rounded-3xl bg-emerald-500 active:bg-emerald-300 active:scale-95 transition text-slate-950 font-black text-4xl tracking-widest">GO!</button>
+    <div class="relative flex-1 min-h-0">
+      <canvas id="cv" width="400" height="400" class="absolute inset-0 w-full h-full object-contain"></canvas>
+    </div>
+    <div class="px-4 pb-2">
+      <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+        <span id="raceCarLbl">Kecepatan Mobil</span>
+        <span>Tekan GO / Spasi secepat mungkin!</span>
+      </div>
+      <div class="h-2.5 rounded-full bg-slate-800 overflow-hidden">
+        <div id="spd" class="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-75" style="width:0%"></div>
+      </div>
+    </div>
+    <button id="go" class="mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] h-28 shrink-0 rounded-3xl bg-emerald-500 active:bg-emerald-300 active:scale-95 transition text-slate-950 font-black text-4xl tracking-widest shadow-lg shadow-emerald-500/20">GO!</button>
   </div>
 </div>
 
-<div id="cd" class="hidden absolute inset-0 z-20 pointer-events-none flex items-center justify-center"><div id="cdTxt" class="text-8xl font-black text-emerald-400 drop-shadow-lg"></div></div>
+<!-- Hitung Mundur -->
+<div id="cd" class="hidden absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
+  <div id="cdTxt" class="text-8xl font-black text-emerald-400 drop-shadow-lg"></div>
+</div>
 
-<div id="res" class="hidden absolute inset-0 z-30 bg-slate-950/85 flex items-center justify-center p-4"><div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-  <h2 id="resT" class="text-2xl font-bold text-center text-emerald-400"></h2>
-  <div id="resList" class="space-y-1.5"></div>
-  <p id="resP" class="text-sm text-amber-300 text-center min-h-[1.25rem]"></p>
-  <div class="flex gap-2"><button id="resBtn" class="btn btn-p flex-1" onclick="resAgain()">Main lagi</button><button class="btn flex-1" onclick="toMenu()">Menu</button></div>
-</div></div>
+<!-- Modal Hasil Balapan -->
+<div id="res" class="hidden absolute inset-0 z-30 bg-slate-950/85 flex items-center justify-center p-4">
+  <div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+    <h2 id="resT" class="text-2xl font-bold text-center text-emerald-400"></h2>
+    <div id="resList" class="space-y-1.5"></div>
+    <p id="resP" class="text-sm font-semibold text-amber-300 text-center min-h-[1.25rem]"></p>
+    <div class="flex gap-2">
+      <button id="resBtn" class="btn btn-p flex-1" onclick="resAgain()">Main Lagi</button>
+      <button class="btn flex-1" onclick="openGarage();$('res').classList.add('hidden')">Garasi</button>
+    </div>
+    <button class="btn w-full" onclick="toMenu()">Menu Utama</button>
+  </div>
+</div>
 
-<div id="help" class="hidden absolute inset-0 z-40 bg-slate-950/95 overflow-y-auto"><div class="min-h-full flex items-center justify-center p-4"><div class="w-full max-w-md space-y-2 text-sm">
-  <h2 class="text-xl font-bold text-emerald-400 text-center mb-2">Cara bermain</h2>
-  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Tujuan:</b> selesaikan <b>3 lap</b> lebih dulu dari lawan. Tekan tombol <b>GO!</b> (atau Spasi) berulang-ulang secepat mungkin. Makin cepat menekan, makin kencang mobilmu; kalau berhenti, mobil melambat.</div>
-  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Host:</b> tekan Buat Ruang. Kode ruang adalah nomor kontakmu. Kirim undangan ke kontak lewat daftar di lobi; undangan masuk ke live chat dan bisa langsung diklik untuk bergabung.</div>
-  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Tamu:</b> masukkan nomor host lalu Gabung, atau klik undangan di chat. Host menekan Mulai saat semua pemain siap (2–4 pemain).</div>
-  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Poin:</b> juara 1/2/3/4 mendapat 30/15/8/4 poin (butuh masuk lewat chat). Solo vs bot: juara 1 mendapat 10 poin.</div>
-  <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
-</div></div></div>
+<!-- Modal Bantuan -->
+<div id="help" class="hidden absolute inset-0 z-40 bg-slate-950/95 overflow-y-auto">
+  <div class="min-h-full flex items-center justify-center p-4">
+    <div class="w-full max-w-md space-y-2.5 text-sm">
+      <h2 class="text-xl font-bold text-emerald-400 text-center mb-2">Cara Bermain NexRace</h2>
+      <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+        <b>🏁 Tujuan:</b> Selesaikan <b>3 lap</b> lebih dulu dari lawan. Tekan tombol <b>GO!</b> (atau tombol Spasi) berulang-ulang secepat mungkin.
+      </div>
+      <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+        <b>💰 Kumpulkan Poin:</b>
+        <ul class="list-disc list-inside text-xs text-slate-300 mt-1 space-y-0.5">
+          <li>Multiplayer (2–4 Pemain): Juara 1 = <b>+30 poin</b>, Juara 2 = <b>+15 poin</b>, Juara 3 = <b>+8 poin</b>, Juara 4 = <b>+4 poin</b>.</li>
+          <li>Latihan Solo vs Bot: Juara 1 = <b>+10 poin</b>, Juara 2 = <b>+4 poin</b>.</li>
+        </ul>
+      </div>
+      <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+        <b>🏎️ 5 Pilihan Mobil Sport Keren:</b> Tukarkan poin yang terkumpul di menu <b>Garasi &amp; Toko Mobil</b> untuk membeli 5 mobil sport (<i>Crimson Vortex GT, Nightblade R35, Gold Huracán Evo, Cyber Phantom X, Hyperion Valkyrie</i>) dengan bonus akselerasi &amp; top speed hingga +22%!
+      </div>
+      <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+        <b>📶 Indikator Jaringan (ms):</b> Di pojok kanan atas terdapat pantauan latensi server real-time:
+        <span class="text-emerald-400 font-semibold">Bagus (&lt;100 ms)</span>,
+        <span class="text-amber-400 font-semibold">Sedang (100–220 ms)</span>, atau
+        <span class="text-rose-400 font-semibold">Buruk (&gt;220 ms / Offline)</span>.
+      </div>
+      <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -81,61 +197,535 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const sb = window.supabase ? window.supabase.createClient('https://zyddldgtefrtwjgymbtk.supabase.co', 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
 const COLORS = ['#ef4444', '#3b82f6', '#eab308', '#a855f7'], LAPS = 3, TAP = .012, FR = 1.1, VMAX = .17;
 
-/* ===== akun ===== */
-let user = null; const guest = 'Tamu' + (10 + Math.floor(Math.random() * 90)), uname = () => user?.display_name || guest;
+/* ===== DAFTAR MOBIL (1 Mobil Awal + 5 Pilihan Mobil Sport Keren) ===== */
+const CARS = [
+  {
+    id: 0,
+    n: 'Standar Hatchback',
+    tag: 'Mobil Awal',
+    desc: 'Mobil harian standar untuk pemula.',
+    price: 0,
+    col: '#64748b',
+    acc: '#cbd5e1',
+    glow: '#94a3b8',
+    b: 1.00,
+    topKmh: 180,
+    t: 'hatch'
+  },
+  {
+    id: 1,
+    n: 'Crimson Vortex GT',
+    tag: 'Sport #1 · Street Coupe',
+    desc: 'Coupe turbo merah menyala dengan racing stripe ganda.',
+    price: 80,
+    col: '#ef4444',
+    acc: '#fef08a',
+    glow: '#f87171',
+    b: 1.05,
+    topKmh: 225,
+    t: 'gt'
+  },
+  {
+    id: 2,
+    n: 'Nightblade R35',
+    tag: 'Sport #2 · JDM Twin-Turbo',
+    desc: 'Aerodinamika presisi dengan GT-wing karbon & bodi biru elektrik.',
+    price: 180,
+    col: '#2563eb',
+    acc: '#38bdf8',
+    glow: '#60a5fa',
+    b: 1.09,
+    topKmh: 260,
+    t: 'coupe'
+  },
+  {
+    id: 3,
+    n: 'Huracán Gold Evo',
+    tag: 'Sport #3 · Italian Exotic',
+    desc: 'Supercar V10 berlapis emas tajam dengan akselerasi brutal.',
+    price: 350,
+    col: '#eab308',
+    acc: '#1e293b',
+    glow: '#facc15',
+    b: 1.13,
+    topKmh: 305,
+    t: 'sleek'
+  },
+  {
+    id: 4,
+    n: 'Cyber Phantom X',
+    tag: 'Sport #4 · Stealth Supercar',
+    desc: 'Bodi tempur ungu gelap beraksen neon magenta & diffuser balap.',
+    price: 600,
+    col: '#581c87',
+    acc: '#e879f9',
+    glow: '#c084fc',
+    b: 1.17,
+    topKmh: 345,
+    t: 'super'
+  },
+  {
+    id: 5,
+    n: 'Hyperion Valkyrie',
+    tag: 'Sport #5 · Ultimate Hypercar',
+    desc: 'Hypercar kasta tertinggi berbahan titanium cyan dengan kecepatan maksimal.',
+    price: 1000,
+    col: '#06b6d4',
+    acc: '#f8fafc',
+    glow: '#22d3ee',
+    b: 1.22,
+    topKmh: 395,
+    t: 'hyper'
+  }
+];
+
+/* ===== AKUN & PENYIMPANAN POIN / GARASI ===== */
+let user = null;
+const guest = localStorage.getItem('nexrace_guest_name') || ('Pembalap' + (10 + Math.floor(Math.random() * 90)));
+localStorage.setItem('nexrace_guest_name', guest);
+const uname = () => user?.display_name || guest;
+const storageKey = () => 'nexrace_g_' + (user?.phone_4 || 'guest');
+
+let GA = { earned: 0, spent: 0, cars: [0], car: 0 }, noData = false;
+const bal = () => Math.max(0, (GA.earned || 0) - (GA.spent || 0));
+
 const authReady = (async () => {
   try {
     const s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null');
     if (s?.phone_4 && sb) {
       const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', s.phone_4).maybeSingle();
-      if (!error && data) { if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url }; }
-      else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+      if (!error && data) {
+        if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url };
+      } else {
+        user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+      }
     }
   } catch (e) {}
   if (user) $('joinCode').inputMode = 'numeric';
-  $('acct').textContent = user ? 'Masuk sebagai ' + user.display_name + ' (#' + user.phone_4 + ')' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk poin & undangan';
+  await loadGarage();
+  updateAcct();
 })();
-async function addPoints(n) {
-  if (!user || !sb || !n) return false;
-  try {
-    const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'race').maybeSingle();
-    const { error } = await sb.from('game_scores').upsert({ phone_4: user.phone_4, game: 'race', display_name: user.display_name, avatar_url: user.avatar_url, best_score: (data?.best_score || 0) + n, total_games: (data?.total_games || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: 'phone_4,game' });
-    return !error;
-  } catch (e) { return false; }
+
+function updateAcct() {
+  const c = CARS[GA.car] || CARS[0];
+  $('acctName').textContent = user ? `${user.display_name} (#${user.phone_4})` : `${guest} (Mode Lokal)`;
+  $('menuPts').textContent = `${bal()} Poin`;
+  $('menuCar').textContent = c.n;
 }
 
-/* ===== undangan ke live chat ===== */
+async function loadGarage() {
+  let loc = null;
+  try { loc = JSON.parse(localStorage.getItem(storageKey()) || 'null'); } catch (e) {}
+  if (loc && Array.isArray(loc.cars)) {
+    GA = {
+      earned: Math.max(GA.earned || 0, loc.earned || 0),
+      spent: loc.spent || 0,
+      cars: loc.cars,
+      car: loc.car || 0
+    };
+  }
+  if (user && sb) {
+    try {
+      const q = cols => sb.from('game_scores').select(cols).eq('phone_4', user.phone_4).eq('game', 'race').maybeSingle();
+      let r = await q('best_score,data');
+      if (r.error) { noData = true; r = await q('best_score'); } else noData = false;
+      if (!r.error && r.data) {
+        GA.earned = Math.max(GA.earned, r.data.best_score || 0);
+        const d = r.data.data;
+        if (d && Array.isArray(d.cars)) {
+          GA.spent = d.spent || GA.spent || 0;
+          GA.cars = Array.from(new Set([0, ...GA.cars, ...d.cars]));
+          if (typeof d.car === 'number') GA.car = d.car;
+        }
+      }
+    } catch (e) {}
+  }
+  if (!GA.cars.includes(0)) GA.cars.unshift(0);
+  if (!GA.cars.includes(GA.car)) GA.car = 0;
+  saveLocalGarage();
+  updateAcct();
+}
+
+function saveLocalGarage() {
+  const d = { earned: GA.earned, spent: GA.spent, cars: GA.cars, car: GA.car };
+  try { localStorage.setItem(storageKey(), JSON.stringify(d)); } catch (e) {}
+}
+
+async function saveGarage() {
+  saveLocalGarage();
+  if (!user || !sb || noData) return false;
+  const d = { spent: GA.spent, cars: GA.cars, car: GA.car };
+  const { error } = await sb.from('game_scores').update({ data: d }).eq('phone_4', user.phone_4).eq('game', 'race');
+  return !error;
+}
+
+async function addPoints(n) {
+  if (!n) return false;
+  GA.earned = (GA.earned || 0) + n;
+  saveLocalGarage();
+  updateAcct();
+  if (!user || !sb) return true;
+  try {
+    const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'race').maybeSingle();
+    const newBest = Math.max(GA.earned, (data?.best_score || 0) + n);
+    GA.earned = newBest;
+    saveLocalGarage();
+    updateAcct();
+    const { error } = await sb.from('game_scores').upsert({
+      phone_4: user.phone_4,
+      game: 'race',
+      display_name: user.display_name,
+      avatar_url: user.avatar_url,
+      best_score: newBest,
+      total_games: (data?.total_games || 0) + 1,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'phone_4,game' });
+    return !error;
+  } catch (e) { return true; }
+}
+
+/* ===== INDIKATOR JARINGAN (PING MS BAGUS / SEDANG / BURUK) DI POJOK ===== */
+const SB_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
+let pingMs = null, pings = [], warm = false;
+
+async function measurePing() {
+  if (!navigator.onLine) { pingMs = null; renderPing(); return; }
+  const t0 = performance.now(), ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 4000);
+  try {
+    await fetch(SB_URL + '/rest/v1/?_=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctl.signal });
+    const ms = Math.round(performance.now() - t0);
+    if (!warm) {
+      warm = true;
+      pings.push(ms);
+      pingMs = ms;
+    } else {
+      pings.push(ms);
+      if (pings.length > 3) pings.shift();
+      pingMs = Math.round(pings.reduce((a, b) => a + b, 0) / pings.length);
+    }
+  } catch (e) { pingMs = null; }
+  clearTimeout(to);
+  renderPing();
+}
+
+function renderPing() {
+  let dot, txt, lab, col, borderCol, activeBars = 0;
+  if (!navigator.onLine || pingMs === null) {
+    dot = 'bg-rose-500 animate-pulse';
+    txt = navigator.onLine ? '— ms' : 'Offline';
+    lab = 'Buruk';
+    col = 'text-rose-400';
+    borderCol = 'border-rose-500/40';
+    activeBars = 0;
+  } else if (pingMs < 100) {
+    dot = 'bg-emerald-400';
+    txt = pingMs + ' ms';
+    lab = 'Bagus';
+    col = 'text-emerald-400';
+    borderCol = 'border-emerald-500/30';
+    activeBars = 3;
+  } else if (pingMs <= 220) {
+    dot = 'bg-amber-400';
+    txt = pingMs + ' ms';
+    lab = 'Sedang';
+    col = 'text-amber-400';
+    borderCol = 'border-amber-500/30';
+    activeBars = 2;
+  } else {
+    dot = 'bg-rose-500 animate-pulse';
+    txt = pingMs + ' ms';
+    lab = 'Buruk';
+    col = 'text-rose-400';
+    borderCol = 'border-rose-500/40';
+    activeBars = 1;
+  }
+  $('netDot').className = 'w-2 h-2 rounded-full ' + dot;
+  $('netMs').textContent = txt;
+  $('netLbl').textContent = 'Jaringan ' + lab;
+  $('netLbl').className = 'text-[10px] font-semibold ' + col;
+  $('netBox').className = 'shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-900 border transition-colors ' + borderCol;
+
+  const barCol = activeBars === 3 ? 'bg-emerald-400' : activeBars === 2 ? 'bg-amber-400' : activeBars === 1 ? 'bg-rose-500' : 'bg-slate-700';
+  const bars = $('netBars').children;
+  for (let i = 0; i < 3; i++) {
+    const h = i === 0 ? 'h-1.5' : i === 1 ? 'h-2.5' : 'h-3.5';
+    bars[i].className = `w-1 ${h} rounded-sm transition-colors ${i < activeBars ? barCol : 'bg-slate-700'}`;
+  }
+}
+measurePing();
+setTimeout(measurePing, 700);
+setInterval(measurePing, 3500);
+addEventListener('online', measurePing);
+addEventListener('offline', measurePing);
+
+/* ===== DESAIN VISUAL MOBIL SPORT & GARASI ===== */
+function drawCar(c, car, sc, mk, out) {
+  const L = { hatch: 22, gt: 26, coupe: 27, sleek: 28, super: 29, hyper: 31 }[car.t] || 24;
+  const W = { hatch: 13, gt: 13.5, coupe: 13.5, sleek: 14, super: 14.5, hyper: 15 }[car.t] || 13;
+  const pt = ['sleek', 'super', 'hyper'].includes(car.t);
+  c.save();
+  c.scale(sc, sc);
+
+  // Bayangan bawah
+  c.fillStyle = 'rgba(0,0,0,.45)';
+  c.fillRect(-L / 2 + 1, -W / 2 + 2, L, W);
+
+  // Roda (4 ban balap)
+  c.fillStyle = '#090d16';
+  [-1, 1].forEach(a => [-1, 1].forEach(b => {
+    c.fillRect(a * L * .3 - 3.2, b * W / 2 - 1.6, 6.4, 3.2);
+  }));
+
+  // Bodi utama mobil
+  c.beginPath();
+  if (pt) {
+    c.moveTo(-L / 2, -W / 2 + 1);
+    c.lineTo(L * .18, -W / 2);
+    c.lineTo(L / 2, -W * .24);
+    c.lineTo(L / 2, W * .24);
+    c.lineTo(L * .18, W / 2);
+    c.lineTo(-L / 2, W / 2 - 1);
+  } else {
+    c.roundRect ? c.roundRect(-L / 2, -W / 2, L, W, 3) : c.rect(-L / 2, -W / 2, L, W);
+  }
+  c.closePath();
+  c.fillStyle = car.col;
+  c.fill();
+  if (out) {
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 1.5;
+    c.stroke();
+  }
+
+  // Detail Racing Stripes & Aero untuk tiap tipe mobil sport
+  if (car.t === 'gt') {
+    c.fillStyle = car.acc;
+    c.fillRect(-L / 2, -2.2, L * .92, 1.5);
+    c.fillRect(-L / 2, 0.7, L * .92, 1.5);
+  } else if (car.t === 'coupe') {
+    c.fillStyle = car.acc;
+    c.fillRect(-L * .2, -W / 2 + 1, L * .5, 1.8);
+    c.fillRect(-L * .2, W / 2 - 2.8, L * .5, 1.8);
+  } else if (car.t === 'sleek') {
+    c.fillStyle = car.acc;
+    c.beginPath();
+    c.moveTo(-L * .4, -2.5);
+    c.lineTo(L * .42, 0);
+    c.lineTo(-L * .4, 2.5);
+    c.closePath();
+    c.fill();
+  } else if (car.t === 'super' || car.t === 'hyper') {
+    c.fillStyle = car.acc;
+    c.fillRect(-L / 2, -1.6, L * .95, 3.2);
+    if (car.t === 'hyper') {
+      c.fillStyle = '#0f172a';
+      c.fillRect(-L * .38, -W * .34, L * .25, W * .68);
+    }
+  }
+
+  // Kaca kabin (windshield)
+  c.fillStyle = 'rgba(186,230,253,.9)';
+  c.fillRect(L * .02, -W / 2 + 2.6, L * .22, W - 5.2);
+
+  // Rear Spoiler / Wing untuk 5 mobil sport
+  if (car.t !== 'hatch') {
+    c.fillStyle = car.acc;
+    c.fillRect(-L / 2 - 2, -W / 2 - 0.5, 3.2, W + 1);
+  }
+
+  // Lampu depan LED
+  c.fillStyle = '#fef9c3';
+  c.fillRect(L / 2 - 1.8, -W * .32, 1.8, 2.2);
+  c.fillRect(L / 2 - 1.8, W * .32 - 2.2, 1.8, 2.2);
+
+  // Penanda warna pemain di atap
+  c.fillStyle = mk;
+  c.beginPath();
+  c.arc(-L * .14, 0, 2.6, 0, 7);
+  c.fill();
+
+  c.restore();
+}
+
+function openGarage() {
+  phase = 'garage';
+  scr('sGarage');
+  $('title').textContent = 'Garasi & Toko Mobil';
+  $('sub').textContent = '5 Pilihan Mobil Sport Keren';
+  $('gMsg').textContent = '';
+  renderGarage();
+  loadGarage().then(renderGarage);
+}
+
+function renderGarage() {
+  $('gBal').textContent = bal();
+  $('gList').innerHTML = CARS.map((c, i) => {
+    const own = GA.cars.includes(i), sel = GA.car === i, can = bal() >= c.price;
+    const boostPct = Math.round((c.b - 1) * 100);
+    let btn = '';
+    if (own) {
+      btn = sel
+        ? '<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-xs text-emerald-300 font-bold shrink-0">✓ Dipakai</span>'
+        : `<button class="btn btn-p !py-1.5 shrink-0" onclick="useCar(${i})">Pakai</button>`;
+    } else {
+      btn = `<button class="btn ${can ? 'btn-p' : ''} !py-1.5 shrink-0" onclick="buyCar(${i})">🛒 ${c.price} Poin</button>`;
+    }
+
+    return `
+      <div class="p-3 rounded-2xl bg-slate-900 border ${sel ? 'border-emerald-500 ring-1 ring-emerald-500/30' : 'border-slate-800'} space-y-2">
+        <div class="flex items-center gap-3">
+          <canvas id="gc${i}" width="120" height="62" class="rounded-xl shrink-0 border border-slate-800"></canvas>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800 text-amber-300">${esc(c.tag)}</span>
+            </div>
+            <div class="font-extrabold text-sm text-slate-100 truncate mt-1">${esc(c.n)}</div>
+            <div class="text-[11px] text-slate-400 leading-snug">${esc(c.desc)}</div>
+          </div>
+          ${btn}
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+          <div class="bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800/80">
+            <div class="flex justify-between text-slate-400"><span>Top Speed</span><b class="text-emerald-400">${c.topKmh} km/j</b></div>
+            <div class="h-1.5 mt-1 rounded bg-slate-800 overflow-hidden"><div class="h-full bg-emerald-400" style="width:${Math.round(c.topKmh / 400 * 100)}%"></div></div>
+          </div>
+          <div class="bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800/80">
+            <div class="flex justify-between text-slate-400"><span>Boost Tap</span><b class="text-cyan-400">+${boostPct}%</b></div>
+            <div class="h-1.5 mt-1 rounded bg-slate-800 overflow-hidden"><div class="h-full bg-cyan-400" style="width:${Math.max(10, Math.round(boostPct / 22 * 100))}%"></div></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  CARS.forEach((c, i) => {
+    const el = $('gc' + i);
+    if (!el) return;
+    const g = el.getContext('2d');
+    g.fillStyle = '#090d16';
+    g.fillRect(0, 0, 120, 62);
+    // Garis aspal preview
+    g.fillStyle = '#1e293b';
+    g.fillRect(0, 12, 120, 38);
+    g.strokeStyle = 'rgba(255,255,255,0.18)';
+    g.setLineDash([6, 6]);
+    g.beginPath();
+    g.moveTo(0, 31);
+    g.lineTo(120, 31);
+    g.stroke();
+    g.setLineDash([]);
+    g.save();
+    g.translate(60, 31);
+    drawCar(g, c, 2.1, c.glow, true);
+    g.restore();
+  });
+}
+
+async function buyCar(i) {
+  const c = CARS[i];
+  if (!c) return;
+  await loadGarage();
+  if (GA.cars.includes(i)) { renderGarage(); return; }
+  if (bal() < c.price) {
+    $('gMsg').className = 'text-xs text-rose-400 font-semibold text-center min-h-[1rem]';
+    $('gMsg').textContent = `Poin belum cukup! Kurang ${c.price - bal()} poin lagi untuk membeli ${c.n}.`;
+    renderGarage();
+    return;
+  }
+  GA.spent += c.price;
+  GA.cars.push(i);
+  GA.car = i;
+  await saveGarage();
+  updateAcct();
+  $('gMsg').className = 'text-xs text-emerald-400 font-semibold text-center min-h-[1rem]';
+  $('gMsg').textContent = `🎉 Selamat! ${c.n} berhasil dibeli dan langsung dipakai!`;
+  renderGarage();
+}
+
+async function useCar(i) {
+  if (!GA.cars.includes(i)) return;
+  GA.car = i;
+  await saveGarage();
+  updateAcct();
+  $('gMsg').className = 'text-xs text-emerald-400 font-semibold text-center min-h-[1rem]';
+  $('gMsg').textContent = `🏎️ ${CARS[i].n} siap digunakan untuk balapan!`;
+  renderGarage();
+}
+
+/* ===== UNDANGAN KE LIVE CHAT ===== */
 let gch = null;
-async function ensureG() { if (gch) return; gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } }); await new Promise(r => { gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); }); setTimeout(r, 3000); }); }
+async function ensureG() {
+  if (gch) return;
+  gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } });
+  await new Promise(r => {
+    gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); });
+    setTimeout(r, 3000);
+  });
+}
 async function invite(ph) {
   if (!sb || !user || !room) return false;
-  const text = `🏁 ${user.display_name} mengundang kamu balapan NexRace! Gabung ruang #${room} · nexgame:race:${room}`, now = new Date().toISOString(), cid = user.phone_4 + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const text = `🏁 ${user.display_name} mengundang kamu balapan NexRace! Gabung ruang #${room} · nexgame:race:${room}`;
+  const now = new Date().toISOString();
+  const cid = user.phone_4 + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   const msg = { id: cid, client_msg_id: cid, sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now };
-  try { await ensureG(); gch.send({ type: 'broadcast', event: 'live_chat_message', payload: { message: msg, sender_profile: { phone_4: user.phone_4, display_name: user.display_name, presence_mode: 'online' } } }); } catch (e) {}
+  try {
+    await ensureG();
+    gch.send({ type: 'broadcast', event: 'live_chat_message', payload: { message: msg, sender_profile: { phone_4: user.phone_4, display_name: user.display_name, presence_mode: 'online' } } });
+  } catch (e) {}
   const { error } = await sb.from('chat_messages').insert({ sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now });
   return !error;
 }
-async function sendInvite(ph, btn) { btn.disabled = true; btn.textContent = 'Mengirim…'; const ok = await invite(ph); btn.textContent = ok ? 'Terkirim ✓' : 'Gagal'; btn.disabled = false; }
+async function sendInvite(ph, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Mengirim…';
+  const ok = await invite(ph);
+  btn.textContent = ok ? 'Terkirim ✓' : 'Gagal';
+  btn.disabled = false;
+}
 function renderInvites() {
   if (!isHost || !user) { $('inviteBox').classList.add('hidden'); return; }
-  let cs = []; try { cs = JSON.parse(localStorage.getItem('nexchat_contacts_' + user.phone_4) || '[]'); } catch (e) {}
+  let cs = [];
+  try { cs = JSON.parse(localStorage.getItem('nexchat_contacts_' + user.phone_4) || '[]'); } catch (e) {}
   $('inviteBox').classList.remove('hidden');
-  $('inviteList').innerHTML = cs.length ? cs.map(c => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(c.display_name)} <span class="text-emerald-400 font-mono text-xs">#${esc(c.phone_4)}</span></span><button class="btn btn-p !py-1.5" onclick="sendInvite('${String(c.phone_4).replace(/\D/g, '')}',this)">Undang</button></div>`).join('') : '<p class="text-xs text-slate-400">Belum ada kontak. Tambahkan kontak lewat chat.</p>';
+  $('inviteList').innerHTML = cs.length
+    ? cs.map(c => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(c.display_name)} <span class="text-emerald-400 font-mono text-xs">#${esc(c.phone_4)}</span></span><button class="btn btn-p !py-1.5" onclick="sendInvite('${String(c.phone_4).replace(/\D/g, '')}',this)">Undang</button></div>`).join('')
+    : '<p class="text-xs text-slate-400">Belum ada kontak. Tambahkan kontak lewat chat.</p>';
 }
 
-/* ===== state & navigasi ===== */
+/* ===== STATE & NAVIGASI RUANG ===== */
 let ch = null, room = '', isHost = false, mode = 'solo', phase = 'menu', roster = [], me = null, racing = false, raceT0 = 0, finalized = false, sendIv = null;
 const myId = Math.random().toString(36).slice(2, 8);
-const scr = id => ['sMenu', 'sLobby', 'sRace'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const scr = id => ['sMenu', 'sLobby', 'sGarage', 'sRace'].forEach(x => $(x).classList.toggle('hidden', x !== id));
 const send = p => ch && ch.send({ type: 'broadcast', event: 'r', payload: p });
-const meta = (racing) => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, racing: !!racing });
-function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
-function toMenu() { closeRoom(); clearInterval(sendIv); phase = 'menu'; racing = false; roster = []; me = null; $('cd').classList.add('hidden'); $('res').classList.add('hidden'); scr('sMenu'); $('title').textContent = 'NexRace'; $('sub').textContent = ''; }
+const meta = racing => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, racing: !!racing, car: GA.car });
+
+function closeRoom() {
+  if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} }
+  ch = null;
+  room = '';
+}
+function toMenu() {
+  closeRoom();
+  clearInterval(sendIv);
+  phase = 'menu';
+  racing = false;
+  roster = [];
+  me = null;
+  $('cd').classList.add('hidden');
+  $('res').classList.add('hidden');
+  scr('sMenu');
+  $('title').textContent = 'NexRace';
+  $('sub').textContent = '';
+  updateAcct();
+}
 function leaveWith(m) { toMenu(); $('mMsg').textContent = m; }
 
 function createRoom() {
   if (!sb) { $('mMsg').textContent = 'Supabase tidak tersedia.'; return; }
-  let c = user ? user.phone_4 : ''; if (!c) { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; }
+  let c = user ? user.phone_4 : '';
+  if (!c) {
+    const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)];
+  }
   openRoom(c, true);
 }
 function joinRoomUI(c) {
@@ -143,127 +733,356 @@ function joinRoomUI(c) {
   if (c.length !== 4) { $('mMsg').textContent = 'Masukkan nomor host (4 digit).'; return; }
   if (user && c === user.phone_4) { $('mMsg').textContent = 'Itu nomor Anda sendiri. Tekan Buat Ruang untuk menjadi host.'; return; }
   openRoom(c, false);
-  setTimeout(() => { if (phase === 'lobby' && !isHost && room === c && !presenceList().some(x => x.host)) leaveWith('Ruang tidak ditemukan atau host belum membuat ruang.'); }, 6000);
+  setTimeout(() => {
+    if (phase === 'lobby' && !isHost && room === c && !presenceList().some(x => x.host)) {
+      leaveWith('Ruang tidak ditemukan atau host belum membuat ruang.');
+    }
+  }, 6000);
 }
 function openRoom(code, host) {
-  closeRoom(); room = code; isHost = host; mode = 'online'; $('mMsg').textContent = '';
+  closeRoom();
+  room = code;
+  isHost = host;
+  mode = 'online';
+  $('mMsg').textContent = '';
   ch = sb.channel('nexrace_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
   ch.on('broadcast', { event: 'r' }, ({ payload }) => onNet(payload));
   ch.on('presence', { event: 'sync' }, onPresence);
   ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track(meta(false)); });
-  phase = 'lobby'; scr('sLobby'); $('title').textContent = 'Ruang NexRace'; $('sub').textContent = host ? 'Anda host' : 'Menunggu host'; renderLobby([]); renderInvites();
+  phase = 'lobby';
+  scr('sLobby');
+  $('title').textContent = 'Ruang NexRace';
+  $('sub').textContent = host ? 'Anda Host' : 'Menunggu Host';
+  renderLobby([]);
+  renderInvites();
 }
-const presenceList = () => { if (!ch) return []; const st = ch.presenceState(); return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] })); };
+const presenceList = () => {
+  if (!ch) return [];
+  const st = ch.presenceState();
+  return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] }));
+};
 function renderLobby(l) {
   l = l || presenceList();
   $('lobbyCode').textContent = (user && room === user.phone_4 ? '#' : '') + room;
-  $('lobbyList').innerHTML = l.map((x, i) => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="w-3 h-3 rounded-full" style="background:${COLORS[i] || '#64748b'}"></span><span class="flex-1 truncate">${esc(x.name)}${x.id === myId ? ' (Anda)' : ''}</span>${x.host ? '<span class="text-xs text-amber-300">Host</span>' : ''}</div>`).join('');
-  $('startBtn').classList.toggle('hidden', !isHost); $('startBtn').disabled = l.length < 2; $('waitTxt').classList.toggle('hidden', isHost);
+  $('lobbyList').innerHTML = l.map((x, i) => {
+    const carName = (CARS[x.car || 0] || CARS[0]).n;
+    return `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+      <span class="w-3 h-3 rounded-full" style="background:${COLORS[i] || '#64748b'}"></span>
+      <div class="flex-1 min-w-0">
+        <div class="truncate text-sm font-semibold">${esc(x.name)}${x.id === myId ? ' (Anda)' : ''}</div>
+        <div class="text-[11px] text-emerald-400 truncate">🏎️ ${esc(carName)}</div>
+      </div>
+      ${x.host ? '<span class="text-xs text-amber-300 font-semibold">Host</span>' : ''}
+    </div>`;
+  }).join('');
+  $('startBtn').classList.toggle('hidden', !isHost);
+  $('startBtn').disabled = l.length < 2;
+  $('waitTxt').classList.toggle('hidden', isHost);
 }
 function onPresence() {
   const l = presenceList();
-  if (!isHost && phase === 'lobby') { const h = l.find(x => x.host); if (h && h.racing) { leaveWith('Balapan sedang berlangsung. Coba lagi sebentar lagi.'); return; } }
+  if (!isHost && phase === 'lobby') {
+    const h = l.find(x => x.host);
+    if (h && h.racing) { leaveWith('Balapan sedang berlangsung. Coba lagi sebentar lagi.'); return; }
+  }
   if (l.length > 4 && l.findIndex(x => x.id === myId) >= 4) { leaveWith('Ruang penuh (maks 4 pemain).'); return; }
   if (phase === 'lobby') renderLobby(l);
-  else if (phase === 'race' || phase === 'count' || phase === 'done') { roster.forEach(r => { if (!r.bot && r !== me && !l.some(x => x.id === r.id) && !r.fin) r.gone = true; }); checkAllDone(); }
+  else if (phase === 'race' || phase === 'count' || phase === 'done') {
+    roster.forEach(r => { if (!r.bot && r !== me && !l.some(x => x.id === r.id) && !r.fin) r.gone = true; });
+    checkAllDone();
+  }
 }
 function hostStart() {
-  const l = presenceList(); if (!isHost || l.length < 2) return;
-  const ids = l.slice(0, 4).map(x => x.id); ch.track(meta(true)); send({ t: 'start', ids }); beginRace(ids);
+  const l = presenceList();
+  if (!isHost || l.length < 2) return;
+  const ids = l.slice(0, 4).map(x => x.id);
+  ch.track(meta(true));
+  send({ t: 'start', ids });
+  beginRace(ids);
 }
-function goLobby() { phase = 'lobby'; roster = []; me = null; clearInterval(sendIv); if (isHost && ch) ch.track(meta(false)); $('res').classList.add('hidden'); $('cd').classList.add('hidden'); scr('sLobby'); renderLobby(); renderInvites(); }
+function goLobby() {
+  phase = 'lobby';
+  roster = [];
+  me = null;
+  clearInterval(sendIv);
+  if (isHost && ch) ch.track(meta(false));
+  $('res').classList.add('hidden');
+  $('cd').classList.add('hidden');
+  scr('sLobby');
+  renderLobby();
+  renderInvites();
+}
 function onNet(p) {
   if (p.t === 'start' && !isHost && phase !== 'race' && phase !== 'count') beginRace(p.ids);
-  else if (p.t === 'prog') { const r = roster.find(x => x.id === p.id); if (r && r !== me && !r.fin) { r.p = p.p; r.v = p.v; r.t = performance.now(); } }
-  else if (p.t === 'fin') { const r = roster.find(x => x.id === p.id); if (r && r !== me) { r.fin = true; r.time = p.time; r.p = LAPS; renderResult(); checkAllDone(); } }
-  else if (p.t === 'again' && !isHost) goLobby();
+  else if (p.t === 'prog') {
+    const r = roster.find(x => x.id === p.id);
+    if (r && r !== me && !r.fin) { r.p = p.p; r.v = p.v; r.t = performance.now(); }
+  } else if (p.t === 'fin') {
+    const r = roster.find(x => x.id === p.id);
+    if (r && r !== me) { r.fin = true; r.time = p.time; r.p = LAPS; renderResult(); checkAllDone(); }
+  } else if (p.t === 'again' && !isHost) goLobby();
 }
 
-/* ===== balapan ===== */
-const mkR = (id, name, i, bot) => ({ id, name, col: COLORS[i], p: 0, v: 0, disp: 0, t: performance.now(), fin: false, time: 0, bot: !!bot, rate: bot ? [5.5, 7, 6.2][i - 1] || 6 : 0, gone: false });
-function startSolo() { mode = 'solo'; closeRoom(); roster = [mkR(myId, uname(), 0), mkR('bot1', 'Bot Biru', 1, true), mkR('bot2', 'Bot Kuning', 2, true)]; startCommon(); }
-function beginRace(ids) { const pl = presenceList(); roster = ids.map((id, i) => mkR(id, pl.find(x => x.id === id)?.name || 'Pemain', i)); startCommon(); }
-function startCommon() {
-  me = roster.find(r => r.id === myId); finalized = false; racing = false; phase = 'count'; $('res').classList.add('hidden'); scr('sRace'); $('title').textContent = 'NexRace'; $('sub').textContent = mode === 'solo' ? 'Latihan solo' : 'Ruang ' + room;
-  clearInterval(sendIv); if (mode === 'online') sendIv = setInterval(() => { if (phase === 'race' && me && !me.fin) send({ t: 'prog', id: myId, p: me.p, v: me.v }); }, 100);
-  let n = 3; const cd = $('cd'), tx = $('cdTxt'); cd.classList.remove('hidden'); tx.textContent = n;
-  const iv = setInterval(() => { n--; if (n > 0) tx.textContent = n; else { clearInterval(iv); tx.textContent = 'GO!'; racing = true; phase = 'race'; raceT0 = performance.now(); setTimeout(() => cd.classList.add('hidden'), 600); } }, 1000);
+/* ===== LOGIKA BALAPAN ===== */
+const mkR = (id, name, i, bot) => ({
+  id, name, col: COLORS[i], p: 0, v: 0, disp: 0, t: performance.now(),
+  fin: false, time: 0, bot: !!bot,
+  rate: bot ? [5.4, 6.8, 6.1][i - 1] || 6 : 0,
+  gone: false,
+  car: bot ? 1 + Math.floor(Math.random() * 5) : 0,
+  b: 1
+});
+
+function startSolo() {
+  mode = 'solo';
+  closeRoom();
+  roster = [
+    mkR(myId, uname(), 0),
+    mkR('bot1', 'Bot Apex', 1, true),
+    mkR('bot2', 'Bot Phantom', 2, true)
+  ];
+  startCommon();
 }
-function tap() { if (phase !== 'race' || !racing || !me || me.fin) return; me.v = Math.min(VMAX, me.v + TAP); }
+
+function beginRace(ids) {
+  const pl = presenceList();
+  roster = ids.map((id, i) => {
+    const x = pl.find(y => y.id === id);
+    const r = mkR(id, x?.name || 'Pemain', i);
+    r.car = Math.min(5, Math.max(0, (x?.car | 0)));
+    r.b = CARS[r.car].b;
+    return r;
+  });
+  startCommon();
+}
+
+function startCommon() {
+  me = roster.find(r => r.id === myId);
+  me.car = GA.car;
+  me.b = CARS[GA.car].b;
+  finalized = false;
+  racing = false;
+  phase = 'count';
+  $('res').classList.add('hidden');
+  scr('sRace');
+  $('title').textContent = 'NexRace';
+  $('sub').textContent = mode === 'solo' ? 'Latihan Solo · ' + CARS[GA.car].n : 'Ruang #' + room;
+  $('raceCarLbl').textContent = `${CARS[GA.car].n} (+${Math.round((CARS[GA.car].b - 1) * 100)}% Boost)`;
+
+  clearInterval(sendIv);
+  if (mode === 'online') {
+    sendIv = setInterval(() => {
+      if (phase === 'race' && me && !me.fin) send({ t: 'prog', id: myId, p: me.p, v: me.v });
+    }, 100);
+  }
+
+  let n = 3;
+  const cd = $('cd'), tx = $('cdTxt');
+  cd.classList.remove('hidden');
+  tx.textContent = n;
+  const iv = setInterval(() => {
+    n--;
+    if (n > 0) tx.textContent = n;
+    else {
+      clearInterval(iv);
+      tx.textContent = 'GO!';
+      racing = true;
+      phase = 'race';
+      raceT0 = performance.now();
+      setTimeout(() => cd.classList.add('hidden'), 600);
+    }
+  }, 1000);
+}
+
+function tap() {
+  if (phase !== 'race' || !racing || !me || me.fin) return;
+  me.v = Math.min(VMAX * me.b, me.v + TAP * me.b);
+}
 $('go').addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
-addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter' || e.key.toLowerCase() === 'g') && !e.repeat) { e.preventDefault(); tap(); } if (e.key === 'Escape') $('help').classList.add('hidden'); });
+addEventListener('keydown', e => {
+  if ((e.key === ' ' || e.key === 'Enter' || e.key.toLowerCase() === 'g') && !e.repeat) {
+    e.preventDefault();
+    tap();
+  }
+  if (e.key === 'Escape') $('help').classList.add('hidden');
+});
 
 function finishMe() {
-  me.fin = true; me.p = LAPS; me.v = 0; me.time = (performance.now() - raceT0) / 1000;
-  if (mode === 'online') { send({ t: 'fin', id: myId, time: me.time }); setTimeout(() => send({ t: 'fin', id: myId, time: me.time }), 300); }
-  setTimeout(() => { phase = 'done'; showResult(); }, 900); setTimeout(finalize, 6000); checkAllDone();
+  me.fin = true;
+  me.p = LAPS;
+  me.v = 0;
+  me.time = (performance.now() - raceT0) / 1000;
+  if (mode === 'online') {
+    send({ t: 'fin', id: myId, time: me.time });
+    setTimeout(() => send({ t: 'fin', id: myId, time: me.time }), 300);
+  }
+  setTimeout(() => { phase = 'done'; showResult(); }, 800);
+  setTimeout(finalize, 5000);
+  checkAllDone();
 }
-const ranking = () => [...roster].sort((a, b) => (a.gone && !b.gone) ? 1 : (b.gone && !a.gone) ? -1 : (a.fin && b.fin) ? a.time - b.time : a.fin ? -1 : b.fin ? 1 : b.disp - a.disp);
-function checkAllDone() { if (me && me.fin && roster.every(r => r.fin || r.gone)) setTimeout(finalize, 1000); }
+
+const ranking = () => [...roster].sort((a, b) =>
+  (a.gone && !b.gone) ? 1 :
+  (b.gone && !a.gone) ? -1 :
+  (a.fin && b.fin) ? a.time - b.time :
+  a.fin ? -1 :
+  b.fin ? 1 :
+  b.disp - a.disp
+);
+
+function checkAllDone() {
+  if (me && me.fin && roster.every(r => r.fin || r.gone)) setTimeout(finalize, 800);
+}
+
 function showResult() {
-  const rk = ranking().indexOf(me) + 1; $('resT').textContent = rk === 1 ? '🏆 Juara 1!' : 'Juara ' + rk;
-  $('resBtn').textContent = mode === 'solo' ? 'Main lagi' : isHost ? 'Balapan lagi' : 'Kembali ke lobi'; $('res').classList.remove('hidden'); renderResult();
+  const rk = ranking().indexOf(me) + 1;
+  $('resT').textContent = rk === 1 ? '🏆 Juara 1!' : 'Juara ' + rk;
+  $('resBtn').textContent = mode === 'solo' ? 'Main Lagi' : isHost ? 'Balapan Lagi' : 'Kembali ke Lobi';
+  $('res').classList.remove('hidden');
+  renderResult();
 }
+
 function renderResult() {
   if ($('res').classList.contains('hidden')) return;
-  $('resList').innerHTML = ranking().map((r, i) => `<div class="flex items-center gap-2 p-2 rounded-xl ${r === me ? 'bg-emerald-500/15 border border-emerald-500/40' : 'bg-slate-950 border border-slate-800'}"><span class="w-5 text-center font-bold">${i + 1}</span><span class="w-3 h-3 rounded-full" style="background:${r.col}"></span><span class="flex-1 truncate">${esc(r.name)}</span><span class="text-xs font-mono ${r.fin ? 'text-emerald-300' : 'text-slate-500'}">${r.fin ? r.time.toFixed(2) + ' dtk' : r.gone ? 'Keluar' : 'Balapan…'}</span></div>`).join('');
+  $('resList').innerHTML = ranking().map((r, i) => {
+    const cName = (CARS[r.car || 0] || CARS[0]).n;
+    return `<div class="flex items-center gap-2 p-2 rounded-xl ${r === me ? 'bg-emerald-500/15 border border-emerald-500/40' : 'bg-slate-950 border border-slate-800'}">
+      <span class="w-5 text-center font-bold">${i + 1}</span>
+      <span class="w-3 h-3 rounded-full" style="background:${r.col}"></span>
+      <div class="flex-1 min-w-0">
+        <div class="truncate text-sm font-semibold">${esc(r.name)}</div>
+        <div class="text-[10px] text-slate-400 truncate">${esc(cName)}</div>
+      </div>
+      <span class="text-xs font-mono ${r.fin ? 'text-emerald-300' : 'text-slate-500'}">${r.fin ? r.time.toFixed(2) + ' dtk' : r.gone ? 'Keluar' : 'Balapan…'}</span>
+    </div>`;
+  }).join('');
 }
-async function finalize() {
-  if (finalized || !me) return; finalized = true; renderResult();
-  const rk = ranking().indexOf(me) + 1, humans = roster.filter(r => !r.bot).length; let pts = 0;
-  if (mode === 'online' && humans >= 2) pts = [30, 15, 8, 4][rk - 1] || 0; else if (mode === 'solo' && rk === 1) pts = 10;
-  if (pts && user) { const ok = await addPoints(pts); $('resP').textContent = ok ? '+' + pts + ' poin tersimpan ke akunmu' : ''; } else $('resP').textContent = pts ? '+' + pts + ' poin (masuk lewat chat untuk menyimpan)' : '';
-}
-function resAgain() { if (mode === 'solo') startSolo(); else { if (isHost) send({ t: 'again' }); goLobby(); } }
 
-/* ===== gambar & loop ===== */
+async function finalize() {
+  if (finalized || !me) return;
+  finalized = true;
+  renderResult();
+  const rk = ranking().indexOf(me) + 1;
+  const humans = roster.filter(r => !r.bot).length;
+  let pts = 0;
+  if (mode === 'online' && humans >= 2) pts = [30, 15, 8, 4][rk - 1] || 0;
+  else if (mode === 'solo') pts = [10, 4, 2][rk - 1] || 0;
+
+  if (pts > 0) {
+    await addPoints(pts);
+    $('resP').textContent = `🎉 +${pts} Poin didapat! Total Saldo: ${bal()} Poin`;
+  } else {
+    $('resP').textContent = `Saldo Anda: ${bal()} Poin`;
+  }
+}
+
+function resAgain() {
+  if (mode === 'solo') startSolo();
+  else {
+    if (isHost) send({ t: 'again' });
+    goLobby();
+  }
+}
+
+/* ===== RENDER SIRKUIT & ANIMasi ===== */
 const cv = $('cv'), ctx = cv.getContext('2d'), CX = 200, CY = 200, RX = 148, RY = 138;
-function lanePos(i, p) { const th = Math.PI / 2 + 2 * Math.PI * p, off = (i - 1.5) * 17, rx = RX + off, ry = RY + off; return { x: CX + rx * Math.cos(th), y: CY + ry * Math.sin(th), a: Math.atan2(ry * Math.cos(th), -rx * Math.sin(th)) }; }
+function lanePos(i, p) {
+  const th = Math.PI / 2 + 2 * Math.PI * p, off = (i - 1.5) * 17, rx = RX + off, ry = RY + off;
+  return { x: CX + rx * Math.cos(th), y: CY + ry * Math.sin(th), a: Math.atan2(ry * Math.cos(th), -rx * Math.sin(th)) };
+}
 function ell(rx, ry) { ctx.beginPath(); ctx.ellipse(CX, CY, rx, ry, 0, 0, Math.PI * 2); }
+
 function draw(t) {
-  ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 0, 400, 400);
-  ell(RX - 44, RY - 44); ctx.fillStyle = '#14532d'; ctx.fill();
-  ell(RX, RY); ctx.lineWidth = 84; ctx.strokeStyle = '#334155'; ctx.stroke();
-  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(226,232,240,.35)'; ctx.setLineDash([10, 10]); [-17, 0, 17].forEach(o => { ell(RX + o, RY + o); ctx.stroke(); }); ctx.setLineDash([]);
-  for (let k = 0; k < 8; k++) { ctx.fillStyle = k % 2 ? '#fff' : '#0f172a'; ctx.fillRect(CX - 4, CY + RY - 42 + k * 10.5, 8, 10.5); }
+  ctx.fillStyle = '#0b1120';
+  ctx.fillRect(0, 0, 400, 400);
+  ell(RX - 44, RY - 44);
+  ctx.fillStyle = '#14532d';
+  ctx.fill();
+  ell(RX, RY);
+  ctx.lineWidth = 84;
+  ctx.strokeStyle = '#334155';
+  ctx.stroke();
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(226,232,240,.35)';
+  ctx.setLineDash([10, 10]);
+  [-17, 0, 17].forEach(o => { ell(RX + o, RY + o); ctx.stroke(); });
+  ctx.setLineDash([]);
+
+  // Garis Start / Finish
+  for (let k = 0; k < 8; k++) {
+    ctx.fillStyle = k % 2 ? '#fff' : '#0f172a';
+    ctx.fillRect(CX - 4, CY + RY - 42 + k * 10.5, 8, 10.5);
+  }
+
   const order = roster.map((r, i) => i).sort((a, b) => (roster[a] === me) - (roster[b] === me));
   order.forEach(i => {
-    const r = roster[i], q = lanePos(i, r.disp); ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.a);
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(-11, -4, 24, 13);
-    ctx.fillStyle = r.col; ctx.beginPath(); ctx.roundRect(-12, -7, 24, 14, 4); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(1, -5, 6, 10); ctx.fillStyle = '#0f172a'; ctx.fillRect(-12, -9, 6, 3); ctx.fillRect(-12, 6, 6, 3); ctx.fillRect(6, -9, 6, 3); ctx.fillRect(6, 6, 6, 3);
-    if (r === me) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-12, -7, 24, 14, 4); ctx.stroke(); }
+    const r = roster[i], q = lanePos(i, r.disp);
+    ctx.save();
+    ctx.translate(q.x, q.y);
+    ctx.rotate(q.a);
+    drawCar(ctx, CARS[r.car || 0], 1.15, r.col, r === me);
     ctx.restore();
   });
+
   const rk = me ? ranking().indexOf(me) + 1 : 1, lap = me ? Math.min(LAPS, Math.floor(me.p) + 1) : 1;
-  ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0'; ctx.font = '700 34px system-ui,sans-serif'; ctx.fillText('Lap ' + lap + '/' + LAPS, CX, CY - 12);
-  ctx.fillStyle = '#34d399'; ctx.font = '700 22px system-ui,sans-serif'; ctx.fillText('Posisi ' + rk + '/' + roster.length, CX, CY + 20);
-  ctx.fillStyle = '#94a3b8'; ctx.font = '500 16px system-ui,sans-serif';
-  ctx.fillText(me && me.fin ? me.time.toFixed(2) + ' dtk' : racing ? ((t - raceT0) / 1000).toFixed(1) + ' dtk' : 'Siap…', CX, CY + 46);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = '700 32px system-ui,sans-serif';
+  ctx.fillText('Lap ' + lap + '/' + LAPS, CX, CY - 14);
+  ctx.fillStyle = '#34d399';
+  ctx.font = '700 20px system-ui,sans-serif';
+  ctx.fillText('Posisi ' + rk + '/' + roster.length, CX, CY + 16);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 15px system-ui,sans-serif';
+  ctx.fillText(me && me.fin ? me.time.toFixed(2) + ' dtk' : racing ? ((t - raceT0) / 1000).toFixed(1) + ' dtk' : 'Siap…', CX, CY + 42);
 }
+
 let last = 0;
 function frame(t) {
-  requestAnimationFrame(frame); const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (t - last) / 1000 || 0);
+  last = t;
   if (phase !== 'race' && phase !== 'count' && phase !== 'done') return;
+
   roster.forEach(r => {
     if (r === me || r.bot) {
       if (racing && !r.fin) {
-        if (r.bot && Math.random() < r.rate * (.8 + .4 * Math.sin(t / 900 + r.rate)) * dt) r.v = Math.min(VMAX, r.v + TAP);
-        r.v *= Math.exp(-FR * dt); r.p += r.v * dt;
-        if (r.p >= LAPS) { if (r === me) finishMe(); else { r.p = LAPS; r.fin = true; r.time = (t - raceT0) / 1000; renderResult(); checkAllDone(); } }
+        if (r.bot && Math.random() < r.rate * (.8 + .4 * Math.sin(t / 900 + r.rate)) * dt) {
+          r.v = Math.min(VMAX, r.v + TAP);
+        }
+        r.v *= Math.exp(-FR * dt);
+        r.p += r.v * dt;
+        if (r.p >= LAPS) {
+          if (r === me) finishMe();
+          else {
+            r.p = LAPS;
+            r.fin = true;
+            r.time = (t - raceT0) / 1000;
+            renderResult();
+            checkAllDone();
+          }
+        }
       }
       r.disp = r.p;
-    } else { const est = r.fin ? LAPS : Math.min(LAPS, r.p + r.v * (t - r.t) / 1000); r.disp += (est - r.disp) * Math.min(1, dt * 12); }
+    } else {
+      const est = r.fin ? LAPS : Math.min(LAPS, r.p + r.v * (t - r.t) / 1000);
+      r.disp += (est - r.disp) * Math.min(1, dt * 12);
+    }
   });
-  if (me) $('spd').style.width = Math.round(me.v / VMAX * 100) + '%';
+
+  if (me) $('spd').style.width = Math.round(me.v / (VMAX * me.b) * 100) + '%';
   draw(t);
 }
 requestAnimationFrame(frame);
 
-/* ===== undangan dari chat: ?room=KODE ===== */
+/* ===== AUTO-JOIN DARI LINK UNDANGAN CHAT ===== */
 (async () => {
-  const code = new URLSearchParams(location.search).get('room'); if (!code) return;
-  await authReady; history.replaceState(null, '', location.pathname); joinRoomUI(code.toUpperCase());
+  const code = new URLSearchParams(location.search).get('room');
+  if (!code) return;
+  await authReady;
+  history.replaceState(null, '', location.pathname);
+  joinRoomUI(code.toUpperCase());
 })();
 </script>
 </body>
