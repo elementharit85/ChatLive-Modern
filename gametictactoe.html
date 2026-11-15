@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NexTicTacToe — XO Multiplayer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>html,body{height:100%;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}.pop{animation:pop .25s ease-out}</style>
+<style type="text/tailwindcss">
+@layer components{
+ .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40}
+ .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950}
+ .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition}
+ .seg{@apply flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-slate-800 border border-slate-700}
+ .seg.on{@apply bg-emerald-500 text-slate-950 border-emerald-400}
+}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-[100dvh] overflow-hidden font-sans">
+<div id="err" class="hidden absolute top-0 inset-x-0 z-50 bg-rose-600 text-white text-xs p-2"></div>
+<div id="app" class="h-full max-w-md mx-auto flex flex-col pt-[env(safe-area-inset-top)]">
+  <div class="flex items-center gap-2 p-2 shrink-0">
+    <button class="btn" onclick="toMenu()">☰ Menu</button>
+    <div class="flex-1 min-w-0 text-center"><div id="title" class="font-bold text-emerald-400 truncate">NexTicTacToe</div><div id="sub" class="text-[11px] text-slate-400 truncate"></div></div>
+    <div class="shrink-0 text-right leading-tight px-2 py-1 rounded-lg bg-slate-900 border border-slate-800"><div class="text-xs font-bold flex items-center gap-1 justify-end"><span id="netDot" class="w-2 h-2 rounded-full bg-slate-500"></span><span id="netMs">--</span></div><div id="netLbl" class="text-[10px] text-slate-400">Jaringan…</div></div>
+    <button class="btn w-10 !px-0" onclick="$('help').classList.remove('hidden')" aria-label="Cara bermain">?</button>
+  </div>
+
+  <div id="sMenu" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <p id="acct" class="text-xs text-center text-slate-400">Memeriksa akun…</p>
+    <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <div class="text-sm font-semibold">Level bot</div>
+      <div class="flex gap-2"><button class="seg" onclick="pickLv(1,this)">Mudah</button><button class="seg on" onclick="pickLv(2,this)">Sedang</button><button class="seg" onclick="pickLv(3,this)">Sulit</button></div>
+    </div>
+    <button class="card" onclick="startBot()"><b class="text-lg">Lawan Bot</b><div class="text-xs text-slate-400">Menang 3 / 6 / 10 poin sesuai level, seri 1 poin.</div></button>
+    <button class="card" onclick="startLocal()"><b class="text-lg">Dua Pemain (1 perangkat)</b><div class="text-xs text-slate-400">Bergantian di satu layar, tanpa poin.</div></button>
+    <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <b class="text-lg">Multiplayer Kontak</b><div class="text-xs text-slate-400">Menang 20 poin, seri 5, kalah tetap dapat 2 poin.</div>
+      <button class="btn btn-p w-full" onclick="createRoom()">Buat ruang (kode = nomor kontak Anda)</button>
+      <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="Nomor host" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
+    </div>
+    <div id="mMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
+    <a href="game.html" class="btn block text-center">← Kembali ke menu game</a>
+  </div>
+
+  <div id="sLobby" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+    <div class="text-center p-3 rounded-2xl bg-slate-900 border border-slate-800"><div class="text-xs text-slate-400">Kode ruangan</div><div id="lobbyCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400"></div><div class="text-xs text-slate-400 mt-1">Permainan mulai otomatis saat lawan masuk.</div></div>
+    <div class="text-sm font-semibold">Pemain di ruang</div>
+    <div id="lobbyList" class="space-y-2"></div>
+    <div id="inviteBox" class="hidden space-y-2"><div class="text-sm font-semibold">Undang kontak (masuk ke chat)</div><div id="inviteList" class="space-y-2"></div></div>
+  </div>
+
+  <div id="sGame" class="hidden flex-1 min-h-0 flex flex-col p-3 gap-3">
+    <div class="grid grid-cols-3 gap-2 text-center">
+      <div id="pX" class="rounded-xl bg-slate-900 border border-slate-800 p-2 min-w-0"><div class="text-sky-400 font-black text-xl">X</div><div id="nX" class="text-[11px] truncate"></div><div id="sX" class="font-bold">0</div></div>
+      <div class="rounded-xl bg-slate-900 border border-slate-800 p-2"><div class="text-slate-400 font-black text-xl">=</div><div class="text-[11px]">Seri</div><div id="sD" class="font-bold">0</div></div>
+      <div id="pO" class="rounded-xl bg-slate-900 border border-slate-800 p-2 min-w-0"><div class="text-rose-400 font-black text-xl">O</div><div id="nO" class="text-[11px] truncate"></div><div id="sO" class="font-bold">0</div></div>
+    </div>
+    <div id="status" class="text-center font-semibold min-h-[1.5rem]"></div>
+    <div class="flex-1 min-h-0 flex items-center justify-center"><div id="grid" class="grid grid-cols-3 gap-2 w-full max-w-[min(100%,52dvh)] aspect-square"></div></div>
+    <p id="pts" class="text-center text-sm text-amber-300 min-h-[1.25rem]"></p>
+    <div class="flex gap-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]"><button id="againBtn" class="btn btn-p flex-1 hidden" onclick="again()">Main lagi</button><button class="btn flex-1" onclick="toMenu()">Keluar</button></div>
+  </div>
+</div>
+
+<div id="help" class="hidden absolute inset-0 z-40 bg-slate-950/95 overflow-y-auto"><div class="min-h-full flex items-center justify-center p-4"><div class="w-full max-w-md space-y-2 text-sm">
+  <h2 class="text-xl font-bold text-emerald-400 text-center mb-2">Cara bermain</h2>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Tujuan:</b> buat 3 tanda sejajar (mendatar, menurun, atau diagonal). X selalu jalan lebih dulu. Ketuk kotak kosong untuk menaruh tanda.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Multiplayer:</b> host menekan Buat ruang (kode = nomor kontaknya, misal #1111) dan mengundang kontak lewat chat. Pemain 2 memasukkan nomor itu atau klik undangan di chat; permainan langsung mulai. Tiap ronde baru, tanda X dan O ditukar.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Poin:</b> menang online 20, seri 5, kalah 2. Lawan bot: menang 3/6/10, seri 1. Poin tersimpan jika masuk lewat chat. <b>Jaringan:</b> ping di pojok atas (hijau bagus, kuning sedang, merah buruk).</div>
+  <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
+</div></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+addEventListener('error', e => { const b = $('err'); b.textContent = 'Error: ' + e.message + ' (baris ' + e.lineno + ')'; b.classList.remove('hidden'); });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SB_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
+const sb = window.supabase ? window.supabase.createClient(SB_URL, 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
+
+/*LOGIC-START*/
+const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function winner(b) { for (const l of WINS) if (b[l[0]] && b[l[0]] === b[l[1]] && b[l[0]] === b[l[2]]) return { s: b[l[0]], l }; return b.every(x => x) ? { s: null, l: null } : null; }
+function minimax(b, sym, me, d) {
+  const w = winner(b); if (w) return w.s === me ? 10 - d : w.s ? d - 10 : 0;
+  let best = sym === me ? -99 : 99;
+  for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = sym; const v = minimax(b, sym === 'X' ? 'O' : 'X', me, d + 1); b[i] = ''; best = sym === me ? Math.max(best, v) : Math.min(best, v); }
+  return best;
+}
+function botPick(b, sym, lv) {
+  const em = []; for (let i = 0; i < 9; i++) if (!b[i]) em.push(i);
+  if (Math.random() < [0, .5, .15, 0][lv]) return em[Math.floor(Math.random() * em.length)];
+  let best = -99, pick = [];
+  for (const i of em) { b[i] = sym; const v = minimax(b, sym === 'X' ? 'O' : 'X', sym, 1); b[i] = ''; if (v > best) { best = v; pick = [i]; } else if (v === best) pick.push(i); }
+  return pick[Math.floor(Math.random() * pick.length)];
+}
+/*LOGIC-END*/
+
+/* ===== jaringan (ping) ===== */
+let pingMs = null, pings = [], warm = false;
+async function measurePing() {
+  if (!navigator.onLine) { pingMs = null; renderPing(); return; }
+  const t0 = performance.now(), ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 4000);
+  try { await fetch(SB_URL + '/rest/v1/?_=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctl.signal }); const ms = Math.round(performance.now() - t0); if (!warm) warm = true; else { pings.push(ms); if (pings.length > 3) pings.shift(); pingMs = Math.round(pings.reduce((a, b) => a + b) / pings.length); } } catch (e) { pingMs = null; }
+  clearTimeout(to); renderPing();
+}
+function renderPing() {
+  let dot, txt, lab, col;
+  if (!navigator.onLine || pingMs === null) { dot = 'bg-rose-500'; txt = navigator.onLine ? '— ms' : 'offline'; lab = 'Buruk'; col = 'text-rose-400'; if (!warm && navigator.onLine) { dot = 'bg-slate-500'; lab = 'cek…'; col = 'text-slate-400'; } }
+  else if (pingMs < 100) { dot = 'bg-emerald-400'; txt = pingMs + ' ms'; lab = 'Bagus'; col = 'text-emerald-400'; }
+  else if (pingMs < 250) { dot = 'bg-amber-400'; txt = pingMs + ' ms'; lab = 'Sedang'; col = 'text-amber-400'; }
+  else { dot = 'bg-rose-500'; txt = pingMs + ' ms'; lab = 'Buruk'; col = 'text-rose-400'; }
+  $('netDot').className = 'w-2 h-2 rounded-full ' + dot; $('netMs').textContent = txt; $('netLbl').textContent = 'Jaringan ' + lab; $('netLbl').className = 'text-[10px] ' + col;
+}
+measurePing(); setTimeout(measurePing, 800); setInterval(measurePing, 4000); addEventListener('online', measurePing); addEventListener('offline', measurePing);
+
+/* ===== akun (auth dari chat) & poin ===== */
+var user = null; const guest = 'Tamu' + (10 + Math.floor(Math.random() * 90)); function uname() { return user?.display_name || guest; }
+function updateAcct() { $('acct').textContent = user ? 'Masuk sebagai ' + user.display_name + ' (#' + user.phone_4 + ') — poin tersimpan' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk poin & undangan'; }
+async function addPoints(n) {
+  if (!user || !sb || !n) return false;
+  try {
+    const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'tictactoe').maybeSingle();
+    const { error } = await sb.from('game_scores').upsert({ phone_4: user.phone_4, game: 'tictactoe', display_name: user.display_name, avatar_url: user.avatar_url, best_score: (data?.best_score || 0) + n, total_games: (data?.total_games || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: 'phone_4,game' });
+    return !error;
+  } catch (e) { return false; }
+}
+const authReady = (async () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null');
+    if (s?.phone_4 && sb) {
+      const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', s.phone_4).maybeSingle();
+      if (!error && data) { if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url }; }
+      else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+    }
+  } catch (e) {}
+  if (user) $('joinCode').inputMode = 'numeric'; updateAcct();
+})();
+
+/* ===== undangan ke live chat ===== */
+var gch = null;
+async function ensureG() { if (gch) return; gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } }); await new Promise(r => { gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); }); setTimeout(r, 3000); }); }
+async function invite(ph) {
+  if (!sb || !user || !room) return false;
+  const text = `❌⭕ ${user.display_name} mengundang kamu main XO NexTicTacToe! Gabung ruang #${room} · nexgame:tictactoe:${room}`, now = new Date().toISOString(), cid = user.phone_4 + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const m = { id: cid, client_msg_id: cid, sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now };
+  try { await ensureG(); gch.send({ type: 'broadcast', event: 'live_chat_message', payload: { message: m, sender_profile: { phone_4: user.phone_4, display_name: user.display_name, presence_mode: 'online' } } }); } catch (e) {}
+  const { error } = await sb.from('chat_messages').insert({ sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now });
+  return !error;
+}
+async function sendInvite(ph, btn) { btn.disabled = true; btn.textContent = 'Mengirim…'; const ok = await invite(ph); btn.textContent = ok ? 'Terkirim ✓' : 'Gagal'; btn.disabled = false; }
+function renderInvites() {
+  if (!isHost || !user) { $('inviteBox').classList.add('hidden'); return; }
+  let cs = []; try { cs = JSON.parse(localStorage.getItem('nexchat_contacts_' + user.phone_4) || '[]'); } catch (e) {}
+  $('inviteBox').classList.remove('hidden');
+  $('inviteList').innerHTML = cs.length ? cs.map(c => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(c.display_name)} <span class="text-emerald-400 font-mono text-xs">#${esc(c.phone_4)}</span></span><button class="btn btn-p !py-1.5" onclick="sendInvite('${String(c.phone_4).replace(/\D/g, '')}',this)">Undang</button></div>`).join('') : '<p class="text-xs text-slate-400">Belum ada kontak. Tambahkan kontak lewat chat.</p>';
+}
+
+/* ===== navigasi & jaringan ===== */
+var mode = 'bot', level = 2, phase = 'menu', ch = null, room = '', isHost = false, oppName = 'Lawan', mySym = 'X';
+var board = Array(9).fill(''), turn = 'X', over = false, score = { X: 0, O: 0, D: 0 }, names = { X: '', O: '' }, re = { me: false, opp: false }, round = 0, botT = null, lastLine = null;
+const myId = Math.random().toString(36).slice(2, 8);
+function scr(id) { ['sMenu', 'sLobby', 'sGame'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+function send(p) { if (ch) ch.send({ type: 'broadcast', event: 't', payload: p }); }
+function pickLv(v, el) { level = v; [...el.parentNode.children].forEach(b => b.classList.remove('on')); el.classList.add('on'); }
+function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
+function toMenu() { closeRoom(); clearTimeout(botT); phase = 'menu'; scr('sMenu'); $('title').textContent = 'NexTicTacToe'; $('sub').textContent = ''; updateAcct(); }
+function leaveWith(m) { toMenu(); $('mMsg').textContent = m; }
+function createRoom() {
+  if (!sb) { $('mMsg').textContent = 'Supabase tidak tersedia.'; return; }
+  let c = user ? user.phone_4 : ''; if (!c) { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; }
+  openRoom(c, true);
+}
+function joinRoomUI(c) {
+  c = (typeof c === 'string' ? c : $('joinCode').value).replace('#', '').trim().toUpperCase();
+  if (c.length !== 4) { $('mMsg').textContent = 'Masukkan nomor host (4 digit).'; return; }
+  if (user && c === user.phone_4) { $('mMsg').textContent = 'Itu nomor Anda sendiri. Tekan Buat ruang untuk menjadi host.'; return; }
+  if (!sb) { $('mMsg').textContent = 'Supabase tidak tersedia.'; return; }
+  openRoom(c, false);
+  setTimeout(() => { if (phase === 'lobby' && !isHost && room === c && !presenceList().some(x => x.host)) leaveWith('Ruang tidak ditemukan atau host belum membuat ruang.'); }, 6000);
+}
+function openRoom(code, host) {
+  closeRoom(); room = code; isHost = host; mode = 'online'; $('mMsg').textContent = '';
+  ch = sb.channel('nextt_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
+  ch.on('broadcast', { event: 't' }, ({ payload }) => onNet(payload)); ch.on('presence', { event: 'sync' }, onPresence);
+  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track({ name: uname(), phone: user?.phone_4 || null, host: isHost }); });
+  phase = 'lobby'; scr('sLobby'); $('title').textContent = 'Ruang XO'; $('sub').textContent = host ? 'Anda host' : 'Menghubungkan…'; renderLobby([]); renderInvites();
+}
+function presenceList() { if (!ch) return []; const st = ch.presenceState(); return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] })); }
+function renderLobby(l) {
+  l = l || presenceList(); $('lobbyCode').textContent = (user && room === user.phone_4 ? '#' : '') + room;
+  $('lobbyList').innerHTML = l.map(x => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(x.name)}${x.id === myId ? ' (Anda)' : ''}</span>${x.host ? '<span class="text-xs text-amber-300">Host · X</span>' : '<span class="text-xs text-rose-300">O</span>'}</div>`).join('');
+}
+function onPresence() {
+  const l = presenceList(), o = l.find(x => x.id !== myId); if (o) oppName = o.name || 'Lawan';
+  if (l.length > 2 && l.findIndex(x => x.id === myId) >= 2) { leaveWith('Ruang penuh (2 pemain).'); return; }
+  if (phase === 'lobby') {
+    renderLobby(l);
+    if (isHost && l.length === 2) { send({ t: 'start', name: uname() }); mySym = 'X'; startOnline(); }
+  } else if (phase === 'game' && mode === 'online' && l.length < 2 && !over) $('status').textContent = 'Lawan terputus…';
+}
+function startOnline() { score = { X: 0, O: 0, D: 0 }; round = 0; re = { me: false, opp: false }; names = mySym === 'X' ? { X: uname(), O: oppName } : { X: oppName, O: uname() }; newRound(); }
+function onNet(p) {
+  if (p.t === 'start' && !isHost && phase === 'lobby') { oppName = p.name || 'Lawan'; mySym = 'O'; startOnline(); }
+  else if (p.t === 'mv' && phase === 'game' && mode === 'online' && !over && turn !== mySym && p.s === turn && !board[p.i]) play(p.i, turn);
+  else if (p.t === 're') { re.opp = true; if (re.me) rematch(); else $('pts').textContent = 'Lawan mengajak main lagi!'; }
+}
+
+/* ===== permainan ===== */
+function startBot() { mode = 'bot'; closeRoom(); mySym = Math.random() < .5 ? 'X' : 'O'; names = mySym === 'X' ? { X: 'Anda', O: 'Bot' } : { X: 'Bot', O: 'Anda' }; score = { X: 0, O: 0, D: 0 }; round = 0; newRound(); }
+function startLocal() { mode = 'local'; closeRoom(); mySym = null; names = { X: 'Pemain 1', O: 'Pemain 2' }; score = { X: 0, O: 0, D: 0 }; round = 0; newRound(); }
+function newRound() {
+  board = Array(9).fill(''); turn = 'X'; over = false; lastLine = null; round++; phase = 'game'; clearTimeout(botT); re = { me: false, opp: false };
+  scr('sGame'); $('title').textContent = 'XO · Ronde ' + round; $('sub').textContent = mode === 'bot' ? 'Lawan bot · ' + ['', 'Mudah', 'Sedang', 'Sulit'][level] : mode === 'online' ? 'Melawan ' + oppName + ' · Ruang ' + room : 'Dua pemain';
+  $('pts').textContent = ''; $('againBtn').classList.add('hidden'); render(); if (mode === 'bot' && turn !== mySym) botTurn();
+}
+function render() {
+  $('grid').innerHTML = board.map((v, i) => `<button class="rounded-2xl border-2 ${lastLine && lastLine.includes(i) ? 'bg-emerald-500/20 border-emerald-400' : 'bg-slate-900 border-slate-800'} text-6xl font-black flex items-center justify-center ${v === 'X' ? 'text-sky-400' : 'text-rose-400'}" onclick="cell(${i})">${v ? `<span class="pop">${v}</span>` : ''}</button>`).join('');
+  $('nX').textContent = names.X + (mySym === 'X' ? ' (Anda)' : ''); $('nO').textContent = names.O + (mySym === 'O' ? ' (Anda)' : '');
+  $('sX').textContent = score.X; $('sO').textContent = score.O; $('sD').textContent = score.D;
+  $('pX').className = 'rounded-xl bg-slate-900 border p-2 min-w-0 ' + (!over && turn === 'X' ? 'border-emerald-400' : 'border-slate-800'); $('pO').className = 'rounded-xl bg-slate-900 border p-2 min-w-0 ' + (!over && turn === 'O' ? 'border-emerald-400' : 'border-slate-800');
+  if (!over) $('status').textContent = mode === 'local' ? 'Giliran ' + names[turn] + ' (' + turn + ')' : turn === mySym ? 'Giliran Anda (' + turn + ')' : (mode === 'bot' ? 'Bot berpikir…' : 'Menunggu ' + oppName + '…');
+}
+function cell(i) { if (phase !== 'game' || over || board[i] || (mode !== 'local' && turn !== mySym)) return; if (mode === 'online') send({ t: 'mv', i, s: turn }); play(i, turn); }
+function play(i, sym) {
+  board[i] = sym; const w = winner(board);
+  if (w) { finish(w); return; }
+  turn = sym === 'X' ? 'O' : 'X'; render(); if (mode === 'bot' && turn !== mySym) botTurn();
+}
+function botTurn() { clearTimeout(botT); botT = setTimeout(() => { if (phase === 'game' && !over && mode === 'bot' && turn !== mySym) play(botPick(board.slice(), turn, level), turn); }, 450); }
+async function finish(w) {
+  over = true; lastLine = w.l; if (w.s) score[w.s]++; else score.D++; render();
+  const win = mode === 'local' ? null : w.s === mySym, draw = !w.s;
+  $('status').textContent = draw ? 'Seri!' : mode === 'local' ? names[w.s] + ' menang!' : win ? '🏆 Anda menang!' : (mode === 'bot' ? 'Bot menang' : oppName + ' menang');
+  $('againBtn').classList.remove('hidden'); $('againBtn').disabled = false; $('againBtn').textContent = mode === 'online' ? 'Ajak main lagi' : 'Main lagi';
+  let pts = 0; if (mode === 'bot') pts = draw ? 1 : win ? [0, 3, 6, 10][level] : 0; else if (mode === 'online') pts = draw ? 5 : win ? 20 : 2;
+  if (pts) { if (user) { const ok = await addPoints(pts); $('pts').textContent = ok ? '+' + pts + ' poin tersimpan' : ''; } else $('pts').textContent = '+' + pts + ' poin (masuk lewat chat untuk menyimpan)'; }
+}
+function again() { if (mode === 'online') { re.me = true; send({ t: 're' }); $('againBtn').disabled = true; $('pts').textContent = re.opp ? '' : 'Menunggu lawan…'; if (re.opp) rematch(); } else { if (mode === 'bot') { mySym = mySym === 'X' ? 'O' : 'X'; names = mySym === 'X' ? { X: 'Anda', O: 'Bot' } : { X: 'Bot', O: 'Anda' }; score = { X: score.O, O: score.X, D: score.D }; } newRound(); } }
+function rematch() { mySym = mySym === 'X' ? 'O' : 'X'; names = { X: names.O, O: names.X }; const sc = score; score = { X: sc.O, O: sc.X, D: sc.D }; newRound(); }
+
+/* ===== undangan dari chat: ?room=KODE ===== */
+(async () => { const code = new URLSearchParams(location.search).get('room'); if (!code) return; await authReady; history.replaceState(null, '', location.pathname); joinRoomUI(code.toUpperCase()); })();
+</script>
+</body>
+</html>

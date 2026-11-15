@@ -125,13 +125,13 @@ a.alt{background:var(--line);color:var(--text);padding:9px 16px;font-size:14px;b
         </div>
       </section>
 
-      <section class="card fight">
-        <div class="art" style="background:linear-gradient(#0f172a,#1e3a5f)"><i style="left:110px;bottom:20px;width:5px;height:44px;background:#38bdf8"></i><i style="left:101px;top:34px;width:22px;height:22px;border:4px solid #38bdf8;border-radius:50%"></i><i style="left:115px;top:62px;width:34px;height:5px;background:#38bdf8"></i><i style="left:230px;bottom:20px;width:5px;height:44px;background:#f472b6"></i><i style="left:221px;top:34px;width:22px;height:22px;border:4px solid #f472b6;border-radius:50%"></i><i style="left:195px;top:62px;width:34px;height:5px;background:#f472b6"></i><i style="left:165px;top:56px;width:18px;height:18px;background:#7dd3fc;border-radius:50%"></i></div>
+      <section class="card tictactoe">
+        <div class="art" style="background:#0b1120"><i style="left:120px;top:14px;width:120px;height:104px;background:repeating-linear-gradient(90deg,transparent 0 38px,#334155 38px 41px),repeating-linear-gradient(0deg,transparent 0 32px,#334155 32px 35px);border-radius:6px"></i><i style="left:128px;top:20px;width:26px;height:26px;color:#38bdf8;font:900 26px/26px sans-serif;text-align:center">X</i><i style="left:170px;top:54px;width:26px;height:26px;color:#fb7185;font:900 26px/26px sans-serif;text-align:center">O</i><i style="left:210px;top:88px;width:26px;height:26px;color:#38bdf8;font:900 26px/26px sans-serif;text-align:center">X</i></div>
         <div class="body">
-          <h2>NexFight</h2>
-          <p>Duel stickman dengan 3 jurus. Lawan bot atau teman, beli perlengkapan di toko.</p>
-          <div class="stats"><div>Coinmu<b id="fightMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="fightTopName"></span><b id="fightTop">0</b></div></div>
-          <a class="btn" id="goFight" href="gamefight.html">Main NexFight</a>
+          <h2>NexTicTacToe</h2>
+          <p>XO klasik. Lawan bot, teman satu layar, atau kontak secara online.</p>
+          <div class="stats"><div>Poinmu<b id="tictactoeMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="tictactoeTopName"></span><b id="tictactoeTop">0</b></div></div>
+          <a class="btn" id="goTtt" href="gametictactoe.html">Main XO</a>
         </div>
       </section>
     </div>
@@ -177,7 +177,7 @@ const HN = ['Gubuk', 'Rumah Kayu', 'Rumah Batu', 'Villa'];
 async function loadScores(user) {
   const { data, error } = await sb.from('game_scores').select('phone_4,game,display_name,best_score,data').order('best_score', { ascending: false }).limit(500);
   if (error) { $('msg').textContent = 'Skor belum bisa dimuat. Jalankan SQL terbaru di Supabase (kolom game).'; return; }
-  for (const g of ['jump', 'jet', 'grow', 'multi', 'chess', 'race', 'billiard', 'fight']) {
+  for (const g of ['jump', 'jet', 'grow', 'multi', 'chess', 'race', 'billiard', 'tictactoe']) {
     const rows = data.filter(r => r.game === g);
     const mine = rows.find(r => r.phone_4 === user.phone_4);
     $(g + 'Mine').textContent = mine ? mine.best_score : 0;

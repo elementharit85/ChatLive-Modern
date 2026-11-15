@@ -2,7 +2,7 @@
    Pasang di file chat, tepat sebelum </body> (setelah script utama):
    <script src="nex-invite.js"></script> */
 (function () {
-  const GAMES = { race: 'gamerace.html' };           // tambah game online lain di sini
+  const GAMES = { race: 'gamerace.html', billiard: 'gamebilliard.html', tictactoe: 'gametictactoe.html' };           // tambah game online lain di sini
   const re = /nexgame:(\w+):(\w+)/;
 
   const origMsgs = window.renderMessagesList;
@@ -15,7 +15,7 @@
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'mt-2 block w-full px-3 py-2 rounded-lg bg-slate-950 text-emerald-300 font-bold text-xs hover:bg-slate-900 cursor-pointer';
-      b.textContent = '🏁 Gabung ruang #' + m[2];
+      b.textContent = ({ billiard: '🎱 Gabung meja #', tictactoe: '❌⭕ Gabung ruang #' }[m[1]] || '🏁 Gabung ruang #') + m[2];
       b.onclick = () => { location.href = GAMES[m[1]] + '?room=' + encodeURIComponent(m[2]); };
       p.appendChild(b);
     });
