@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NexRace — Balapan Tap</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>html,body{height:100%;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}#go{touch-action:none}</style>
+<style type="text/tailwindcss">
+@layer components{
+ .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40}
+ .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950}
+ .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition}
+}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-[100dvh] overflow-hidden font-sans">
+<div id="app" class="h-full max-w-md mx-auto flex flex-col pt-[env(safe-area-inset-top)]">
+  <div class="flex items-center gap-2 p-2 shrink-0">
+    <button class="btn" onclick="toMenu()">☰ Menu</button>
+    <div class="flex-1 min-w-0 text-center"><div id="title" class="font-bold text-emerald-400 truncate">NexRace</div><div id="sub" class="text-[11px] text-slate-400 truncate"></div></div>
+    <button class="btn w-10 !px-0" onclick="$('help').classList.remove('hidden')" aria-label="Cara bermain">?</button>
+  </div>
+
+  <div id="sMenu" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <p id="acct" class="text-xs text-center text-slate-400">Memeriksa akun…</p>
+    <button class="card" onclick="createRoom()"><b class="text-lg">Buat Ruang (jadi host)</b><div class="text-xs text-slate-400">Kode ruang = nomor kontak Anda. Undang teman langsung ke chat.</div></button>
+    <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <b>Gabung ruang teman</b>
+      <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="Nomor host" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
+    </div>
+    <button class="card" onclick="startSolo()"><b class="text-lg">Latihan Solo</b><div class="text-xs text-slate-400">Lawan 2 bot, untuk berlatih menekan GO.</div></button>
+    <div id="mMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
+    <a href="game.html" class="btn block text-center">← Kembali ke menu game</a>
+  </div>
+
+  <div id="sLobby" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+    <div class="text-center p-3 rounded-2xl bg-slate-900 border border-slate-800">
+      <div class="text-xs text-slate-400">Kode ruangan</div>
+      <div id="lobbyCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400"></div>
+    </div>
+    <div class="text-sm font-semibold">Pemain di ruang (maks 4)</div>
+    <div id="lobbyList" class="space-y-2"></div>
+    <button id="startBtn" class="btn btn-p w-full !py-3 text-base hidden" onclick="hostStart()">🏁 Mulai Balapan</button>
+    <p id="waitTxt" class="hidden text-center text-sm text-slate-400">Menunggu host memulai balapan…</p>
+    <div id="inviteBox" class="hidden space-y-2">
+      <div class="text-sm font-semibold">Undang kontak (masuk ke chat)</div>
+      <div id="inviteList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <div id="sRace" class="hidden flex-1 min-h-0 flex flex-col">
+    <div class="relative flex-1 min-h-0"><canvas id="cv" width="400" height="400" class="absolute inset-0 w-full h-full object-contain"></canvas></div>
+    <div class="px-4 pb-2"><div class="flex justify-between text-[11px] text-slate-400 mb-1"><span>Kecepatan</span><span>Tekan GO secepat mungkin!</span></div><div class="h-2 rounded-full bg-slate-800 overflow-hidden"><div id="spd" class="h-full bg-emerald-400" style="width:0%"></div></div></div>
+    <button id="go" class="mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] h-28 shrink-0 rounded-3xl bg-emerald-500 active:bg-emerald-300 active:scale-95 transition text-slate-950 font-black text-4xl tracking-widest">GO!</button>
+  </div>
+</div>
+
+<div id="cd" class="hidden absolute inset-0 z-20 pointer-events-none flex items-center justify-center"><div id="cdTxt" class="text-8xl font-black text-emerald-400 drop-shadow-lg"></div></div>
+
+<div id="res" class="hidden absolute inset-0 z-30 bg-slate-950/85 flex items-center justify-center p-4"><div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+  <h2 id="resT" class="text-2xl font-bold text-center text-emerald-400"></h2>
+  <div id="resList" class="space-y-1.5"></div>
+  <p id="resP" class="text-sm text-amber-300 text-center min-h-[1.25rem]"></p>
+  <div class="flex gap-2"><button id="resBtn" class="btn btn-p flex-1" onclick="resAgain()">Main lagi</button><button class="btn flex-1" onclick="toMenu()">Menu</button></div>
+</div></div>
+
+<div id="help" class="hidden absolute inset-0 z-40 bg-slate-950/95 overflow-y-auto"><div class="min-h-full flex items-center justify-center p-4"><div class="w-full max-w-md space-y-2 text-sm">
+  <h2 class="text-xl font-bold text-emerald-400 text-center mb-2">Cara bermain</h2>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Tujuan:</b> selesaikan <b>3 lap</b> lebih dulu dari lawan. Tekan tombol <b>GO!</b> (atau Spasi) berulang-ulang secepat mungkin. Makin cepat menekan, makin kencang mobilmu; kalau berhenti, mobil melambat.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Host:</b> tekan Buat Ruang. Kode ruang adalah nomor kontakmu. Kirim undangan ke kontak lewat daftar di lobi; undangan masuk ke live chat dan bisa langsung diklik untuk bergabung.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Tamu:</b> masukkan nomor host lalu Gabung, atau klik undangan di chat. Host menekan Mulai saat semua pemain siap (2–4 pemain).</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Poin:</b> juara 1/2/3/4 mendapat 30/15/8/4 poin (butuh masuk lewat chat). Solo vs bot: juara 1 mendapat 10 poin.</div>
+  <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
+</div></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sb = window.supabase ? window.supabase.createClient('https://zyddldgtefrtwjgymbtk.supabase.co', 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
+const COLORS = ['#ef4444', '#3b82f6', '#eab308', '#a855f7'], LAPS = 3, TAP = .012, FR = 1.1, VMAX = .17;
+
+/* ===== akun ===== */
+let user = null; const guest = 'Tamu' + (10 + Math.floor(Math.random() * 90)), uname = () => user?.display_name || guest;
+const authReady = (async () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null');
+    if (s?.phone_4 && sb) {
+      const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', s.phone_4).maybeSingle();
+      if (!error && data) { if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url }; }
+      else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+    }
+  } catch (e) {}
+  if (user) $('joinCode').inputMode = 'numeric';
+  $('acct').textContent = user ? 'Masuk sebagai ' + user.display_name + ' (#' + user.phone_4 + ')' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk poin & undangan';
+})();
+async function addPoints(n) {
+  if (!user || !sb || !n) return false;
+  try {
+    const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'race').maybeSingle();
+    const { error } = await sb.from('game_scores').upsert({ phone_4: user.phone_4, game: 'race', display_name: user.display_name, avatar_url: user.avatar_url, best_score: (data?.best_score || 0) + n, total_games: (data?.total_games || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: 'phone_4,game' });
+    return !error;
+  } catch (e) { return false; }
+}
+
+/* ===== undangan ke live chat ===== */
+let gch = null;
+async function ensureG() { if (gch) return; gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } }); await new Promise(r => { gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); }); setTimeout(r, 3000); }); }
+async function invite(ph) {
+  if (!sb || !user || !room) return false;
+  const text = `🏁 ${user.display_name} mengundang kamu balapan NexRace! Gabung ruang #${room} · nexgame:race:${room}`, now = new Date().toISOString(), cid = user.phone_4 + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const msg = { id: cid, client_msg_id: cid, sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now };
+  try { await ensureG(); gch.send({ type: 'broadcast', event: 'live_chat_message', payload: { message: msg, sender_profile: { phone_4: user.phone_4, display_name: user.display_name, presence_mode: 'online' } } }); } catch (e) {}
+  const { error } = await sb.from('chat_messages').insert({ sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now });
+  return !error;
+}
+async function sendInvite(ph, btn) { btn.disabled = true; btn.textContent = 'Mengirim…'; const ok = await invite(ph); btn.textContent = ok ? 'Terkirim ✓' : 'Gagal'; btn.disabled = false; }
+function renderInvites() {
+  if (!isHost || !user) { $('inviteBox').classList.add('hidden'); return; }
+  let cs = []; try { cs = JSON.parse(localStorage.getItem('nexchat_contacts_' + user.phone_4) || '[]'); } catch (e) {}
+  $('inviteBox').classList.remove('hidden');
+  $('inviteList').innerHTML = cs.length ? cs.map(c => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(c.display_name)} <span class="text-emerald-400 font-mono text-xs">#${esc(c.phone_4)}</span></span><button class="btn btn-p !py-1.5" onclick="sendInvite('${String(c.phone_4).replace(/\D/g, '')}',this)">Undang</button></div>`).join('') : '<p class="text-xs text-slate-400">Belum ada kontak. Tambahkan kontak lewat chat.</p>';
+}
+
+/* ===== state & navigasi ===== */
+let ch = null, room = '', isHost = false, mode = 'solo', phase = 'menu', roster = [], me = null, racing = false, raceT0 = 0, finalized = false, sendIv = null;
+const myId = Math.random().toString(36).slice(2, 8);
+const scr = id => ['sMenu', 'sLobby', 'sRace'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const send = p => ch && ch.send({ type: 'broadcast', event: 'r', payload: p });
+const meta = (racing) => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, racing: !!racing });
+function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
+function toMenu() { closeRoom(); clearInterval(sendIv); phase = 'menu'; racing = false; roster = []; me = null; $('cd').classList.add('hidden'); $('res').classList.add('hidden'); scr('sMenu'); $('title').textContent = 'NexRace'; $('sub').textContent = ''; }
+function leaveWith(m) { toMenu(); $('mMsg').textContent = m; }
+
+function createRoom() {
+  if (!sb) { $('mMsg').textContent = 'Supabase tidak tersedia.'; return; }
+  let c = user ? user.phone_4 : ''; if (!c) { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; }
+  openRoom(c, true);
+}
+function joinRoomUI(c) {
+  c = (typeof c === 'string' ? c : $('joinCode').value).replace('#', '').trim().toUpperCase();
+  if (c.length !== 4) { $('mMsg').textContent = 'Masukkan nomor host (4 digit).'; return; }
+  if (user && c === user.phone_4) { $('mMsg').textContent = 'Itu nomor Anda sendiri. Tekan Buat Ruang untuk menjadi host.'; return; }
+  openRoom(c, false);
+  setTimeout(() => { if (phase === 'lobby' && !isHost && room === c && !presenceList().some(x => x.host)) leaveWith('Ruang tidak ditemukan atau host belum membuat ruang.'); }, 6000);
+}
+function openRoom(code, host) {
+  closeRoom(); room = code; isHost = host; mode = 'online'; $('mMsg').textContent = '';
+  ch = sb.channel('nexrace_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
+  ch.on('broadcast', { event: 'r' }, ({ payload }) => onNet(payload));
+  ch.on('presence', { event: 'sync' }, onPresence);
+  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track(meta(false)); });
+  phase = 'lobby'; scr('sLobby'); $('title').textContent = 'Ruang NexRace'; $('sub').textContent = host ? 'Anda host' : 'Menunggu host'; renderLobby([]); renderInvites();
+}
+const presenceList = () => { if (!ch) return []; const st = ch.presenceState(); return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] })); };
+function renderLobby(l) {
+  l = l || presenceList();
+  $('lobbyCode').textContent = (user && room === user.phone_4 ? '#' : '') + room;
+  $('lobbyList').innerHTML = l.map((x, i) => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="w-3 h-3 rounded-full" style="background:${COLORS[i] || '#64748b'}"></span><span class="flex-1 truncate">${esc(x.name)}${x.id === myId ? ' (Anda)' : ''}</span>${x.host ? '<span class="text-xs text-amber-300">Host</span>' : ''}</div>`).join('');
+  $('startBtn').classList.toggle('hidden', !isHost); $('startBtn').disabled = l.length < 2; $('waitTxt').classList.toggle('hidden', isHost);
+}
+function onPresence() {
+  const l = presenceList();
+  if (!isHost && phase === 'lobby') { const h = l.find(x => x.host); if (h && h.racing) { leaveWith('Balapan sedang berlangsung. Coba lagi sebentar lagi.'); return; } }
+  if (l.length > 4 && l.findIndex(x => x.id === myId) >= 4) { leaveWith('Ruang penuh (maks 4 pemain).'); return; }
+  if (phase === 'lobby') renderLobby(l);
+  else if (phase === 'race' || phase === 'count' || phase === 'done') { roster.forEach(r => { if (!r.bot && r !== me && !l.some(x => x.id === r.id) && !r.fin) r.gone = true; }); checkAllDone(); }
+}
+function hostStart() {
+  const l = presenceList(); if (!isHost || l.length < 2) return;
+  const ids = l.slice(0, 4).map(x => x.id); ch.track(meta(true)); send({ t: 'start', ids }); beginRace(ids);
+}
+function goLobby() { phase = 'lobby'; roster = []; me = null; clearInterval(sendIv); if (isHost && ch) ch.track(meta(false)); $('res').classList.add('hidden'); $('cd').classList.add('hidden'); scr('sLobby'); renderLobby(); renderInvites(); }
+function onNet(p) {
+  if (p.t === 'start' && !isHost && phase !== 'race' && phase !== 'count') beginRace(p.ids);
+  else if (p.t === 'prog') { const r = roster.find(x => x.id === p.id); if (r && r !== me && !r.fin) { r.p = p.p; r.v = p.v; r.t = performance.now(); } }
+  else if (p.t === 'fin') { const r = roster.find(x => x.id === p.id); if (r && r !== me) { r.fin = true; r.time = p.time; r.p = LAPS; renderResult(); checkAllDone(); } }
+  else if (p.t === 'again' && !isHost) goLobby();
+}
+
+/* ===== balapan ===== */
+const mkR = (id, name, i, bot) => ({ id, name, col: COLORS[i], p: 0, v: 0, disp: 0, t: performance.now(), fin: false, time: 0, bot: !!bot, rate: bot ? [5.5, 7, 6.2][i - 1] || 6 : 0, gone: false });
+function startSolo() { mode = 'solo'; closeRoom(); roster = [mkR(myId, uname(), 0), mkR('bot1', 'Bot Biru', 1, true), mkR('bot2', 'Bot Kuning', 2, true)]; startCommon(); }
+function beginRace(ids) { const pl = presenceList(); roster = ids.map((id, i) => mkR(id, pl.find(x => x.id === id)?.name || 'Pemain', i)); startCommon(); }
+function startCommon() {
+  me = roster.find(r => r.id === myId); finalized = false; racing = false; phase = 'count'; $('res').classList.add('hidden'); scr('sRace'); $('title').textContent = 'NexRace'; $('sub').textContent = mode === 'solo' ? 'Latihan solo' : 'Ruang ' + room;
+  clearInterval(sendIv); if (mode === 'online') sendIv = setInterval(() => { if (phase === 'race' && me && !me.fin) send({ t: 'prog', id: myId, p: me.p, v: me.v }); }, 100);
+  let n = 3; const cd = $('cd'), tx = $('cdTxt'); cd.classList.remove('hidden'); tx.textContent = n;
+  const iv = setInterval(() => { n--; if (n > 0) tx.textContent = n; else { clearInterval(iv); tx.textContent = 'GO!'; racing = true; phase = 'race'; raceT0 = performance.now(); setTimeout(() => cd.classList.add('hidden'), 600); } }, 1000);
+}
+function tap() { if (phase !== 'race' || !racing || !me || me.fin) return; me.v = Math.min(VMAX, me.v + TAP); }
+$('go').addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
+addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter' || e.key.toLowerCase() === 'g') && !e.repeat) { e.preventDefault(); tap(); } if (e.key === 'Escape') $('help').classList.add('hidden'); });
+
+function finishMe() {
+  me.fin = true; me.p = LAPS; me.v = 0; me.time = (performance.now() - raceT0) / 1000;
+  if (mode === 'online') { send({ t: 'fin', id: myId, time: me.time }); setTimeout(() => send({ t: 'fin', id: myId, time: me.time }), 300); }
+  setTimeout(() => { phase = 'done'; showResult(); }, 900); setTimeout(finalize, 6000); checkAllDone();
+}
+const ranking = () => [...roster].sort((a, b) => (a.gone && !b.gone) ? 1 : (b.gone && !a.gone) ? -1 : (a.fin && b.fin) ? a.time - b.time : a.fin ? -1 : b.fin ? 1 : b.disp - a.disp);
+function checkAllDone() { if (me && me.fin && roster.every(r => r.fin || r.gone)) setTimeout(finalize, 1000); }
+function showResult() {
+  const rk = ranking().indexOf(me) + 1; $('resT').textContent = rk === 1 ? '🏆 Juara 1!' : 'Juara ' + rk;
+  $('resBtn').textContent = mode === 'solo' ? 'Main lagi' : isHost ? 'Balapan lagi' : 'Kembali ke lobi'; $('res').classList.remove('hidden'); renderResult();
+}
+function renderResult() {
+  if ($('res').classList.contains('hidden')) return;
+  $('resList').innerHTML = ranking().map((r, i) => `<div class="flex items-center gap-2 p-2 rounded-xl ${r === me ? 'bg-emerald-500/15 border border-emerald-500/40' : 'bg-slate-950 border border-slate-800'}"><span class="w-5 text-center font-bold">${i + 1}</span><span class="w-3 h-3 rounded-full" style="background:${r.col}"></span><span class="flex-1 truncate">${esc(r.name)}</span><span class="text-xs font-mono ${r.fin ? 'text-emerald-300' : 'text-slate-500'}">${r.fin ? r.time.toFixed(2) + ' dtk' : r.gone ? 'Keluar' : 'Balapan…'}</span></div>`).join('');
+}
+async function finalize() {
+  if (finalized || !me) return; finalized = true; renderResult();
+  const rk = ranking().indexOf(me) + 1, humans = roster.filter(r => !r.bot).length; let pts = 0;
+  if (mode === 'online' && humans >= 2) pts = [30, 15, 8, 4][rk - 1] || 0; else if (mode === 'solo' && rk === 1) pts = 10;
+  if (pts && user) { const ok = await addPoints(pts); $('resP').textContent = ok ? '+' + pts + ' poin tersimpan ke akunmu' : ''; } else $('resP').textContent = pts ? '+' + pts + ' poin (masuk lewat chat untuk menyimpan)' : '';
+}
+function resAgain() { if (mode === 'solo') startSolo(); else { if (isHost) send({ t: 'again' }); goLobby(); } }
+
+/* ===== gambar & loop ===== */
+const cv = $('cv'), ctx = cv.getContext('2d'), CX = 200, CY = 200, RX = 148, RY = 138;
+function lanePos(i, p) { const th = Math.PI / 2 + 2 * Math.PI * p, off = (i - 1.5) * 17, rx = RX + off, ry = RY + off; return { x: CX + rx * Math.cos(th), y: CY + ry * Math.sin(th), a: Math.atan2(ry * Math.cos(th), -rx * Math.sin(th)) }; }
+function ell(rx, ry) { ctx.beginPath(); ctx.ellipse(CX, CY, rx, ry, 0, 0, Math.PI * 2); }
+function draw(t) {
+  ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 0, 400, 400);
+  ell(RX - 44, RY - 44); ctx.fillStyle = '#14532d'; ctx.fill();
+  ell(RX, RY); ctx.lineWidth = 84; ctx.strokeStyle = '#334155'; ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(226,232,240,.35)'; ctx.setLineDash([10, 10]); [-17, 0, 17].forEach(o => { ell(RX + o, RY + o); ctx.stroke(); }); ctx.setLineDash([]);
+  for (let k = 0; k < 8; k++) { ctx.fillStyle = k % 2 ? '#fff' : '#0f172a'; ctx.fillRect(CX - 4, CY + RY - 42 + k * 10.5, 8, 10.5); }
+  const order = roster.map((r, i) => i).sort((a, b) => (roster[a] === me) - (roster[b] === me));
+  order.forEach(i => {
+    const r = roster[i], q = lanePos(i, r.disp); ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.a);
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(-11, -4, 24, 13);
+    ctx.fillStyle = r.col; ctx.beginPath(); ctx.roundRect(-12, -7, 24, 14, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(1, -5, 6, 10); ctx.fillStyle = '#0f172a'; ctx.fillRect(-12, -9, 6, 3); ctx.fillRect(-12, 6, 6, 3); ctx.fillRect(6, -9, 6, 3); ctx.fillRect(6, 6, 6, 3);
+    if (r === me) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-12, -7, 24, 14, 4); ctx.stroke(); }
+    ctx.restore();
+  });
+  const rk = me ? ranking().indexOf(me) + 1 : 1, lap = me ? Math.min(LAPS, Math.floor(me.p) + 1) : 1;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0'; ctx.font = '700 34px system-ui,sans-serif'; ctx.fillText('Lap ' + lap + '/' + LAPS, CX, CY - 12);
+  ctx.fillStyle = '#34d399'; ctx.font = '700 22px system-ui,sans-serif'; ctx.fillText('Posisi ' + rk + '/' + roster.length, CX, CY + 20);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '500 16px system-ui,sans-serif';
+  ctx.fillText(me && me.fin ? me.time.toFixed(2) + ' dtk' : racing ? ((t - raceT0) / 1000).toFixed(1) + ' dtk' : 'Siap…', CX, CY + 46);
+}
+let last = 0;
+function frame(t) {
+  requestAnimationFrame(frame); const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+  if (phase !== 'race' && phase !== 'count' && phase !== 'done') return;
+  roster.forEach(r => {
+    if (r === me || r.bot) {
+      if (racing && !r.fin) {
+        if (r.bot && Math.random() < r.rate * (.8 + .4 * Math.sin(t / 900 + r.rate)) * dt) r.v = Math.min(VMAX, r.v + TAP);
+        r.v *= Math.exp(-FR * dt); r.p += r.v * dt;
+        if (r.p >= LAPS) { if (r === me) finishMe(); else { r.p = LAPS; r.fin = true; r.time = (t - raceT0) / 1000; renderResult(); checkAllDone(); } }
+      }
+      r.disp = r.p;
+    } else { const est = r.fin ? LAPS : Math.min(LAPS, r.p + r.v * (t - r.t) / 1000); r.disp += (est - r.disp) * Math.min(1, dt * 12); }
+  });
+  if (me) $('spd').style.width = Math.round(me.v / VMAX * 100) + '%';
+  draw(t);
+}
+requestAnimationFrame(frame);
+
+/* ===== undangan dari chat: ?room=KODE ===== */
+(async () => {
+  const code = new URLSearchParams(location.search).get('room'); if (!code) return;
+  await authReady; history.replaceState(null, '', location.pathname); joinRoomUI(code.toUpperCase());
+})();
+</script>
+</body>
+</html>
