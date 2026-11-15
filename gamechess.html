@@ -60,11 +60,11 @@
   <div id="mOnline" class="hidden space-y-3">
     <button class="btn btn-p w-full" onclick="createRoom()">Buat ruang baru</button>
     <div id="roomBox" class="hidden text-center p-3 rounded-xl bg-slate-900 border border-slate-800">
-      <div class="text-xs text-slate-400">Bagikan kode ini ke teman, lalu tunggu</div>
+      <div class="text-xs text-slate-400">Kode ruangan Anda = nomor kontak Anda. Minta lawan memasukkannya di kolom Gabung.</div>
       <div id="roomCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400 my-1"></div>
       <div class="text-xs text-slate-400">Menunggu lawan bergabung…</div>
     </div>
-    <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="KODE" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
+    <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="Nomor lawan" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
     <div id="onMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
     <button class="btn w-full" onclick="closeRoom();panel('mHome')">Kembali</button>
   </div>
@@ -75,7 +75,7 @@
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Gerakkan bidak:</b> ketuk bidak Anda, titik hijau menunjukkan langkah sah, lalu ketuk tujuan. Lingkaran merah berarti menangkap.</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Kamera:</b> geser jari/mouse untuk memutar, cubit atau scroll untuk zoom. Tombol Putar membalik sudut pandang.</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Aturan:</b> semua aturan catur resmi berlaku (rokade, en passant, skak, skakmat, remis). Pion yang sampai ujung otomatis jadi Ratu.</div>
-  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Online:</b> satu pemain membuat ruang dan membagikan kode, yang lain memasukkan kode. Warna diacak.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Online:</b> Pemain 1 menekan Buat ruang baru (kodenya nomor kontaknya, misal #1111). Pemain 2 memasukkan nomor itu lalu Gabung, dan permainan langsung mulai. Warna diacak.</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Poin:</b> jika masuk lewat chat, menang melawan bot memberi 10/20/30 poin (sesuai level), menang online 30 poin, remis sebagian poin.</div>
   <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
 </div></div></div>
@@ -105,6 +105,7 @@ const uname = () => user?.display_name || guest;
       else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
     }
   } catch (e) {}
+  if (user) $('joinCode').inputMode = 'numeric';
   $('acct').textContent = user ? 'Masuk sebagai ' + user.display_name + ' (#' + user.phone_4 + ') — poin tersimpan' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk menyimpan poin';
 })();
 async function addPoints(n) {
@@ -307,15 +308,17 @@ function openRoom(code, host) {
   ch = sb.channel('nexchess_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
   ch.on('broadcast', { event: 'm' }, ({ payload }) => onNet(payload));
   ch.on('presence', { event: 'sync' }, () => {
-    const n = Object.keys(ch.presenceState()).length;
+    const st = ch.presenceState(), ph = Object.values(st).map(v => v[0]?.phone).filter(Boolean), n = Object.keys(st).length;
+    if (n === 2 && ph.length === 2 && ph[0] === ph[1]) { $('onMsg').textContent = 'Nomor yang sama tidak bisa saling melawan.'; return; }
     if (isHost && n === 2 && !started) { const hc = Math.random() < .5 ? 'w' : 'b'; send({ t: 'start', hc, name: uname() }); begin('online', hc); }
     else if (started && mode === 'online' && n < 2 && !over) $('statusT').textContent = 'Lawan terputus…';
   });
-  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track({ name: uname() }); });
+  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track({ name: uname(), phone: user ? user.phone_4 : null }); });
 }
-function createRoom() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; $('roomCode').textContent = c; $('roomBox').classList.remove('hidden'); $('onMsg').textContent = ''; openRoom(c, true); }
+function createRoom() { let c = user ? user.phone_4 : ''; if (!c) { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; } $('roomCode').textContent = user ? '#' + c : c; $('roomBox').classList.remove('hidden'); $('onMsg').textContent = ''; openRoom(c, true); }
 function joinRoomUI() {
-  const c = $('joinCode').value.trim().toUpperCase(); if (c.length !== 4) { $('onMsg').textContent = 'Masukkan kode 4 karakter.'; return; }
+  const c = $('joinCode').value.replace('#', '').trim().toUpperCase(); if (c.length !== 4) { $('onMsg').textContent = 'Masukkan nomor kontak lawan (4 digit).'; return; }
+  if (user && c === user.phone_4) { $('onMsg').textContent = 'Itu nomor Anda sendiri. Tekan Buat ruang baru untuk menunggu lawan.'; return; }
   $('onMsg').textContent = 'Menghubungkan…'; openRoom(c, false);
   setTimeout(() => { if (!started && room === c && !isHost) $('onMsg').textContent = 'Ruang tidak ditemukan atau host belum online.'; }, 6000);
 }
