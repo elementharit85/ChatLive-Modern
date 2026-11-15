@@ -12,9 +12,9 @@
 </style>
 <style type="text/tailwindcss">
 @layer components{
- .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40}
+ .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40 cursor-pointer}
  .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950 font-bold}
- .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition hover:border-slate-700}
+ .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition hover:border-slate-700 cursor-pointer}
 }
 </style>
 </head>
@@ -22,7 +22,7 @@
 <div id="app" class="h-full max-w-md mx-auto flex flex-col pt-[env(safe-area-inset-top)]">
   <!-- Header & Pojok Indikator Jaringan (ms Bagus / Buruk) -->
   <div class="flex items-center gap-2 p-2.5 shrink-0 border-b border-slate-900">
-    <button class="btn !px-3 !py-2" onclick="toMenu()">☰ Menu</button>
+    <button id="topMenuBtn" class="btn !px-3 !py-2" onclick="handleMenuBtn()">← Game</button>
     <div class="flex-1 min-w-0 text-center">
       <div id="title" class="font-extrabold text-emerald-400 truncate tracking-wide">NexRace</div>
       <div id="sub" class="text-[11px] text-slate-400 truncate"></div>
@@ -87,7 +87,7 @@
     </button>
 
     <div id="mMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
-    <a href="game.html" class="btn block text-center">← Kembali ke Menu Game</a>
+    <button type="button" onclick="goGameHtml()" class="btn w-full block text-center">← Kembali ke Menu Game</button>
   </div>
 
   <!-- Layar Lobi -->
@@ -116,7 +116,7 @@
           <span class="text-xs text-amber-400 font-semibold">POIN</span>
         </div>
       </div>
-      <button class="btn" onclick="toMenu()">← Kembali</button>
+      <button class="btn" onclick="toMenu()">← Menu NexRace</button>
     </div>
     <div class="text-xs text-slate-400 bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5">
       💡 <b>Tips:</b> Kumpulkan poin dari mode <b>Multiplayer</b> (+30/15/8/4 poin) atau <b>Latihan Solo</b> (+10 poin Juara 1) untuk membuka <b>5 Mobil Sport Keren</b> di bawah ini!
@@ -158,7 +158,10 @@
       <button id="resBtn" class="btn btn-p flex-1" onclick="resAgain()">Main Lagi</button>
       <button class="btn flex-1" onclick="openGarage();$('res').classList.add('hidden')">Garasi</button>
     </div>
-    <button class="btn w-full" onclick="toMenu()">Menu Utama</button>
+    <div class="flex gap-2">
+      <button class="btn flex-1" onclick="toMenu()">Menu NexRace</button>
+      <button class="btn flex-1" onclick="goGameHtml()">Menu Game</button>
+    </div>
   </div>
 </div>
 
@@ -178,7 +181,7 @@
         </ul>
       </div>
       <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
-        <b>🏎️ 5 Pilihan Mobil Sport Keren:</b> Tukarkan poin yang terkumpul di menu <b>Garasi &amp; Toko Mobil</b> untuk membeli 5 mobil sport (<i>Crimson Vortex GT, Nightblade R35, Gold Huracán Evo, Cyber Phantom X, Hyperion Valkyrie</i>) dengan bonus akselerasi &amp; top speed hingga +22%!
+        <b>🏎️ 5 Pilihan Mobil Sport Keren:</b> Tukarkan poin yang terkumpul di menu <b>Garasi &amp; Toko Mobil</b> untuk membeli 5 mobil sport (<i>Crimson Vortex GT, Nightblade R35, Huracán Gold Evo, Cyber Phantom X, Hyperion Valkyrie</i>) dengan bonus akselerasi &amp; top speed hingga +22%!
       </div>
       <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
         <b>📶 Indikator Jaringan (ms):</b> Di pojok kanan atas terdapat pantauan latensi server real-time:
@@ -196,6 +199,22 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sb = window.supabase ? window.supabase.createClient('https://zyddldgtefrtwjgymbtk.supabase.co', 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
 const COLORS = ['#ef4444', '#3b82f6', '#eab308', '#a855f7'], LAPS = 3, TAP = .012, FR = 1.1, VMAX = .17;
+
+/* ===== FUNGSI KEMBALI KE GAME.HTML & TOMBOL MENU ===== */
+function goGameHtml() {
+  closeRoom();
+  clearInterval(sendIv);
+  window.location.href = 'game.html';
+}
+
+function handleMenuBtn() {
+  // Jika sudah di layar menu utama NexRace, langsung kembali ke game.html
+  if (phase === 'menu' || !$('sMenu').classList.contains('hidden')) {
+    goGameHtml();
+  } else {
+    toMenu();
+  }
+}
 
 /* ===== DAFTAR MOBIL (1 Mobil Awal + 5 Pilihan Mobil Sport Keren) ===== */
 const CARS = [
@@ -466,17 +485,14 @@ function drawCar(c, car, sc, mk, out) {
   c.save();
   c.scale(sc, sc);
 
-  // Bayangan bawah
   c.fillStyle = 'rgba(0,0,0,.45)';
   c.fillRect(-L / 2 + 1, -W / 2 + 2, L, W);
 
-  // Roda (4 ban balap)
   c.fillStyle = '#090d16';
   [-1, 1].forEach(a => [-1, 1].forEach(b => {
     c.fillRect(a * L * .3 - 3.2, b * W / 2 - 1.6, 6.4, 3.2);
   }));
 
-  // Bodi utama mobil
   c.beginPath();
   if (pt) {
     c.moveTo(-L / 2, -W / 2 + 1);
@@ -497,7 +513,6 @@ function drawCar(c, car, sc, mk, out) {
     c.stroke();
   }
 
-  // Detail Racing Stripes & Aero untuk tiap tipe mobil sport
   if (car.t === 'gt') {
     c.fillStyle = car.acc;
     c.fillRect(-L / 2, -2.2, L * .92, 1.5);
@@ -523,22 +538,18 @@ function drawCar(c, car, sc, mk, out) {
     }
   }
 
-  // Kaca kabin (windshield)
   c.fillStyle = 'rgba(186,230,253,.9)';
   c.fillRect(L * .02, -W / 2 + 2.6, L * .22, W - 5.2);
 
-  // Rear Spoiler / Wing untuk 5 mobil sport
   if (car.t !== 'hatch') {
     c.fillStyle = car.acc;
     c.fillRect(-L / 2 - 2, -W / 2 - 0.5, 3.2, W + 1);
   }
 
-  // Lampu depan LED
   c.fillStyle = '#fef9c3';
   c.fillRect(L / 2 - 1.8, -W * .32, 1.8, 2.2);
   c.fillRect(L / 2 - 1.8, W * .32 - 2.2, 1.8, 2.2);
 
-  // Penanda warna pemain di atap
   c.fillStyle = mk;
   c.beginPath();
   c.arc(-L * .14, 0, 2.6, 0, 7);
@@ -603,7 +614,6 @@ function renderGarage() {
     const g = el.getContext('2d');
     g.fillStyle = '#090d16';
     g.fillRect(0, 0, 120, 62);
-    // Garis aspal preview
     g.fillStyle = '#1e293b';
     g.fillRect(0, 12, 120, 38);
     g.strokeStyle = 'rgba(255,255,255,0.18)';
@@ -694,7 +704,10 @@ function renderInvites() {
 /* ===== STATE & NAVIGASI RUANG ===== */
 let ch = null, room = '', isHost = false, mode = 'solo', phase = 'menu', roster = [], me = null, racing = false, raceT0 = 0, finalized = false, sendIv = null;
 const myId = Math.random().toString(36).slice(2, 8);
-const scr = id => ['sMenu', 'sLobby', 'sGarage', 'sRace'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const scr = id => {
+  ['sMenu', 'sLobby', 'sGarage', 'sRace'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+  $('topMenuBtn').textContent = id === 'sMenu' ? '← Game' : '☰ Menu';
+};
 const send = p => ch && ch.send({ type: 'broadcast', event: 'r', payload: p });
 const meta = racing => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, racing: !!racing, car: GA.car });
 
@@ -984,7 +997,7 @@ function resAgain() {
   }
 }
 
-/* ===== RENDER SIRKUIT & ANIMasi ===== */
+/* ===== RENDER SIRKUIT & ANIMASI ===== */
 const cv = $('cv'), ctx = cv.getContext('2d'), CX = 200, CY = 200, RX = 148, RY = 138;
 function lanePos(i, p) {
   const th = Math.PI / 2 + 2 * Math.PI * p, off = (i - 1.5) * 17, rx = RX + off, ry = RY + off;
@@ -1009,7 +1022,6 @@ function draw(t) {
   [-17, 0, 17].forEach(o => { ell(RX + o, RY + o); ctx.stroke(); });
   ctx.setLineDash([]);
 
-  // Garis Start / Finish
   for (let k = 0; k < 8; k++) {
     ctx.fillStyle = k % 2 ? '#fff' : '#0f172a';
     ctx.fillRect(CX - 4, CY + RY - 42 + k * 10.5, 8, 10.5);
