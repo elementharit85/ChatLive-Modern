@@ -358,6 +358,13 @@
                 </form>
             </div>
 
+            <!-- Create Group -->
+            <div class="px-3 py-2 border-b border-slate-800/60 shrink-0">
+                <button type="button" onclick="openGroupModal()" class="w-full py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer">
+                    <i class="fa-solid fa-users"></i> Buat Grup Baru
+                </button>
+            </div>
+
             <!-- Search Filter in Contact List -->
             <div class="px-3 py-2 border-b border-slate-800/60 shrink-0">
                 <div class="relative">
@@ -398,7 +405,7 @@
                         <i class="fa-regular fa-image text-emerald-400"></i> Kirim Gambar
                     </span>
                     <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-1.5">
-                        <i class="fa-solid fa-phone-volume text-emerald-400"></i> Voice Call (Tanpa Video)
+                        <i class="fa-solid fa-phone-volume text-emerald-400"></i> Voice & Video Call
                     </span>
                 </div>
                 <div class="mt-5 flex items-center gap-2.5">
@@ -445,7 +452,16 @@
                             title="Panggilan Suara (Voice Call)"
                         >
                             <i class="fa-solid fa-phone"></i>
-                            <span>Voice Call</span>
+                            <span class="hidden sm:inline">Voice</span>
+                        </button>
+                        <button
+                            type="button"
+                            onclick="startVideoCall()"
+                            class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500 text-sky-300 hover:text-slate-950 border border-sky-500/30 font-semibold text-xs transition cursor-pointer shadow-sm"
+                            title="Panggilan Video (Video Call)"
+                        >
+                            <i class="fa-solid fa-video"></i>
+                            <span class="hidden sm:inline">Video</span>
                         </button>
                     </div>
                 </header>
@@ -453,6 +469,17 @@
                 <!-- Chat Messages Container -->
                 <div id="messagesContainer" class="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden px-3 py-4 sm:p-4 space-y-3 flex flex-col">
                     <!-- Dynamic Messages Rendered Here -->
+                </div>
+
+                <!-- Reply Banner -->
+                <div id="replyBanner" class="hidden px-3 sm:px-4 py-2 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                    <div class="min-w-0 border-l-4 border-emerald-500 pl-2.5">
+                        <p class="text-[11px] font-semibold text-emerald-400 truncate">Membalas <span id="replyBannerName"></span></p>
+                        <p id="replyBannerText" class="text-xs text-slate-400 truncate"></p>
+                    </div>
+                    <button type="button" onclick="clearReply()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 text-xs shrink-0 cursor-pointer" title="Batalkan balasan">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
 
                 <!-- Selected Image Preview Bar Before Sending -->
@@ -492,6 +519,11 @@
                         class="hidden"
                         onchange="handleSelectChatImage(event)"
                     >
+                    <!-- Camera Button (ambil foto langsung dari kamera) -->
+                    <button type="button" onclick="openCameraModal()" class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/80 cursor-pointer transition shrink-0 flex items-center justify-center" title="Ambil Foto dari Kamera">
+                        <i class="fa-solid fa-camera text-base"></i>
+                    </button>
+                    <input type="file" id="chatCameraFallback" accept="image/*" capture="environment" class="hidden" onchange="handleSelectChatImage(event)">
 
                     <!-- Text Input -->
                     <div class="flex-1 min-w-0 relative">
@@ -525,11 +557,11 @@
         <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center shadow-2xl relative overflow-hidden">
             <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-5">
                 <i class="fa-solid fa-shield-halved"></i>
-                <span>Voice Call Audio Real-time (Tanpa Video)</span>
+                <span id="callModeBadge">Voice Call Audio Real-time</span>
             </div>
 
             <!-- Caller / Callee Avatar -->
-            <div class="relative w-24 h-24 mx-auto mb-4 animate-call-ring">
+            <div id="callAvatarBlock" class="relative w-24 h-24 mx-auto mb-4 animate-call-ring">
                 <img id="callPartnerAvatar" src="" alt="Avatar Call" onerror="handleAvatarError(this)" class="w-24 h-24 rounded-full object-cover border-4 border-emerald-500/50 bg-slate-800 relative z-10">
             </div>
 
@@ -561,6 +593,12 @@
             <!-- Remote Audio Element for WebRTC Stream -->
             <audio id="remoteAudioElement" autoplay playsinline></audio>
 
+            <!-- Video Area (hanya tampil saat Video Call) -->
+            <div id="callVideoBox" class="hidden relative w-full aspect-[3/4] max-h-[48vh] bg-black rounded-2xl overflow-hidden my-3">
+                <video id="remoteVideoElement" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <video id="localVideoElement" autoplay playsinline muted class="absolute bottom-2 right-2 w-24 h-32 object-cover rounded-xl border-2 border-emerald-500 bg-slate-800" style="transform: scaleX(-1)"></video>
+            </div>
+
             <!-- Incoming Call Buttons (Answer / Reject) -->
             <div id="incomingCallActions" class="hidden flex items-center justify-center gap-6 mt-6">
                 <button onclick="rejectIncomingCall()" class="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center text-xl shadow-lg shadow-rose-500/30 transition cursor-pointer" title="Tolak Panggilan">
@@ -573,6 +611,9 @@
 
             <!-- Active / Outgoing Call Buttons (Mute / End Call) -->
             <div id="activeCallActions" class="flex items-center justify-center gap-5 mt-6">
+                <button id="toggleCamBtn" onclick="toggleCamera()" class="hidden w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 items-center justify-center text-base transition cursor-pointer" title="Matikan/Nyalakan Kamera">
+                    <i id="toggleCamIcon" class="fa-solid fa-video"></i>
+                </button>
                 <button id="muteMicBtn" onclick="toggleMuteMic()" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center text-base transition cursor-pointer" title="Bisukan Mikrofon">
                     <i id="muteMicIcon" class="fa-solid fa-microphone"></i>
                 </button>
@@ -586,6 +627,53 @@
     <!-- ==========================================
          MODAL 2: IMAGE LIGHTBOX PREVIEW
     =========================================== -->
+    <!-- MODAL: KAMERA -->
+    <div id="cameraModal" class="hidden fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+        <div class="relative w-full max-w-xl flex-1 min-h-0 flex items-center justify-center bg-black">
+            <video id="cameraVideo" autoplay playsinline muted class="max-h-full max-w-full w-full h-full object-contain"></video>
+            <img id="cameraCapturedImg" alt="Hasil Foto" class="hidden max-h-full max-w-full w-full h-full object-contain">
+            <button type="button" onclick="closeCameraModal()" class="absolute top-3 left-3 w-10 h-10 rounded-full bg-slate-900/80 text-white flex items-center justify-center cursor-pointer" title="Tutup">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="cameraLiveActions" class="w-full max-w-xl py-5 flex items-center justify-center gap-8 bg-black">
+            <button type="button" onclick="switchCamera()" class="w-12 h-12 rounded-full bg-slate-800 text-white flex items-center justify-center cursor-pointer" title="Ganti Kamera">
+                <i class="fa-solid fa-camera-rotate"></i>
+            </button>
+            <button type="button" onclick="captureCameraPhoto()" class="w-16 h-16 rounded-full bg-white border-4 border-emerald-500 cursor-pointer active:scale-95 transition" title="Ambil Foto"></button>
+            <span class="w-12"></span>
+        </div>
+        <div id="cameraReviewActions" class="hidden w-full max-w-xl py-5 flex items-center justify-center gap-4 bg-black">
+            <button type="button" onclick="retakeCameraPhoto()" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-rotate-left"></i> Ulangi Foto
+            </button>
+            <button type="button" onclick="useCameraPhoto()" class="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold flex items-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-check"></i> Gunakan Foto
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: BUAT GRUP -->
+    <div id="groupModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h3 class="font-bold text-base text-white">Buat Grup Baru</h3>
+                    <p class="text-xs text-slate-400">Pilih kontak yang ingin dimasukkan ke grup</p>
+                </div>
+                <button onclick="closeGroupModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="groupNameInput" maxlength="30" placeholder="Nama grup" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition mb-3">
+            <div id="groupMemberList" class="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-800 border border-slate-800 rounded-xl"></div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button type="button" onclick="closeGroupModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 cursor-pointer">Batal</button>
+                <button type="button" onclick="createGroup()" class="px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-users"></i> Buat Grup
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="imageLightboxModal" onclick="closeImageLightbox()" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out">
         <div class="relative max-w-3xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
             <img id="lightboxImage" src="" alt="Preview Gambar Penuh" class="max-h-[78vh] max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl bg-slate-950">
@@ -838,7 +926,7 @@
                             <i class="fa-solid fa-phone-volume"></i> 4. Panggilan Suara (Voice Call WebRTC)
                         </h4>
                         <p class="text-slate-400">
-                            Klik tombol <b>Voice Call</b> di pojok kanan atas ruang chat untuk melakukan panggilan suara jernih secara *real-time* (tanpa video). Pastikan izin mikrofon pada browser Anda telah diaktifkan.
+                            Klik tombol <b>Voice Call</b> di pojok kanan atas ruang chat untuk melakukan panggilan suara jernih secara *real-time*. Tombol <b>Video</b> di sebelahnya untuk panggilan video. Pastikan izin mikrofon pada browser Anda telah diaktifkan.
                         </p>
                     </div>
 
@@ -1642,6 +1730,7 @@
                 }
             }
 
+            await loadGroupsFromDb();
             saveContactsToLocalCache();
             renderContactList();
         }
@@ -1730,6 +1819,8 @@
 
         // Dapatkan status tampilan kontak: 'online' | 'busy' | 'offline'
         function getContactEffectiveStatus(phone4) {
+            const _c0 = contactsMap.get(phone4);
+            if (_c0 && _c0.is_group) return 'group';
             const modeInPresence = presenceModesMap.get(phone4);
             if (modeInPresence === 'hidden') return 'offline';
             if (onlineUsersSet.has(phone4)) {
@@ -1767,13 +1858,13 @@
                 const isSelected = activeContactPhone === contact.phone_4;
                 const safeAvatar = ensureValidAvatarUrl(contact.avatar_url, contact.phone_4);
 
-                const dotColor = status === 'online'
+                const dotColor = status === 'group' ? 'bg-indigo-400' : status === 'online'
                     ? 'bg-emerald-400'
                     : status === 'busy'
                     ? 'bg-amber-400'
                     : 'bg-slate-500';
 
-                const statusText = status === 'online'
+                const statusText = status === 'group' ? `${(contact.members || []).length} anggota` : status === 'online'
                     ? '● Online'
                     : status === 'busy'
                     ? '● Sedang Sibuk'
@@ -1798,7 +1889,7 @@
                             <div class="min-w-0">
                                 <div class="flex items-center gap-1.5">
                                     <h4 class="font-semibold text-sm text-white truncate">${escapeHtml(contact.display_name)}</h4>
-                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[10px] font-bold">#${contact.phone_4}</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 ${contact.is_group ? 'text-indigo-300' : 'text-emerald-400'} font-mono text-[10px] font-bold">${contact.is_group ? 'GRUP' : '#' + contact.phone_4}</span>
                                 </div>
                                 <p class="text-xs ${statusTextColor} truncate mt-0.5">
                                     ${contact.last_msg ? escapeHtml(contact.last_msg) : statusText}
@@ -1819,6 +1910,7 @@
          * 9. ROOM CHAT AKTIF, LOAD & KIRIM PESAN (TEKS & GAMBAR SAJA)
          **************************************************************/
         async function selectContactRoom(phone4) {
+            clearReply();
             activeContactPhone = phone4;
             renderContactList();
 
@@ -1853,11 +1945,15 @@
             const status = getContactEffectiveStatus(activeContactPhone);
             document.getElementById('activeContactAvatar').src = ensureValidAvatarUrl(contact.avatar_url, contact.phone_4);
             document.getElementById('activeContactName').textContent = contact.display_name;
-            document.getElementById('activeContactNumber').textContent = `#${contact.phone_4}`;
+            document.getElementById('activeContactNumber').textContent = contact.is_group ? 'GRUP' : `#${contact.phone_4}`;
 
             const dot = document.getElementById('activeContactDot');
             const statusText = document.getElementById('activeContactStatusText');
-            if (status === 'online') {
+            if (status === 'group') {
+                dot.className = 'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-indigo-400 ring-2 ring-slate-900';
+                statusText.textContent = (contact.members || []).map(p => p === currentUser.phone_4 ? 'Anda' : getSenderName(p)).join(', ');
+                statusText.className = 'text-xs text-indigo-300 truncate';
+            } else if (status === 'online') {
                 dot.className = 'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-900';
                 statusText.textContent = 'Online';
                 statusText.className = 'text-xs text-emerald-400 font-medium truncate';
@@ -1891,7 +1987,7 @@
                 const { data, error } = await supabaseClient
                     .from('chat_messages')
                     .select('*')
-                    .or(`and(sender_phone.eq.${currentUser.phone_4},receiver_phone.eq.${activeContactPhone}),and(sender_phone.eq.${activeContactPhone},receiver_phone.eq.${currentUser.phone_4})`)
+                    .or(getConversationFilter())
                     .order('created_at', { ascending: true })
                     .limit(200);
 
@@ -2031,6 +2127,15 @@
                     }
                 }
 
+                const parsedMsg = parseReplyText(msg.message_text);
+                const isGroupChat = Boolean(contactsMap.get(activeContactPhone)?.is_group);
+                const groupSenderHtml = (isGroupChat && !isMe)
+                    ? `<p class="text-[11px] font-bold text-indigo-300 mb-0.5">${escapeHtml(getSenderName(msg.sender_phone))}</p>` : '';
+                const replyQuoteHtml = parsedMsg.reply
+                    ? `<div class="mb-1.5 px-2.5 py-1.5 rounded-lg border-l-4 ${isMe ? 'bg-black/15 border-slate-900/60' : 'bg-slate-950/70 border-emerald-500'}">
+                           <p class="text-[10px] font-bold ${isMe ? 'text-slate-900' : 'text-emerald-400'} truncate">${escapeHtml(parsedMsg.reply.name)}</p>
+                           <p class="text-[11px] ${isMe ? 'text-slate-900/80' : 'text-slate-400'} truncate">${escapeHtml(parsedMsg.reply.snippet)}</p>
+                       </div>` : '';
                 return `
                     <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} shrink-0">
                         <div class="max-w-[84%] sm:max-w-[72%] rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-md ${
@@ -2038,11 +2143,12 @@
                                 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 rounded-br-sm'
                                 : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-sm'
                         }">
-                            ${photoSectionHtml}
-                            ${msg.message_text ? `
-                                <p class="text-xs sm:text-sm leading-relaxed break-words ${isMe ? 'font-medium text-slate-950' : 'text-slate-100'}">${escapeHtml(msg.message_text)}</p>
+                            ${groupSenderHtml}${replyQuoteHtml}${photoSectionHtml}
+                            ${parsedMsg.text ? `
+                                <p class="text-xs sm:text-sm leading-relaxed break-words ${isMe ? 'font-medium text-slate-950' : 'text-slate-100'}">${escapeHtml(parsedMsg.text)}</p>
                             ` : ''}
                             <div class="flex items-center justify-end gap-1 mt-1">
+                                <button type="button" onclick="startReplyTo(${idx})" class="text-[10px] ${isMe ? 'text-slate-900/70 hover:text-slate-950' : 'text-slate-400 hover:text-emerald-400'} mr-1 cursor-pointer" title="Balas pesan"><i class="fa-solid fa-reply"></i> Balas</button>
                                 <span class="text-[10px] ${isMe ? 'text-slate-900/75 font-medium' : 'text-slate-400'}">${timeStr}</span>
                                 ${isMe ? '<i class="fa-solid fa-check-double text-[10px] text-slate-900/80"></i>' : ''}
                             </div>
@@ -2107,6 +2213,8 @@
 
             inputEl.value = '';
             clearPendingImage();
+            const replyPrefix = buildReplyPrefix();
+            clearReply();
 
             const uniqueClientId = `${currentUser.phone_4}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
             const newMsg = {
@@ -2114,7 +2222,7 @@
                 client_msg_id: uniqueClientId,
                 sender_phone: currentUser.phone_4,
                 receiver_phone: activeContactPhone,
-                message_text: text || null,
+                message_text: (replyPrefix + text) || null,
                 image_data: imgData || null,
                 created_at: new Date().toISOString()
             };
@@ -2127,6 +2235,7 @@
                     event: 'live_chat_message',
                     payload: {
                         message: newMsg,
+                        group: getGroupPayload(activeContactPhone),
                         sender_profile: {
                             phone_4: currentUser.phone_4,
                             display_name: currentUser.display_name,
@@ -2161,7 +2270,8 @@
         function appendIncomingOrOutgoingMessage(msgObj, senderProfile = null) {
             if (!currentUser || !msgObj) return;
 
-            const peerPhone = msgObj.sender_phone === currentUser.phone_4 ? msgObj.receiver_phone : msgObj.sender_phone;
+            const isGroupMsg = String(msgObj.receiver_phone).startsWith('g_');
+            const peerPhone = isGroupMsg ? msgObj.receiver_phone : (msgObj.sender_phone === currentUser.phone_4 ? msgObj.receiver_phone : msgObj.sender_phone);
             const cacheKey = getConversationCacheKey(currentUser.phone_4, peerPhone);
             const existingMsgs = JSON.parse(localStorage.getItem(cacheKey) || '[]');
 
@@ -2182,8 +2292,8 @@
 
             const contact = contactsMap.get(peerPhone);
             if (contact) {
-                contact.last_msg = msgObj.message_text
-                    ? msgObj.message_text
+                contact.last_msg = parseReplyText(msgObj.message_text).text
+                    ? parseReplyText(msgObj.message_text).text
                     : (msgObj.image_data ? '📷 Mengirim Gambar' : '');
                 contactsMap.set(peerPhone, contact);
                 saveContactsToLocalCache();
@@ -2196,7 +2306,7 @@
                 messagesList = existingMsgs;
                 renderMessagesList();
             } else if (msgObj.sender_phone !== currentUser.phone_4) {
-                showToast(`Pesan baru dari #${msgObj.sender_phone}: ${msgObj.message_text || '📷 Gambar'}`, 'info');
+                showToast(`Pesan baru dari #${msgObj.sender_phone}: ${parseReplyText(msgObj.message_text).text || '📷 Gambar'}`, 'info');
             }
 
             renderContactList();
@@ -2308,7 +2418,13 @@
             globalChannel.on('broadcast', { event: 'live_chat_message' }, ({ payload }) => {
                 if (!currentUser || !payload || !payload.message) return;
                 const msg = payload.message;
+                const g = payload.group;
                 if (msg.receiver_phone === currentUser.phone_4) {
+                    appendIncomingOrOutgoingMessage(msg, payload.sender_profile);
+                } else if (g && String(msg.receiver_phone).startsWith('g_') && Array.isArray(g.members)
+                           && g.members.includes(currentUser.phone_4) && msg.sender_phone !== currentUser.phone_4) {
+                    ensureGroupFromPayload(g);
+                    if (payload.sender_profile) rememberSenderName(msg.sender_phone, payload.sender_profile.display_name);
                     appendIncomingOrOutgoingMessage(msg, payload.sender_profile);
                 }
             });
@@ -2328,6 +2444,17 @@
                     saveContactsToLocalCache();
                     renderContactList();
                     showToast(`${u.display_name} (#${u.phone_4}) menambahkan Anda ke kontak!`, 'success');
+                }
+            });
+
+            // D2. REALTIME BROADCAST GROUP CREATED
+            globalChannel.on('broadcast', { event: 'group_created' }, ({ payload }) => {
+                const g = payload && payload.group;
+                if (!currentUser || !g || !Array.isArray(g.members)) return;
+                if (g.members.includes(currentUser.phone_4) && g.created_by !== currentUser.phone_4) {
+                    ensureGroupFromPayload(g);
+                    renderContactList();
+                    showToast(`Anda ditambahkan ke grup "${g.name}"`, 'success');
                 }
             });
 
@@ -2447,22 +2574,21 @@
             });
         }
 
-        async function startVoiceCall() {
+        async function startVoiceCall(withVideo = false) {
             if (!activeContactPhone) return;
             const contact = contactsMap.get(activeContactPhone);
             if (!contact) return;
+            if (contact.is_group) {
+                showToast('Panggilan suara/video belum tersedia untuk grup. Gunakan chat grup, atau telepon anggota satu per satu.', 'info');
+                return;
+            }
+            if (peerConnection) return;
+            isVideoCall = withVideo === true;
 
             try {
-                localAudioStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    },
-                    video: false
-                });
+                localAudioStream = await getCallMedia(isVideoCall);
             } catch (err) {
-                showToast('Izin mikrofon diperlukan untuk melakukan Voice Call!', 'error');
+                showToast(isVideoCall ? 'Izin kamera & mikrofon diperlukan untuk Video Call!' : 'Izin mikrofon diperlukan untuk melakukan Voice Call!', 'error'); isVideoCall = false;
                 return;
             }
 
@@ -2473,21 +2599,22 @@
                 name: contact.display_name,
                 phone: contact.phone_4,
                 avatar: ensureValidAvatarUrl(contact.avatar_url, contact.phone_4),
-                status: 'Memanggil (Voice Call)...',
+                status: isVideoCall ? 'Memanggil (Video Call)...' : 'Memanggil (Voice Call)...',
                 isIncoming: false
             });
 
             startRingtoneSound();
             startMicVisualizer();
+            updateCallVideoUI();
             await createWebRTCPeerConnection();
 
             const offer = await peerConnection.createOffer({
                 offerToReceiveAudio: true,
-                offerToReceiveVideo: false
+                offerToReceiveVideo: isVideoCall
             });
             await peerConnection.setLocalDescription(offer);
 
-            sendVoiceSignal('call_offer', { sdp: offer });
+            sendVoiceSignal('call_offer', { sdp: offer, video: isVideoCall });
         }
 
         async function flushQueuedIceCandidates() {
@@ -2580,6 +2707,15 @@
                     streamToAttach = new MediaStream([event.track]);
                 }
 
+                if (streamToAttach && event.track && event.track.kind === 'video') {
+                    const rv = document.getElementById('remoteVideoElement');
+                    if (rv) {
+                        rv.srcObject = streamToAttach;
+                        rv.muted = true;
+                        rv.play().catch(() => {});
+                    }
+                }
+
                 if (streamToAttach) {
                     remoteAudio.srcObject = streamToAttach;
                     remoteAudio.muted = false;
@@ -2612,13 +2748,14 @@
                 if (peerConnection) return;
                 callPartnerPhone = from;
                 incomingOfferPayload = payload;
+                isVideoCall = !!payload.video;
                 iceCandidateQueue = [];
 
                 openVoiceCallModalUI({
                     name: from_name || `Kontak #${from}`,
                     phone: from,
                     avatar: ensureValidAvatarUrl(from_avatar, from),
-                    status: 'Panggilan Suara Masuk...',
+                    status: payload.video ? 'Panggilan Video Masuk...' : 'Panggilan Suara Masuk...',
                     isIncoming: true
                 });
                 startRingtoneSound();
@@ -2650,14 +2787,7 @@
             stopRingtoneSound();
 
             try {
-                localAudioStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    },
-                    video: false
-                });
+                localAudioStream = await getCallMedia(isVideoCall);
             } catch (err) {
                 showToast('Gagal mengakses mikrofon untuk menerima panggilan!', 'error');
                 rejectIncomingCall();
@@ -2668,6 +2798,7 @@
             document.getElementById('activeCallActions').classList.remove('hidden');
 
             startMicVisualizer();
+            updateCallVideoUI();
             await createWebRTCPeerConnection();
             await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferPayload.sdp));
             await flushQueuedIceCandidates();
@@ -2687,7 +2818,8 @@
 
         function onVoiceCallConnected() {
             stopRingtoneSound();
-            document.getElementById('callStatusLabel').textContent = 'Terhubung — Suara Jernih';
+            document.getElementById('callStatusLabel').textContent = isVideoCall ? 'Terhubung — Video Call' : 'Terhubung — Suara Jernih';
+            updateCallVideoUI();
             document.getElementById('callTimerLabel').classList.remove('hidden');
             document.getElementById('callWaveIndicator').classList.remove('hidden');
             document.getElementById('incomingCallActions').classList.add('hidden');
@@ -2757,6 +2889,7 @@
             callPartnerPhone = null;
             incomingOfferPayload = null;
             iceCandidateQueue = [];
+            resetCallVideoUI();
             isMicMuted = false;
 
             document.getElementById('voiceCallModal').classList.add('hidden');
@@ -2767,6 +2900,7 @@
 
         function openVoiceCallModalUI({ name, phone, avatar, status, isIncoming }) {
             document.getElementById('callPartnerName').textContent = name;
+            document.getElementById('callModeBadge').textContent = isVideoCall ? 'Video Call Real-time' : 'Voice Call Audio Real-time';
             document.getElementById('callPartnerNumber').textContent = `#${phone}`;
             document.getElementById('callPartnerAvatar').src = ensureValidAvatarUrl(avatar, phone);
             document.getElementById('callStatusLabel').textContent = status;
@@ -3085,6 +3219,314 @@
         /**************************************************************
          * 14. UTILITAS HELPER & TOAST NOTIFICATION
          **************************************************************/
+        
+        /**************************************************************
+         * 15. FITUR BARU: BALAS PESAN, KAMERA, GRUP, VIDEO CALL
+         **************************************************************/
+
+        // ---------- Nama pengirim (untuk grup) ----------
+        let senderNamesCache = {};
+        try { senderNamesCache = JSON.parse(localStorage.getItem('nexchat_sender_names') || '{}'); } catch (e) {}
+        function rememberSenderName(phone, name) {
+            if (!phone || !name) return;
+            senderNamesCache[phone] = name;
+            try { localStorage.setItem('nexchat_sender_names', JSON.stringify(senderNamesCache)); } catch (e) {}
+        }
+        function getSenderName(phone) {
+            if (currentUser && phone === currentUser.phone_4) return currentUser.display_name;
+            const c = contactsMap.get(phone);
+            if (c && c.display_name) return c.display_name;
+            return senderNamesCache[phone] || `#${phone}`;
+        }
+
+        // ---------- Balas pesan ----------
+        // Balasan disisipkan di awal teks pesan sebagai penanda ⟦r:nama|cuplikan⟧ sehingga
+        // tidak perlu mengubah struktur tabel Supabase.
+        let replyTarget = null;
+
+        function parseReplyText(t) {
+            if (!t) return { reply: null, text: '' };
+            const m = /^⟦r:([^|⟧]*)\|([^⟧]*)⟧\n?/.exec(t);
+            if (!m) return { reply: null, text: t };
+            let name = '', snippet = '';
+            try { name = decodeURIComponent(m[1]); snippet = decodeURIComponent(m[2]); } catch (e) {}
+            return { reply: { name, snippet }, text: t.slice(m[0].length) };
+        }
+
+        function startReplyTo(idx) {
+            const msg = messagesList[idx];
+            if (!msg || !currentUser) return;
+            const p = parseReplyText(msg.message_text);
+            const name = msg.sender_phone === currentUser.phone_4 ? 'Anda' : getSenderName(msg.sender_phone);
+            const snippet = p.text ? p.text.slice(0, 60) : (msg.image_data ? '📷 Foto' : '');
+            replyTarget = { name, snippet };
+            document.getElementById('replyBannerName').textContent = name;
+            document.getElementById('replyBannerText').textContent = snippet;
+            document.getElementById('replyBanner').classList.remove('hidden');
+            const input = document.getElementById('chatMessageInput');
+            if (input) input.focus();
+        }
+
+        function clearReply() {
+            replyTarget = null;
+            const b = document.getElementById('replyBanner');
+            if (b) b.classList.add('hidden');
+        }
+
+        function buildReplyPrefix() {
+            if (!replyTarget) return '';
+            return `⟦r:${encodeURIComponent(replyTarget.name)}|${encodeURIComponent(replyTarget.snippet)}⟧\n`;
+        }
+
+        // ---------- Kamera langsung ----------
+        let camStream = null;
+        let camFacing = 'environment';
+        let camCaptured = null;
+
+        function setCameraState(state) {
+            const live = state === 'live';
+            document.getElementById('cameraVideo').classList.toggle('hidden', !live);
+            document.getElementById('cameraCapturedImg').classList.toggle('hidden', live);
+            document.getElementById('cameraLiveActions').classList.toggle('hidden', !live);
+            document.getElementById('cameraReviewActions').classList.toggle('hidden', live);
+        }
+
+        async function openCameraModal() {
+            if (!activeContactPhone) { showToast('Pilih kontak atau grup terlebih dahulu.', 'error'); return; }
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                document.getElementById('chatCameraFallback').click();
+                return;
+            }
+            camCaptured = null;
+            document.getElementById('cameraModal').classList.remove('hidden');
+            setCameraState('live');
+            await startCameraStream();
+        }
+
+        async function startCameraStream() {
+            stopCameraStream();
+            try {
+                camStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: camFacing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
+                const v = document.getElementById('cameraVideo');
+                v.srcObject = camStream;
+                v.play().catch(() => {});
+            } catch (err) {
+                showToast('Izin kamera diperlukan untuk mengambil foto langsung.', 'error');
+                closeCameraModal();
+            }
+        }
+
+        function stopCameraStream() {
+            if (camStream) {
+                camStream.getTracks().forEach(t => t.stop());
+                camStream = null;
+            }
+        }
+
+        function switchCamera() {
+            camFacing = camFacing === 'environment' ? 'user' : 'environment';
+            startCameraStream();
+        }
+
+        function captureCameraPhoto() {
+            const v = document.getElementById('cameraVideo');
+            if (!v || !v.videoWidth) { showToast('Kamera belum siap, coba lagi.', 'info'); return; }
+            const maxW = 800;
+            let w = v.videoWidth, h = v.videoHeight;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(v, 0, 0, w, h);
+            camCaptured = canvas.toDataURL('image/jpeg', 0.72);
+            document.getElementById('cameraCapturedImg').src = camCaptured;
+            setCameraState('review');
+        }
+
+        function retakeCameraPhoto() {
+            camCaptured = null;
+            setCameraState('live');
+            const v = document.getElementById('cameraVideo');
+            if (!camStream) startCameraStream(); else v.play().catch(() => {});
+        }
+
+        function useCameraPhoto() {
+            if (!camCaptured) return;
+            pendingImageBase64 = camCaptured;
+            document.getElementById('pendingImageThumb').src = camCaptured;
+            document.getElementById('pendingImageInfo').textContent = `Ukuran ~${estimateBase64SizeKB(camCaptured)} KB • Foto kamera • Otomatis dihapus 3 hari`;
+            document.getElementById('pendingImageBanner').classList.remove('hidden');
+            closeCameraModal();
+            const input = document.getElementById('chatMessageInput');
+            if (input) input.focus();
+        }
+
+        function closeCameraModal() {
+            stopCameraStream();
+            const v = document.getElementById('cameraVideo');
+            if (v) v.srcObject = null;
+            document.getElementById('cameraModal').classList.add('hidden');
+        }
+
+        // ---------- Grup ----------
+        function getConversationFilter() {
+            if (activeContactPhone && String(activeContactPhone).startsWith('g_')) {
+                return `receiver_phone.eq.${activeContactPhone}`;
+            }
+            return `and(sender_phone.eq.${currentUser.phone_4},receiver_phone.eq.${activeContactPhone}),and(sender_phone.eq.${activeContactPhone},receiver_phone.eq.${currentUser.phone_4})`;
+        }
+
+        function groupContactObj(g) {
+            const initials = String(g.name || 'GR').replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'GR';
+            return {
+                phone_4: g.id,
+                is_group: true,
+                display_name: g.name,
+                avatar_url: g.avatar_url || createLocalInitialsAvatar(initials, '#6366f1', '#4338ca'),
+                members: Array.isArray(g.members) ? g.members : [],
+                created_by: g.created_by || null,
+                is_online: false,
+                last_seen: new Date().toISOString()
+            };
+        }
+
+        function getGroupPayload(id) {
+            const c = contactsMap.get(id);
+            if (!c || !c.is_group) return null;
+            return { id: c.phone_4, name: c.display_name, avatar_url: c.avatar_url, members: c.members, created_by: c.created_by };
+        }
+
+        function ensureGroupFromPayload(g) {
+            if (!g || !g.id) return;
+            const prev = contactsMap.get(g.id) || {};
+            contactsMap.set(g.id, { ...prev, ...groupContactObj(g), last_msg: prev.last_msg });
+            saveContactsToLocalCache();
+        }
+
+        async function loadGroupsFromDb() {
+            if (!dbTablesReady || !currentUser) return;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('chat_groups')
+                    .select('*')
+                    .contains('members', [currentUser.phone_4]);
+                if (!error && data) data.forEach(ensureGroupFromPayload);
+            } catch (e) {}
+        }
+
+        function openGroupModal() {
+            const people = Array.from(contactsMap.values()).filter(c => !c.is_group);
+            const list = document.getElementById('groupMemberList');
+            document.getElementById('groupNameInput').value = '';
+            list.innerHTML = people.length === 0
+                ? '<p class="p-5 text-center text-xs text-slate-400">Belum ada kontak. Invite kontak via nomor 4-digit dulu.</p>'
+                : people.map(c => `
+                    <label class="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-800/60">
+                        <input type="checkbox" value="${c.phone_4}" class="group-member-check w-4 h-4 accent-indigo-500">
+                        <img src="${ensureValidAvatarUrl(c.avatar_url, c.phone_4)}" onerror="handleAvatarError(this, '${c.phone_4}')" class="w-9 h-9 rounded-xl object-cover bg-slate-800 border border-slate-700">
+                        <span class="text-sm text-white truncate flex-1">${escapeHtml(c.display_name)}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[10px] font-bold">#${c.phone_4}</span>
+                    </label>`).join('');
+            document.getElementById('groupModal').classList.remove('hidden');
+        }
+
+        function closeGroupModal() {
+            document.getElementById('groupModal').classList.add('hidden');
+        }
+
+        async function createGroup() {
+            if (!currentUser) return;
+            const name = document.getElementById('groupNameInput').value.trim();
+            const picked = Array.from(document.querySelectorAll('.group-member-check:checked')).map(el => el.value);
+            if (!name) { showToast('Nama grup tidak boleh kosong!', 'error'); return; }
+            if (picked.length < 1) { showToast('Pilih minimal 1 anggota untuk grup.', 'error'); return; }
+
+            const group = {
+                id: 'g_' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3),
+                name,
+                members: [currentUser.phone_4, ...picked],
+                created_by: currentUser.phone_4
+            };
+            ensureGroupFromPayload(group);
+            const stored = contactsMap.get(group.id);
+            group.avatar_url = stored.avatar_url;
+
+            if (dbTablesReady) {
+                try {
+                    await supabaseClient.from('chat_groups').upsert({
+                        id: group.id, name: group.name, avatar_url: group.avatar_url,
+                        members: group.members, created_by: group.created_by
+                    }, { onConflict: 'id' });
+                } catch (e) {}
+            }
+            if (globalChannel) {
+                globalChannel.send({ type: 'broadcast', event: 'group_created', payload: { group } });
+            }
+
+            closeGroupModal();
+            renderContactList();
+            showToast(`Grup "${name}" berhasil dibuat!`, 'success');
+            selectContactRoom(group.id);
+        }
+
+        // ---------- Video call ----------
+        let isVideoCall = false;
+        let camOff = false;
+
+        function getCallMedia(withVideo) {
+            return navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                video: withVideo ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false
+            });
+        }
+
+        function startVideoCall() {
+            startVoiceCall(true);
+        }
+
+        function updateCallVideoUI() {
+            const show = isVideoCall && !!localAudioStream;
+            const box = document.getElementById('callVideoBox');
+            const camBtn = document.getElementById('toggleCamBtn');
+            const avatar = document.getElementById('callAvatarBlock');
+            if (!box) return;
+            box.classList.toggle('hidden', !show);
+            camBtn.classList.toggle('hidden', !show);
+            camBtn.classList.toggle('flex', show);
+            avatar.classList.toggle('hidden', show);
+            if (show) {
+                const lv = document.getElementById('localVideoElement');
+                if (lv.srcObject !== localAudioStream) lv.srcObject = localAudioStream;
+                lv.play().catch(() => {});
+            }
+        }
+
+        function resetCallVideoUI() {
+            isVideoCall = false;
+            camOff = false;
+            ['remoteVideoElement', 'localVideoElement'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.srcObject = null;
+            });
+            const box = document.getElementById('callVideoBox');
+            const camBtn = document.getElementById('toggleCamBtn');
+            const avatar = document.getElementById('callAvatarBlock');
+            const icon = document.getElementById('toggleCamIcon');
+            if (box) box.classList.add('hidden');
+            if (camBtn) { camBtn.classList.add('hidden'); camBtn.classList.remove('flex'); }
+            if (avatar) avatar.classList.remove('hidden');
+            if (icon) icon.className = 'fa-solid fa-video';
+        }
+
+        function toggleCamera() {
+            if (!localAudioStream) return;
+            camOff = !camOff;
+            localAudioStream.getVideoTracks().forEach(t => { t.enabled = !camOff; });
+            document.getElementById('toggleCamIcon').className = camOff ? 'fa-solid fa-video-slash' : 'fa-solid fa-video';
+        }
+
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
