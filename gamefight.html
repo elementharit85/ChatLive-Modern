@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>NexFight — Stickman Fight</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{background:#0b1120;color:#e2e8f0;font-family:system-ui,sans-serif;height:100dvh;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.hidden{display:none!important}
+#top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px}#top b{font-size:17px}#top span{font-size:12px;color:#34d399}
+.btn{padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;text-align:center}
+.btn:active{transform:scale(.95)}.btn:disabled{opacity:.4}.p{background:#10b981;border-color:#34d399;color:#052e22}.w{width:100%}
+.scr{flex:1;overflow-y:auto;padding:8px 16px 24px;max-width:560px;margin:0 auto;width:100%}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 8px;font-size:18px}p{margin:4px 0;color:#94a3b8;font-size:13px;line-height:1.5}
+.seg{display:flex;gap:6px;margin:8px 0}.seg button{flex:1;padding:8px;border-radius:10px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;font-weight:700;cursor:pointer}.seg .on{background:#10b981;color:#052e22}
+input{width:100%;padding:11px;border-radius:12px;background:#0b1120;border:1px solid #334155;color:#e2e8f0;font-size:16px;margin:6px 0}
+.row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:#0b1120;border:1px solid #1e293b;margin-bottom:8px}.row.on{border-color:#10b981}.row .em{font-size:26px}.row div{flex:1;min-width:0}.row small{color:#94a3b8;display:block;font-size:12px}
+#sGame{flex:1;min-height:0;display:flex;flex-direction:column}#cbox{flex:1;min-height:0;position:relative}#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#ctl{display:flex;justify-content:space-between;align-items:center;padding:8px 12px calc(10px + env(safe-area-inset-bottom));gap:8px;touch-action:none}
+#ctl .g{display:flex;gap:8px}.k{width:58px;height:58px;border-radius:16px;background:#1e293b;border:2px solid #334155;color:#e2e8f0;font-size:22px;font-weight:700;touch-action:none}.k:active,.k.d{background:#334155}
+.sk{width:64px;height:64px;border-radius:50%;border:2px solid #34d399;color:#fff;font-size:11px;font-weight:700;line-height:1.15;background:linear-gradient(to top,#059669 var(--p,100%),#1e293b var(--p,100%));touch-action:none}
+#res{position:absolute;inset:0;z-index:30;background:rgba(2,6,23,.88);display:flex;align-items:center;justify-content:center;padding:20px}
+#res>div{background:#0f172a;border:1px solid #334155;border-radius:20px;padding:22px;text-align:center;max-width:320px;width:100%}#res h2{font-size:28px}
+#msg{font-size:12px;color:#fbbf24;min-height:16px;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="top"><button class="btn" onclick="toMenu()">☰ Menu</button><b id="title">NexFight</b><span id="coinTop"></span></div>
+
+ <div id="sMenu" class="scr">
+  <p id="acct"></p>
+  <div class="card"><h2>🤖 Lawan Bot</h2><p>Menang dapat koin kecil (3 / 5 / 8). Kalah dapat 1 koin.</p>
+   <div class="seg" id="lvSeg"><button onclick="pick(0,this)">Mudah</button><button class="on" onclick="pick(1,this)">Sedang</button><button onclick="pick(2,this)">Sulit</button></div>
+   <button class="btn p w" onclick="startBot()">Mulai lawan bot</button></div>
+  <div class="card"><h2>🌐 Lawan Teman (Online)</h2><p>Menang dapat 50 koin, kalah tetap dapat 10 koin. Hanya untuk akun yang masuk lewat chat.</p>
+   <button class="btn p w" onclick="createRoom()">Buat ruang &amp; undang kontak</button>
+   <input id="joinCode" placeholder="Nomor host 4 digit" maxlength="4" inputmode="numeric"><button class="btn w" onclick="joinRoomUI()">Gabung ruang</button></div>
+  <button class="btn w" onclick="openShop()" style="margin-bottom:10px">🛒 Toko perlengkapan</button>
+  <a class="btn w" href="game.html">Kembali ke pilihan game</a><div id="msg"></div>
+  <p style="margin-top:12px">Kontrol: ◀ ▶ gerak, ▲ lompat · Jurus 1 Pukul (J), Jurus 2 Tendang (K), Jurus 3 Ledakan Chi (L). Keyboard: A/D/W atau panah.</p>
+ </div>
+
+ <div id="sLobby" class="scr hidden">
+  <div class="card"><h2>Ruang <span id="lobbyCode"></span></h2><div id="lobbyList"></div><p id="waitTxt">Menunggu host memulai…</p>
+   <button id="startBtn" class="btn p w" onclick="hostStart()">Mulai pertandingan</button></div>
+  <div id="inviteBox" class="card hidden"><h2>Undang kontak</h2><div id="inviteList"></div></div>
+ </div>
+
+ <div id="sShop" class="scr hidden"><div class="card"><h2>Toko · <span id="gBal">0</span> coin</h2><p id="gMsg"></p><div id="shopList"></div></div></div>
+
+ <div id="sGame" class="hidden">
+  <div id="cbox"><canvas id="cv" width="1600" height="800"></canvas>
+   <div id="res" class="hidden"><div><h2 id="rTitle"></h2><p id="rSub"></p><p id="rCoin" style="color:#fbbf24;font-weight:700;font-size:16px"></p><button class="btn p w" onclick="again()" style="margin:10px 0 8px">Main lagi</button><button class="btn w" onclick="toMenu()">Menu</button></div></div></div>
+  <div id="ctl"><div class="g"><button class="k" data-d="l">◀</button><button class="k" data-d="r">▶</button><button class="k" data-d="u">▲</button></div>
+   <div class="g"><button class="sk" data-k="0">Jurus 1<br>Pukul</button><button class="sk" data-k="1">Jurus 2<br>Tendang</button><button class="sk" data-k="2">Jurus 3<br>Chi</button></div></div>
+ </div>
+</div>
+
+<script>
+const sb = window.supabase ? window.supabase.createClient('https://zyddldgtefrtwjgymbtk.supabase.co', 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
+const $ = id => document.getElementById(id), esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* ===== item toko ===== */
+const SL = { h: 'Kepala', b: 'Badan', w: 'Senjata' };
+const IT = [
+ { s: 'h', n: 'Ikat Kepala', p: 40, hp: 10, c: '#ef4444', e: '🥋' }, { s: 'h', n: 'Helm Baja', p: 120, hp: 25, c: '#94a3b8', e: '⛑️' }, { s: 'h', n: 'Mahkota', p: 300, hp: 40, c: '#facc15', e: '👑' },
+ { s: 'b', n: 'Syal Merah', p: 40, sp: .06, c: '#dc2626', e: '🧣' }, { s: 'b', n: 'Rompi Kulit', p: 120, hp: 25, c: '#a16207', e: '🦺' }, { s: 'b', n: 'Armor Emas', p: 320, hp: 50, sp: .04, c: '#eab308', e: '🛡️' },
+ { s: 'w', n: 'Tongkat', p: 60, d: .08, c: '#92400e', e: '🪵' }, { s: 'w', n: 'Pedang Baja', p: 160, d: .18, c: '#e2e8f0', e: '🗡️' }, { s: 'w', n: 'Pedang Api', p: 350, d: .32, c: '#fb923c', e: '🔥' }];
+const stats = eq => { let hp = 100, dm = 1, sp = 1; eq.forEach(i => { const t = IT[i]; if (t) { hp += t.hp || 0; dm += t.d || 0; sp += t.sp || 0; } }); return { hp, dm, sp }; };
+const itTxt = t => [t.hp && '+' + t.hp + ' HP', t.d && '+' + Math.round(t.d * 100) + '% damage', t.sp && '+' + Math.round(t.sp * 100) + '% kecepatan'].filter(Boolean).join(' · ');
+
+/* ===== akun & coin (game_scores, game = fight) ===== */
+let user = null, GA = { earned: 0, spent: 0, own: [], eq: [-1, -1, -1] }, noData = false; const bal = () => GA.earned - GA.spent;
+const guest = 'Tamu' + (10 + Math.floor(Math.random() * 90)), uname = () => user?.display_name || guest, eqArr = () => GA.eq.slice();
+function updateAcct() { $('acct').textContent = user ? 'Masuk: ' + user.display_name + ' (#' + user.phone_4 + ')' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk koin, toko & online.'; $('coinTop').textContent = user ? bal() + ' coin' : ''; }
+async function loadGarage() {
+ if (!user) return; try { const l = JSON.parse(localStorage.getItem('nexfight_g_' + user.phone_4) || 'null'); if (l && Array.isArray(l.own)) GA = { ...GA, ...l, earned: GA.earned }; } catch (e) {}
+ if (sb) { try { const q = c => sb.from('game_scores').select(c).eq('phone_4', user.phone_4).eq('game', 'fight').maybeSingle(); let r = await q('best_score,data'); if (r.error) { noData = true; r = await q('best_score'); } else noData = false;
+  if (!r.error) { GA.earned = r.data?.best_score || 0; const d = r.data?.data; if (d && Array.isArray(d.own)) GA = { ...GA, ...d, earned: GA.earned }; } } catch (e) {} }
+ updateAcct();
+}
+async function saveGarage() { const d = { spent: GA.spent, own: GA.own, eq: GA.eq }; try { localStorage.setItem('nexfight_g_' + user.phone_4, JSON.stringify(d)); } catch (e) {} if (!sb || noData) return false; const { error } = await sb.from('game_scores').update({ data: d }).eq('phone_4', user.phone_4).eq('game', 'fight'); return !error; }
+async function addCoins(n) {
+ if (!user || !sb || !n) return; try { const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'fight').maybeSingle();
+  const { error } = await sb.from('game_scores').upsert({ phone_4: user.phone_4, game: 'fight', display_name: user.display_name, avatar_url: user.avatar_url, best_score: (GA.earned = (data?.best_score || 0) + n), total_games: (data?.total_games || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: 'phone_4,game' }); if (error) GA.earned += 0; } catch (e) {}
+ updateAcct();
+}
+const authReady = (async () => { try { const s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null');
+ if (s?.phone_4 && sb) { const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', s.phone_4).maybeSingle();
+  if (!error && data) { if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url }; } else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url }; } } catch (e) {}
+ if (user) await loadGarage(); updateAcct(); })();
+
+/* ===== toko ===== */
+function openShop() { phase = 'shop'; scr('sShop'); $('title').textContent = 'Toko'; $('gMsg').textContent = user ? '' : 'Masuk lewat chat untuk membeli perlengkapan.'; renderShop(); if (user) loadGarage().then(renderShop); }
+function renderShop() {
+ $('gBal').textContent = user ? bal() : '—'; let h = ''; ['h', 'b', 'w'].forEach((s, si) => { h += '<p style="margin-top:10px;font-weight:700;color:#e2e8f0">' + SL[s] + '</p>';
+  IT.forEach((t, i) => { if (t.s !== s) return; const own = GA.own.includes(i), on = GA.eq[si] === i;
+   const b = !user ? '' : own ? (on ? `<button class="btn" onclick="equip(${si},-1)">Lepas</button>` : `<button class="btn p" onclick="equip(${si},${i})">Pakai</button>`) : `<button class="btn ${bal() >= t.p ? 'p' : ''}" onclick="buy(${i})">${t.p} coin</button>`;
+   h += `<div class="row ${on ? 'on' : ''}"><span class="em">${t.e}</span><div><b>${t.n}</b><small>${itTxt(t)}</small></div>${b}</div>`; }); });
+ $('shopList').innerHTML = h;
+}
+async function buy(i) { if (!user) return; await loadGarage(); const t = IT[i]; if (GA.own.includes(i)) return; if (bal() < t.p) { $('gMsg').textContent = 'Koin belum cukup. Menang lawan teman untuk koin lebih banyak!'; return; }
+ GA.spent += t.p; GA.own.push(i); GA.eq[['h', 'b', 'w'].indexOf(t.s)] = i; const ok = await saveGarage(); updateAcct(); $('gMsg').textContent = t.n + ' dibeli dan dipakai!' + (ok ? '' : ' (tersimpan di perangkat ini)'); renderShop(); }
+async function equip(si, i) { GA.eq[si] = i; await saveGarage(); renderShop(); }
+
+/* ===== navigasi, room online ===== */
+let phase = 'menu', mode = 'bot', level = 1, me = 0, ch = null, room = '', isHost = false, oppName = 'Lawan', started = false, over = false, botNote = '';
+const myId = Math.random().toString(36).slice(2, 8), scr = id => ['sMenu', 'sLobby', 'sShop', 'sGame'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const send = p => ch && ch.send({ type: 'broadcast', event: 'b', payload: p });
+function pick(v, el) { level = v; [...el.parentNode.children].forEach(b => b.classList.remove('on')); el.classList.add('on'); }
+function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
+function toMenu() { closeRoom(); phase = 'menu'; started = false; $('res').classList.add('hidden'); scr('sMenu'); $('title').textContent = 'NexFight'; updateAcct(); }
+function leaveWith(m) { toMenu(); $('msg').textContent = m; }
+const meta = pl => ({ name: uname(), host: isHost, playing: !!pl, eq: eqArr() });
+const presenceList = () => { if (!ch) return []; const st = ch.presenceState(); return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] })); };
+function createRoom() { if (!sb || !user) { $('msg').textContent = 'Main online butuh masuk lewat chat.'; return; } openRoom(user.phone_4, true); }
+function joinRoomUI(c) { if (!sb || !user) { $('msg').textContent = 'Main online butuh masuk lewat chat.'; return; } c = (typeof c === 'string' ? c : $('joinCode').value).replace('#', '').trim();
+ if (c.length !== 4) { $('msg').textContent = 'Masukkan nomor host (4 digit).'; return; } if (c === user.phone_4) { $('msg').textContent = 'Itu nomor Anda sendiri.'; return; }
+ openRoom(c, false); setTimeout(() => { if (phase === 'lobby' && !isHost && room === c && !presenceList().some(x => x.host)) leaveWith('Ruang tidak ditemukan atau host belum membuat ruang.'); }, 6000); }
+function openRoom(code, host) {
+ closeRoom(); room = code; isHost = host; mode = 'online'; me = host ? 0 : 1; $('msg').textContent = '';
+ ch = sb.channel('nexfight_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
+ ch.on('broadcast', { event: 'b' }, ({ payload }) => onNet(payload)); ch.on('presence', { event: 'sync' }, onPresence); ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track(meta(false)); });
+ phase = 'lobby'; scr('sLobby'); $('title').textContent = 'Ruang Fight'; renderLobby([]); renderInvites();
+}
+function renderLobby(l) { l = l || presenceList(); $('lobbyCode').textContent = '#' + room;
+ $('lobbyList').innerHTML = l.map(x => `<div class="row"><div>${esc(x.name)}${x.id === myId ? ' (Anda)' : ''}</div>${x.host ? '<small style="flex:none;color:#fbbf24">Host</small>' : ''}</div>`).join('');
+ $('startBtn').classList.toggle('hidden', !isHost); $('startBtn').disabled = l.length < 2; $('waitTxt').classList.toggle('hidden', isHost); }
+function onPresence() { const l = presenceList(), h = l.find(x => x.host);
+ if (!isHost && phase === 'lobby' && h && h.playing) { leaveWith('Pertandingan sedang berlangsung.'); return; }
+ if (l.length > 2 && l.findIndex(x => x.id === myId) >= 2) { leaveWith('Ruang penuh (2 pemain).'); return; }
+ const o = l.find(x => x.id !== myId); if (o) oppName = o.name || 'Lawan';
+ if (phase === 'lobby') renderLobby(l); else if (phase === 'game' && l.length < 2 && !over) end(me, true); }
+function hostStart() { if (!isHost || presenceList().length < 2) return; ch.track(meta(true)); send({ t: 'start' }); newMatch(); }
+function goLobby() { phase = 'lobby'; started = false; if (isHost && ch) ch.track(meta(false)); $('res').classList.add('hidden'); scr('sLobby'); renderLobby(); renderInvites(); }
+function again() { if (mode === 'bot') newMatch(); else goLobby(); }
+function onNet(p) {
+ if (p.t === 'start' && phase === 'lobby' && !isHost) return newMatch(); if (!started) return; const o = P[1 - me];
+ if (p.t === 's') { o.tx = p.x; o.ty = p.y; o.mhp = p.m; if (p.h < o.hp) o.hurt = .2; o.hp = p.h; }
+ else if (p.t === 'a') { o.x = o.tx = p.x; o.y = o.ty = p.y; o.pd = p.d; o.at = p.k; o.att = 0; o.fx = 0; }
+ else if (p.t === 'ko' && !over) end(me);
+}
+async function ensureG() { if (gch) return; gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } }); await new Promise(r => { gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); }); setTimeout(r, 3000); }); }
+let gch = null;
+async function invite(ph) { if (!sb || !user || !room) return false;
+ const text = `🥊 ${user.display_name} mengajak duel NexFight! Gabung ruang #${room} · nexgame:fight:${room}`, now = new Date().toISOString(), cid = user.phone_4 + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+ const m = { id: cid, client_msg_id: cid, sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now };
+ try { await ensureG(); gch.send({ type: 'broadcast', event: 'live_chat_message', payload: { message: m, sender_profile: { phone_4: user.phone_4, display_name: user.display_name, presence_mode: 'online' } } }); } catch (e) {}
+ const { error } = await sb.from('chat_messages').insert({ sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now }); return !error; }
+async function sendInvite(ph, b) { b.disabled = true; b.textContent = 'Mengirim…'; const ok = await invite(ph); b.textContent = ok ? 'Terkirim ✓' : 'Gagal'; b.disabled = false; }
+function renderInvites() { if (!isHost || !user) { $('inviteBox').classList.add('hidden'); return; } let cs = []; try { cs = JSON.parse(localStorage.getItem('nexchat_contacts_' + user.phone_4) || '[]'); } catch (e) {}
+ $('inviteBox').classList.remove('hidden'); $('inviteList').innerHTML = cs.length ? cs.map(c => `<div class="row"><div>${esc(c.display_name)} <small>#${esc(c.phone_4)}</small></div><button class="btn p" onclick="sendInvite('${String(c.phone_4).replace(/\D/g, '')}',this)">Undang</button></div>`).join('') : '<p>Belum ada kontak. Tambahkan kontak lewat chat.</p>'; }
+(async () => { const c = new URLSearchParams(location.search).get('room'); if (!c) return; await authReady; history.replaceState(null, '', location.pathname); joinRoomUI(c.toUpperCase()); })();
+
+/* ===== game ===== */
+const GY = 340, CD = [.35, .9, 3], DM = [7, 13, 20], RG = [62, 90], cl = (v, a, b) => Math.max(a, Math.min(b, v));
+let P = [], proj = [], sparks = [], key = { l: 0, r: 0, u: 0 }, sendT = 0;
+const mk = i => ({ i, x: i ? 640 : 160, y: GY, vx: 0, vy: 0, hp: 100, mhp: 100, f: i ? -1 : 1, cd: [0, 0, 0], at: -1, att: 0, fx: 0, pd: 0, w: 0, hurt: 0, st: 0, eq: [-1, -1, -1], dm: 1, sp: 1, name: '', col: i ? '#f472b6' : '#38bdf8' });
+function setStats(p) { const s = stats(p.eq); p.mhp = s.hp; p.dm = s.dm; p.sp = s.sp; p.hp = p.mhp; }
+function newMatch() {
+ P = [mk(0), mk(1)]; proj = []; sparks = []; over = false; started = true; phase = 'game'; scr('sGame'); $('res').classList.add('hidden');
+ if (mode === 'bot') { me = 0; P[0].eq = eqArr(); P[0].name = uname(); P[1].name = 'Bot ' + ['Mudah', 'Sedang', 'Sulit'][level]; P[1].eq = [[-1, -1, -1], [-1, 4, 6], [1, 5, 7]][level]; }
+ else { const o = presenceList().find(x => x.id !== myId) || {}; P[me].eq = eqArr(); P[me].name = uname(); P[1 - me].eq = o.eq || [-1, -1, -1]; P[1 - me].name = oppName; }
+ P.forEach(setStats); if (mode === 'bot') P[1].mhp = P[1].hp = Math.round(P[1].mhp * [.8, 1, 1.15][level]);
+ $('title').textContent = mode === 'bot' ? 'Lawan Bot' : 'Duel Online'; P.forEach(p => { p.tx = p.x; p.ty = p.y; });
+}
+const canHit = d => mode !== 'online' || d.i === me;
+function atk(p, k) { if (over || p.cd[k] > 0 || p.st > 0 || p.at >= 0) return; p.cd[k] = CD[k]; p.at = k; p.att = 0; p.fx = 0; p.pd = Math.round(DM[k] * p.dm); if (mode === 'online' && p.i === me) send({ t: 'a', k, x: p.x, y: p.y, d: p.pd }); }
+function hurt(d, dmg, dir, k) { d.hp = Math.max(0, d.hp - dmg); d.hurt = .25; d.st = k === 1 ? .35 : .22; d.vx = dir * (k === 1 ? 300 : 180); d.at = -1; for (let i = 0; i < 6; i++) sparks.push({ x: d.x, y: d.y - 50, vx: (Math.random() - .5) * 300, vy: -Math.random() * 250, t: .35 });
+ if (d.hp <= 0 && !over) { if (mode === 'online') send({ t: 'ko' }); end(1 - d.i); } }
+function fx(p) { const d = P[1 - p.i];
+ if (p.at === 2) proj.push({ x: p.x + p.f * 30, y: p.y - 52, d: p.f, o: p.i, dm: p.pd, t: 0 });
+ else if (canHit(d)) { const dx = (d.x - p.x) * p.f; if (dx > -10 && dx < RG[p.at] && Math.abs(d.y - p.y) < 60) hurt(d, p.pd, p.f, p.at); } }
+function upd(p, dt, inp, remote) {
+ for (let k = 0; k < 3; k++) p.cd[k] = Math.max(0, p.cd[k] - dt); p.hurt = Math.max(0, p.hurt - dt); p.st = Math.max(0, p.st - dt);
+ const o = P[1 - p.i]; p.f = o.x >= p.x ? 1 : -1;
+ if (p.at >= 0) { p.att += dt; if (!p.fx && p.att >= (p.at === 2 ? .18 : .1)) { p.fx = 1; fx(p); } if (p.att >= (p.at === 2 ? .4 : p.at ? .35 : .22)) { p.at = -1; p.fx = 0; } }
+ if (remote) { const px = p.x; p.x += (p.tx - p.x) * Math.min(1, dt * 14); p.y += (p.ty - p.y) * Math.min(1, dt * 14); p.w += Math.abs(p.x - px) * .25; return; }
+ if (p.st <= 0) { p.vx = p.at >= 0 ? 0 : ((inp.r ? 1 : 0) - (inp.l ? 1 : 0)) * 230 * p.sp; if (inp.u && p.y >= GY && p.at < 0) p.vy = -640; } else p.vx *= .9;
+ p.x = cl(p.x + p.vx * dt, 30, 770); p.vy += 1900 * dt; p.y += p.vy * dt; if (p.y >= GY) { p.y = GY; p.vy = 0; } p.w += Math.abs(p.vx) * dt * .05;
+ const dx = Math.abs(p.x - o.x); if (dx < 28 && Math.abs(p.y - o.y) < 40) p.x = cl(p.x - p.f * (28 - dx) * .5, 30, 770);
+}
+function ai(p, dt) {
+ const o = P[0], dx = o.x - p.x, ad = Math.abs(dx), inp = { l: 0, r: 0, u: 0 }, L = [{ r: .5, a: .5 }, { r: .3, a: .75 }, { r: .16, a: 1 }][level]; p.th = (p.th || 0) - dt;
+ if (p.th <= 0) { p.th = L.r * (.6 + Math.random() * .8); const r = Math.random(); p.go = ad > 75 ? (r < L.a ? 1 : 0) : (ad < 45 && r < .3 ? -1 : 0);
+  if (ad < 78 && r < L.a) atk(p, Math.random() < .6 ? 0 : 1); else if (ad > 190 && r < L.a * .45) atk(p, 2); }
+ const tw = dx > 0 ? 'r' : 'l', aw = dx > 0 ? 'l' : 'r'; if (p.go === 1) inp[tw] = 1; else if (p.go === -1) inp[aw] = 1;
+ if (level && proj.some(q => q.o === 0 && Math.abs(q.x - p.x) < 150) && Math.random() < .03 * (level + 1)) inp.u = 1; return inp;
+}
+function end(w, quiet) {
+ if (over) return; over = true; const win = w === me; let c = 0; if (mode === 'bot') c = win ? [3, 5, 8][level] : 1; else if (!quiet) c = win ? 50 : 10;
+ $('rTitle').textContent = win ? '🏆 Menang!' : '💀 Kalah'; $('rSub').textContent = quiet ? 'Lawan terputus.' : win ? 'KO! Kamu mengalahkan ' + P[1 - me].name : 'Dikalahkan ' + P[1 - me].name;
+ $('rCoin').textContent = user ? '+' + c + ' coin' : 'Masuk lewat chat untuk mendapat coin'; $('res').classList.remove('hidden'); if (user && c) addCoins(c);
+}
+function frame(t) { requestAnimationFrame(frame); const dt = Math.min(.04, (t - (frame.l || t)) / 1000); frame.l = t; if (phase !== 'game' || !P.length) return;
+ if (!over) { const m = P[me]; if (mode === 'bot') { upd(P[0], dt, key); upd(P[1], dt, ai(P[1], dt)); } else { upd(m, dt, key); upd(P[1 - me], dt, null, true); sendT -= dt; if (sendT <= 0) { sendT = .06; send({ t: 's', x: m.x, y: m.y, h: m.hp, m: m.mhp }); } }
+  for (let i = proj.length - 1; i >= 0; i--) { const q = proj[i], d = P[1 - q.o]; q.x += q.d * 520 * dt; q.t += dt; let dead = q.x < 0 || q.x > 800 || q.t > 1.6;
+   if (!dead && canHit(d) && Math.abs(q.x - d.x) < 24 && Math.abs(q.y - (d.y - 50)) < 45) { hurt(d, q.dm, q.d, 2); dead = true; } if (dead) proj.splice(i, 1); } }
+ sparks.forEach(s => { s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 900 * dt; }); sparks = sparks.filter(s => s.t > 0);
+ document.querySelectorAll('.sk').forEach(b => { const k = +b.dataset.k; b.style.setProperty('--p', (100 - P[me].cd[k] / CD[k] * 100) + '%'); }); draw();
+}
+/* ===== gambar ===== */
+const cv = $('cv'), ctx = cv.getContext('2d');
+function man(c, p) {
+ const f = p.f, sw = Math.sin(p.w) * (p.y < GY ? .3 : 1), a = p.at, e = a >= 0 ? Math.sin(Math.min(1, p.att / (a === 2 ? .4 : a ? .35 : .22)) * Math.PI) : 0, col = p.hurt > 0 ? '#fff' : p.col, [eh, eb, ew] = p.eq.map(i => IT[i]);
+ c.save(); c.translate(p.x, p.y); c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, GY - p.y + 5, 22 - (GY - p.y) * .05, 5, 0, 0, 7); c.fill();
+ c.lineCap = c.lineJoin = 'round'; c.strokeStyle = col; c.lineWidth = 5; const ln = (x1, y1, x2, y2) => { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); };
+ ln(0, -38, -sw * 14, 0); if (a === 1) ln(0, -38, f * (15 + 58 * e), -4 - 34 * e); else ln(0, -38, sw * 14, 0);
+ if (eb && eb.hp) { c.strokeStyle = eb.c; c.lineWidth = eb.hp > 30 ? 13 : 9; ln(0, -40, 0, -62); c.strokeStyle = col; c.lineWidth = 5; } else ln(0, -38, 0, -66);
+ if (eb && eb.sp && !eb.hp) { c.strokeStyle = eb.c; ln(0, -64, -f * 24, -58 - sw * 5); c.strokeStyle = col; }
+ const bx = -f * 10 + sw * 4, hx = a === 0 ? f * (14 + 44 * e) : a === 2 ? f * (18 + 14 * e) : f * 12 - sw * 4, hy = a === 0 ? -64 + 3 * e : a === 2 ? -62 : -50;
+ ln(0, -64, bx, -48); ln(0, -64, hx, hy); if (a === 2) { ln(0, -64, f * (22 + 12 * e), -62); const g = c.createRadialGradient(f * 40, -62, 1, f * 40, -62, 6 + 20 * e); g.addColorStop(0, '#e0f2fe'); g.addColorStop(1, 'rgba(56,189,248,0)'); c.fillStyle = g; c.beginPath(); c.arc(f * 40, -62, 6 + 20 * e, 0, 7); c.fill(); }
+ c.fillStyle = '#0b1120'; c.beginPath(); c.arc(0, -80, 11, 0, 7); c.fill(); c.stroke();
+ if (eh) { c.fillStyle = c.strokeStyle = eh.c; c.lineWidth = 4; if (eh.p < 100) { ln(-11, -84, 11, -84); ln(-11, -84, -f * 22, -80 + sw * 3); } else if (eh.p < 200) { c.beginPath(); c.arc(0, -82, 12, Math.PI, 0); c.fill(); } else { c.beginPath(); c.moveTo(-11, -88); c.lineTo(-11, -102); c.lineTo(-5, -94); c.lineTo(0, -106); c.lineTo(5, -94); c.lineTo(11, -102); c.lineTo(11, -88); c.fill(); } }
+ if (ew) { c.strokeStyle = ew.c; c.lineWidth = ew.d > .3 ? 5 : 4; const tx = a === 0 ? hx + f * 30 : hx + f * 12, ty = a === 0 ? hy - 3 : hy - 32; if (ew.d > .3) { c.shadowColor = '#f97316'; c.shadowBlur = 12; } ln(hx, hy, tx, ty); c.shadowBlur = 0; }
+ c.restore();
+}
+function draw() {
+ const c = ctx; c.setTransform(2, 0, 0, 2, 0, 0); const g = c.createLinearGradient(0, 0, 0, 400); g.addColorStop(0, '#0f172a'); g.addColorStop(1, '#1e3a5f'); c.fillStyle = g; c.fillRect(0, 0, 800, 400);
+ c.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 24; i++) c.fillRect((i * 97) % 800, (i * 53) % 150, 1.5, 1.5); c.fillStyle = '#e2e8f0'; c.beginPath(); c.arc(660, 60, 22, 0, 7); c.fill();
+ c.fillStyle = '#1e293b'; c.fillRect(0, GY + 6, 800, 60); c.fillStyle = '#334155'; c.fillRect(0, GY + 6, 800, 4);
+ P.forEach(p => man(c, p));
+ proj.forEach(q => { const r = c.createRadialGradient(q.x, q.y, 1, q.x, q.y, 20); r.addColorStop(0, '#fff'); r.addColorStop(.4, P[q.o].col); r.addColorStop(1, 'rgba(56,189,248,0)'); c.fillStyle = r; c.beginPath(); c.arc(q.x, q.y, 20, 0, 7); c.fill(); });
+ c.fillStyle = '#fbbf24'; sparks.forEach(s => c.fillRect(s.x, s.y, 4, 4));
+ P.forEach((p, i) => { const w = 320, x = i ? 780 - w : 20; c.fillStyle = '#0f172a'; c.fillRect(x, 24, w, 14); c.fillStyle = i ? '#f472b6' : '#38bdf8'; const hw = w * p.hp / p.mhp; c.fillRect(i ? x + w - hw : x, 24, hw, 14); c.strokeStyle = '#475569'; c.lineWidth = 1; c.strokeRect(x, 24, w, 14);
+  c.fillStyle = '#e2e8f0'; c.font = '700 13px system-ui'; c.textAlign = i ? 'right' : 'left'; c.fillText(p.name + ' · ' + Math.ceil(p.hp) + '/' + p.mhp, i ? x + w : x, 18); });
+}
+/* ===== kontrol ===== */
+document.querySelectorAll('.k').forEach(b => { const d = b.dataset.d, on = v => e => { e.preventDefault(); key[d] = v; b.classList.toggle('d', !!v); }; b.addEventListener('pointerdown', on(1)); ['pointerup', 'pointerleave', 'pointercancel'].forEach(n => b.addEventListener(n, on(0))); });
+document.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); if (started && P[me]) atk(P[me], +b.dataset.k); }));
+const KM = { ArrowLeft: 'l', a: 'l', ArrowRight: 'r', d: 'r', ArrowUp: 'u', w: 'u', ' ': 'u' }, SM = { j: 0, k: 1, l: 2 };
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = e.key.length > 1 ? e.key : e.key.toLowerCase(); if (KM[k]) { key[KM[k]] = 1; e.preventDefault(); } if (k in SM && !e.repeat && started && P[me]) atk(P[me], SM[k]); });
+addEventListener('keyup', e => { const k = e.key.length > 1 ? e.key : e.key.toLowerCase(); if (KM[k]) key[KM[k]] = 0; });
+requestAnimationFrame(frame); updateAcct();
+function startBot() { mode = 'bot'; closeRoom(); newMatch(); }
+</script>
+</body>
+</html>
