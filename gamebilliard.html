@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NexBilliard — Biliar 8 & 9 Bola</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>html,body{height:100%;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}#cv{touch-action:none}</style>
+<style type="text/tailwindcss">
+@layer components{
+ .btn{@apply px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800/90 border border-slate-700 text-slate-100 active:scale-95 transition disabled:opacity-40}
+ .btn-p{@apply bg-emerald-500 border-emerald-400 text-slate-950}
+ .card{@apply w-full text-left p-4 rounded-2xl bg-slate-900 border border-slate-800 active:scale-[.99] transition}
+ .seg{@apply flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-slate-800 border border-slate-700}
+ .seg.on{@apply bg-emerald-500 text-slate-950 border-emerald-400}
+}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-[100dvh] overflow-hidden font-sans">
+<div id="app" class="h-full max-w-4xl mx-auto flex flex-col pt-[env(safe-area-inset-top)]">
+  <div class="flex items-center gap-2 p-2 shrink-0">
+    <button class="btn" onclick="toMenu()">☰ Menu</button>
+    <div class="flex-1 min-w-0 text-center"><div id="title" class="font-bold text-emerald-400 truncate">NexBilliard</div><div id="sub" class="text-[11px] text-slate-400 truncate"></div></div>
+    <div class="shrink-0 text-right leading-tight px-2 py-1 rounded-lg bg-slate-900 border border-slate-800"><div class="text-xs font-bold flex items-center gap-1 justify-end"><span id="netDot" class="w-2 h-2 rounded-full bg-slate-500"></span><span id="netMs">--</span></div><div id="netLbl" class="text-[10px] text-slate-400">Jaringan…</div></div>
+    <button class="btn w-10 !px-0" onclick="$('help').classList.remove('hidden')" aria-label="Cara bermain">?</button>
+  </div>
+
+  <div id="sMenu" class="flex-1 overflow-y-auto p-4"><div class="max-w-md mx-auto space-y-3">
+    <p id="acct" class="text-xs text-center text-slate-400">Memeriksa akun…</p>
+    <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <div class="text-sm font-semibold">Jenis permainan</div>
+      <div class="flex gap-2"><button class="seg on" onclick="pickOpt('typ','8',this)">Bola 8</button><button class="seg" onclick="pickOpt('typ','9',this)">Bola 9</button></div>
+      <div class="text-sm font-semibold">Level bot</div>
+      <div class="flex gap-2"><button class="seg" onclick="pickOpt('level',1,this)">Mudah</button><button class="seg on" onclick="pickOpt('level',2,this)">Sedang</button><button class="seg" onclick="pickOpt('level',3,this)">Sulit</button></div>
+    </div>
+    <button class="card" onclick="startBot()"><b class="text-lg">Lawan Bot</b><div class="text-xs text-slate-400">Menang: 5 / 10 / 15 coin (sesuai level). Kalah: 1 coin.</div></button>
+    <button class="card" onclick="startLocal()"><b class="text-lg">Dua Pemain (1 perangkat)</b><div class="text-xs text-slate-400">Bergantian di satu layar, tanpa coin.</div></button>
+    <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <b class="text-lg">Multiplayer Kontak</b><div class="text-xs text-slate-400">Menang 60 coin, kalah tetap dapat 10 coin.</div>
+      <button class="btn btn-p w-full" onclick="createRoom()">Buat ruang (kode = nomor kontak Anda)</button>
+      <div class="flex gap-2"><input id="joinCode" maxlength="4" placeholder="Nomor host" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-lg tracking-widest uppercase text-center focus:outline-none focus:border-emerald-500"><button class="btn btn-p" onclick="joinRoomUI()">Gabung</button></div>
+    </div>
+    <button class="card" onclick="openShop()"><b class="text-lg">Toko Stik &amp; Meja</b><div class="text-xs text-slate-400">Tukar coin dengan stik dan meja custom.</div></button>
+    <div id="mMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></div>
+    <a href="game.html" class="btn block text-center">← Kembali ke menu game</a>
+  </div></div>
+
+  <div id="sLobby" class="hidden flex-1 overflow-y-auto p-4"><div class="max-w-md mx-auto space-y-3">
+    <div class="text-center p-3 rounded-2xl bg-slate-900 border border-slate-800"><div class="text-xs text-slate-400">Kode ruangan</div><div id="lobbyCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400"></div></div>
+    <div class="text-sm font-semibold">Pemain di ruang</div>
+    <div id="lobbyList" class="space-y-2"></div>
+    <div id="hostOpts" class="hidden space-y-2"><div class="text-sm font-semibold">Jenis permainan</div><div class="flex gap-2"><button class="seg on" onclick="pickOpt('typ','8',this)">Bola 8</button><button class="seg" onclick="pickOpt('typ','9',this)">Bola 9</button></div></div>
+    <button id="startBtn" class="btn btn-p w-full !py-3 text-base hidden" onclick="hostStart()">🎱 Mulai Main</button>
+    <p id="waitTxt" class="hidden text-center text-sm text-slate-400">Menunggu host memulai permainan…</p>
+    <div id="inviteBox" class="hidden space-y-2"><div class="text-sm font-semibold">Undang kontak (masuk ke chat)</div><div id="inviteList" class="space-y-2"></div></div>
+  </div></div>
+
+  <div id="sShop" class="hidden flex-1 overflow-y-auto p-4"><div class="max-w-md mx-auto space-y-3">
+    <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800"><div><div class="text-xs text-slate-400">Coin tersedia</div><div id="gBal" class="text-2xl font-bold text-amber-300">0</div></div><button class="btn" onclick="toMenu()">Kembali</button></div>
+    <p id="gMsg" class="text-xs text-amber-300 text-center min-h-[1rem]"></p>
+    <div class="text-sm font-semibold">Stik</div><div id="gCues" class="space-y-2"></div>
+    <div class="text-sm font-semibold pt-2">Meja</div><div id="gTables" class="space-y-2"></div>
+  </div></div>
+
+  <div id="sGame" class="hidden flex-1 min-h-0 flex flex-col">
+    <div id="info" class="mx-2 mb-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm text-center truncate"></div>
+    <div id="cbox" class="relative flex-1 min-h-0"><canvas id="cv" class="absolute inset-0 w-full h-full object-contain"></canvas></div>
+    <div class="px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2 shrink-0">
+      <button id="aL" class="btn !px-3" aria-label="Bidik kiri">◀</button>
+      <div class="flex-1 min-w-0"><div class="flex justify-between text-[10px] text-slate-400"><span>Kekuatan</span><span id="pwv">50</span></div><input id="pw" type="range" min="1" max="100" value="50" class="w-full accent-emerald-500" oninput="$('pwv').textContent=this.value"></div>
+      <button id="aR" class="btn !px-3" aria-label="Bidik kanan">▶</button>
+      <button id="shootBtn" class="btn btn-p !px-5 !py-3 font-black" onclick="doShoot()">TEMBAK</button>
+      <button class="btn !px-3 !text-rose-300" onclick="resign()" aria-label="Menyerah">⚑</button>
+    </div>
+  </div>
+</div>
+
+<div id="res" class="hidden absolute inset-0 z-30 bg-slate-950/85 flex items-center justify-center p-4"><div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 text-center">
+  <h2 id="resT" class="text-2xl font-bold text-emerald-400"></h2><p id="resR" class="text-sm text-slate-300"></p><p id="resP" class="text-sm text-amber-300 min-h-[1.25rem]"></p>
+  <div class="flex gap-2"><button id="resBtn" class="btn btn-p flex-1" onclick="resAgain()">Main lagi</button><button class="btn flex-1" onclick="toMenu()">Menu</button></div>
+</div></div>
+
+<div id="help" class="hidden absolute inset-0 z-40 bg-slate-950/95 overflow-y-auto"><div class="min-h-full flex items-center justify-center p-4"><div class="w-full max-w-md space-y-2 text-sm">
+  <h2 class="text-xl font-bold text-emerald-400 text-center mb-2">Cara bermain</h2>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Membidik:</b> geser jari (atau gerakkan mouse) di meja ke arah sasaran. Tombol ◀ ▶ untuk geser halus. Atur <b>Kekuatan</b>, lalu tekan <b>TEMBAK</b> (Spasi di desktop).</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Bola 8:</b> masukkan semua bola kelompokmu (solid 1–7 atau stripe 9–15), lalu bola 8. Kelompok ditentukan dari bola pertama yang masuk setelah pecah. Memasukkan bola 8 terlalu cepat atau bersama foul berarti kalah.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Bola 9:</b> selalu kenai bola bernomor terkecil dulu. Masukkan bola 9 secara sah untuk menang.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Foul</b> (bola putih masuk, tidak kena bola, salah sasaran): lawan mendapat <b>bola di tangan</b>, geser bola putih ke mana saja lalu bidik.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Coin &amp; Toko:</b> lawan bot memberi coin sedikit, multiplayer dengan kontak memberi jauh lebih banyak. Tukar coin dengan stik (garis bidik lebih panjang) dan meja custom. <b>Jaringan:</b> ping di pojok atas (hijau bagus, kuning sedang, merah buruk).</div>
+  <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
+</div></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SB_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
+const sb = window.supabase ? window.supabase.createClient(SB_URL, 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-') : null;
+
+/*SIM-START*/
+const TW = 840, TH = 460, R = 10.5, L = 40, T = 40, RT = 800, B = 420, CY = 230, FX = 560, H = 1 / 240;
+const POCK = [[40, 40, 22], [420, 36, 19], [800, 40, 22], [40, 420, 22], [420, 424, 19], [800, 420, 22]];
+let typ = '8', balls = [], shot = null, groups = [null, null], turn = 0, shots = 0, bih = true, bihLimit = true, over = false, winner = null, msg = '', level = 2;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function rack(t, seed) {
+  const rnd = rng(seed), D = 2 * R + .4, H3 = D * .8660254, bl = [{ id: 0, x: 240, y: CY, vx: 0, vy: 0, p: false }];
+  const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  let rows, arr = [];
+  if (t === '8') {
+    rows = [1, 2, 3, 4, 5]; const rest = shuf([1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]); let k = 0; for (let i = 0; i < 15; i++) arr.push(i === 4 ? 8 : rest[k++]);
+    if ((arr[10] < 8) === (arr[14] < 8)) for (let i = 0; i < 15; i++) if (i !== 4 && i !== 10 && i !== 14 && (arr[i] < 8) !== (arr[10] < 8) && arr[i] !== 8) { const tmp = arr[14]; arr[14] = arr[i]; arr[i] = tmp; break; }
+  } else { rows = [1, 2, 3, 2, 1]; const rest = shuf([2, 3, 4, 5, 6, 7, 8]); arr = [1]; let k = 0; for (let i = 1; i < 9; i++) arr.push(i === 4 ? 9 : rest[k++]); }
+  let idx = 0; rows.forEach((c, r) => { for (let j = 0; j < c; j++) { bl[arr[idx]] = { id: arr[idx], x: FX + r * H3, y: CY + (j - (c - 1) / 2) * D, vx: 0, vy: 0, p: false }; idx++; } });
+  for (let i = 0; i < 16; i++) if (!bl[i]) bl[i] = { id: i, x: 0, y: 0, vx: 0, vy: 0, p: true };
+  return bl;
+}
+function nearP(x, y) { for (const q of POCK) { const dx = x - q[0], dy = y - q[1], r = q[2] + 14; if (dx * dx + dy * dy < r * r) return true; } return false; }
+function step() {
+  for (let i = 0; i < 16; i++) {
+    const b = balls[i]; if (b.p) continue;
+    b.x += b.vx * H; b.y += b.vy * H;
+    const sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    if (sp > 0) { if (sp < 10) { b.vx = 0; b.vy = 0; } else { const ns = sp * (1 - .55 * H) - 22 * H, k = ns > 0 ? ns / sp : 0; b.vx *= k; b.vy *= k; } }
+    if (!nearP(b.x, b.y)) {
+      if (b.x < L + R) { b.x = L + R; b.vx = Math.abs(b.vx) * .8; shot.rail = true; } else if (b.x > RT - R) { b.x = RT - R; b.vx = -Math.abs(b.vx) * .8; shot.rail = true; }
+      if (b.y < T + R) { b.y = T + R; b.vy = Math.abs(b.vy) * .8; shot.rail = true; } else if (b.y > B - R) { b.y = B - R; b.vy = -Math.abs(b.vy) * .8; shot.rail = true; }
+    }
+    for (const q of POCK) { const dx = b.x - q[0], dy = b.y - q[1]; if (dx * dx + dy * dy < q[2] * q[2]) { b.p = true; b.vx = 0; b.vy = 0; shot.potted.push(i); break; } }
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = balls[i]; if (a.p) continue;
+    for (let j = i + 1; j < 16; j++) {
+      const c = balls[j]; if (c.p) continue;
+      const dx = c.x - a.x, dy = c.y - a.y, d2 = dx * dx + dy * dy;
+      if (d2 < 4 * R * R && d2 > 0) {
+        const d = Math.sqrt(d2), nx = dx / d, ny = dy / d, ov = (2 * R - d) / 2; a.x -= nx * ov; a.y -= ny * ov; c.x += nx * ov; c.y += ny * ov;
+        const rv = (a.vx - c.vx) * nx + (a.vy - c.vy) * ny;
+        if (rv > 0) { const j2 = rv * .97; a.vx -= j2 * nx; a.vy -= j2 * ny; c.vx += j2 * nx; c.vy += j2 * ny; if (shot.first === null && i === 0) shot.first = j; }
+      }
+    }
+  }
+}
+const stopped = () => balls.every(b => b.p || (b.vx === 0 && b.vy === 0));
+function free(x, y, ex) { return x >= L + R && x <= RT - R && y >= T + R && y <= B - R && balls.every(b => b.id === ex || b.p || (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) >= 4 * R * R); }
+function respot(id) { let x = FX; for (let k = 0; k < 30 && !free(x, CY, id); k++) x += 2 * R; Object.assign(balls[id], { x, y: CY, vx: 0, vy: 0, p: false }); }
+function defaultCue() { const c = balls[0]; let y = CY; for (let k = 0; k < 40 && !free(240, y, 0); k++) y = CY + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 2 * R; Object.assign(c, { x: 240, y, vx: 0, vy: 0, p: false }); }
+function resolve() {
+  const s = shot, sh = turn, op = 1 - sh, cuePot = s.potted.includes(0), oth = s.potted.filter(i => i > 0), pre = s.pre;
+  let foul = false, m = '', win = null, keep = false;
+  if (typ === '8') {
+    const g = groups[sh], own = i => g === 's' ? i < 8 : i > 8; let left = 0;
+    if (g) for (let i = 1; i < 16; i++) if (i !== 8 && own(i) && !pre[i]) left++;
+    if (cuePot) { foul = true; m = 'Bola putih masuk'; }
+    else if (s.first === null) { foul = true; m = 'Tidak mengenai bola'; }
+    else if (g) { if (left > 0) { if (!own(s.first) || s.first === 8) { foul = true; m = 'Salah sasaran'; } } else if (s.first !== 8) { foul = true; m = 'Harus mengenai bola 8'; } }
+    else if (s.first === 8) { foul = true; m = 'Bola 8 tidak boleh duluan'; }
+    if (oth.includes(8)) { if (shots === 0) respot(8); else if (!foul && g && left === 0) win = sh; else win = op; }
+    if (!foul && !g && shots > 0 && win === null) { const f = oth.find(i => i !== 8); if (f) { groups[sh] = f < 8 ? 's' : 't'; groups[op] = f < 8 ? 't' : 's'; } }
+    const g2 = groups[sh];
+    keep = !foul && win === null && oth.some(i => i !== 8 && (!g2 || (g2 === 's' ? i < 8 : i > 8)));
+  } else {
+    let low = 99; for (let i = 1; i <= 9; i++) if (!pre[i] && i < low) low = i;
+    if (cuePot) { foul = true; m = 'Bola putih masuk'; } else if (s.first === null) { foul = true; m = 'Tidak mengenai bola'; } else if (s.first !== low) { foul = true; m = 'Harus mengenai bola ' + low; }
+    if (oth.includes(9)) { if (!foul) win = sh; else respot(9); }
+    keep = !foul && win === null && oth.length > 0;
+  }
+  shots++; msg = m ? 'Foul: ' + m : '';
+  if (win !== null) { over = true; winner = win; } else { if (!keep) turn = op; bih = foul; bihLimit = false; }
+  return { foul, win };
+}
+function legalTargets() {
+  if (typ === '9') { let low = 99; for (let i = 1; i <= 9; i++) if (!balls[i].p && i < low) low = i; return [low]; }
+  const g = groups[turn], ids = []; for (let i = 1; i < 16; i++) { if (balls[i].p || i === 8) continue; if (!g || (g === 's' ? i < 8 : i > 8)) ids.push(i); }
+  return g && !ids.length && !balls[8].p ? [8] : ids;
+}
+function segDist(px, py, x1, y1, x2, y2) { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy; let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); const x = x1 + t * dx - px, y = y1 + t * dy - py; return Math.sqrt(x * x + y * y); }
+function clearPath(x1, y1, x2, y2, a, b) { for (const o of balls) if (!o.p && o.id !== a && o.id !== b && segDist(o.x, o.y, x1, y1, x2, y2) < 2 * R - 1) return false; return true; }
+function plan(cx, cy) {
+  const tg = legalTargets(); let best = null;
+  for (const t of tg) { const bt = balls[t]; for (const q of POCK) {
+    let ux = q[0] - bt.x, uy = q[1] - bt.y; const dq = Math.sqrt(ux * ux + uy * uy); if (dq < 1) continue; ux /= dq; uy /= dq;
+    const gx = bt.x - ux * 2 * R, gy = bt.y - uy * 2 * R; let vx = gx - cx, vy = gy - cy; const dg = Math.sqrt(vx * vx + vy * vy); if (dg < 2 * R) continue; vx /= dg; vy /= dg;
+    const cut = vx * ux + vy * uy; if (cut < .3 || !clearPath(cx, cy, gx, gy, 0, t) || !clearPath(bt.x, bt.y, q[0], q[1], t, t)) continue;
+    const sc = cut * 100 - (dg + dq) * .04; if (!best || sc > best.sc) best = { sc, ang: Math.atan2(vy, vx), dist: dg + dq, t };
+  } }
+  if (!best) { let bd = 1e9, bt = null; for (const t of tg) { const d = (balls[t].x - cx) ** 2 + (balls[t].y - cy) ** 2; if (d < bd) { bd = d; bt = t; } } if (bt === null) return { sc: -1, ang: 0, dist: 300, t: 0 }; best = { sc: 0, ang: Math.atan2(balls[bt].y - cy, balls[bt].x - cx), dist: Math.sqrt(bd) + 150, t: bt }; }
+  return best;
+}
+function botPlan() {
+  const c = balls[0];
+  if (bih) { let bs = -1, bx = null; for (let k = 0; k < 16; k++) { const x = bihLimit ? 60 + Math.random() * 230 : 60 + Math.random() * 680, y = 60 + Math.random() * 340; if (!free(x, y, 0)) continue; const pl = plan(x, y); if (pl.sc > bs) { bs = pl.sc; bx = { x, y }; } } if (bx) { c.x = bx.x; c.y = bx.y; c.p = false; } else defaultCue(); }
+  const p = plan(c.x, c.y), N = [0, .07, .025, .01][level], PN = [0, .35, .15, .06][level];
+  let ang = shots === 0 ? Math.atan2(CY - c.y, FX - c.x) : p.ang; ang += (Math.random() - .5) * 2 * N;
+  let v = shots === 0 ? 1380 : Math.min(1300, 380 + p.dist * 1.5); v = Math.min(1400, v * (1 + (Math.random() - .5) * 2 * PN));
+  return { vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, cx: c.x, cy: c.y, ang };
+}
+function newShot() { shot = { first: null, potted: [], pre: balls.map(b => b.p), rail: false }; }
+function runShot(vx, vy, cx, cy) { if (cx != null) { balls[0].x = cx; balls[0].y = cy; } balls[0].p = false; balls[0].vx = vx; balls[0].vy = vy; newShot(); bih = false; for (let n = 0; n < 6000 && (n === 0 || !stopped()); n++) step(); }
+/*SIM-END*/
+
+/* ===== jaringan (ping) ===== */
+let pingMs = null, pings = [], warm = false;
+async function measurePing() {
+  if (!navigator.onLine) { pingMs = null; renderPing(); return; }
+  const t0 = performance.now(), ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 4000);
+  try { await fetch(SB_URL + '/rest/v1/?_=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctl.signal }); const ms = Math.round(performance.now() - t0); if (!warm) warm = true; else { pings.push(ms); if (pings.length > 3) pings.shift(); pingMs = Math.round(pings.reduce((a, b) => a + b) / pings.length); } } catch (e) { pingMs = null; }
+  clearTimeout(to); renderPing();
+}
+function renderPing() {
+  let dot, txt, lab, col;
+  if (!navigator.onLine || pingMs === null) { dot = 'bg-rose-500'; txt = navigator.onLine ? '— ms' : 'offline'; lab = 'Buruk'; col = 'text-rose-400'; if (!warm && navigator.onLine) { dot = 'bg-slate-500'; lab = 'cek…'; col = 'text-slate-400'; } }
+  else if (pingMs < 100) { dot = 'bg-emerald-400'; txt = pingMs + ' ms'; lab = 'Bagus'; col = 'text-emerald-400'; }
+  else if (pingMs < 250) { dot = 'bg-amber-400'; txt = pingMs + ' ms'; lab = 'Sedang'; col = 'text-amber-400'; }
+  else { dot = 'bg-rose-500'; txt = pingMs + ' ms'; lab = 'Buruk'; col = 'text-rose-400'; }
+  $('netDot').className = 'w-2 h-2 rounded-full ' + dot; $('netMs').textContent = txt; $('netLbl').textContent = 'Jaringan ' + lab; $('netLbl').className = 'text-[10px] ' + col;
+}
+measurePing(); setTimeout(measurePing, 800); setInterval(measurePing, 4000); addEventListener('online', measurePing); addEventListener('offline', measurePing);
+
+/* ===== stik, meja, coin ===== */
+const CUES = [
+  { n: 'Standar', price: 0, butt: '#78350f', shaft: '#fde68a', guide: .8 },
+  { n: 'Maple Pro', price: 80, butt: '#b45309', shaft: '#fef3c7', guide: 1 },
+  { n: 'Ebony Slim', price: 200, butt: '#111827', shaft: '#e5e7eb', guide: 1.15 },
+  { n: 'Carbon X', price: 450, butt: '#0f172a', shaft: '#38bdf8', guide: 1.3 },
+  { n: 'Phoenix', price: 800, butt: '#dc2626', shaft: '#fbbf24', guide: 1.45 },
+  { n: 'Galaxy', price: 1400, butt: '#6d28d9', shaft: '#22d3ee', guide: 1.6 }
+];
+const TABLES = [
+  { n: 'Hijau Klasik', price: 0, cloth: '#15803d', cloth2: '#166534', rail: '#5b3a1e', trim: '#a16207' },
+  { n: 'Biru Turnamen', price: 150, cloth: '#1d4ed8', cloth2: '#1e3a8a', rail: '#1f2937', trim: '#94a3b8' },
+  { n: 'Merah Kasino', price: 350, cloth: '#b91c1c', cloth2: '#7f1d1d', rail: '#451a03', trim: '#fbbf24' },
+  { n: 'Ungu Neon', price: 700, cloth: '#7e22ce', cloth2: '#581c87', rail: '#111827', trim: '#22d3ee' },
+  { n: 'Hitam Emas', price: 1200, cloth: '#374151', cloth2: '#111827', rail: '#292524', trim: '#fbbf24' }
+];
+let user = null; const guest = 'Tamu' + (10 + Math.floor(Math.random() * 90)), uname = () => user?.display_name || guest;
+let GA = { earned: 0, spent: 0, cues: [0], cue: 0, tables: [0], table: 0 }, noData = false; const bal = () => GA.earned - GA.spent;
+function updateAcct() { $('acct').textContent = user ? 'Masuk sebagai ' + user.display_name + ' (#' + user.phone_4 + ') · ' + bal() + ' coin' : 'Bermain sebagai ' + guest + ' — masuk lewat chat untuk coin, toko & undangan'; }
+async function loadGarage() {
+  if (!user) return; let loc = null; try { loc = JSON.parse(localStorage.getItem('nexbil_g_' + user.phone_4) || 'null'); } catch (e) {}
+  if (loc && Array.isArray(loc.cues)) GA = { ...GA, ...loc, earned: GA.earned };
+  if (sb) { try {
+    const q = cols => sb.from('game_scores').select(cols).eq('phone_4', user.phone_4).eq('game', 'billiard').maybeSingle();
+    let r = await q('best_score,data'); if (r.error) { noData = true; r = await q('best_score'); } else noData = false;
+    if (!r.error) { GA.earned = r.data?.best_score || 0; const d = r.data?.data; if (d && Array.isArray(d.cues)) GA = { ...GA, ...d, earned: GA.earned }; }
+  } catch (e) {} }
+  if (!GA.cues.includes(0)) GA.cues.unshift(0); if (!GA.tables.includes(0)) GA.tables.unshift(0);
+  if (!GA.cues.includes(GA.cue)) GA.cue = 0; if (!GA.tables.includes(GA.table)) GA.table = 0; updateAcct();
+}
+async function saveGarage() {
+  const d = { spent: GA.spent, cues: GA.cues, cue: GA.cue, tables: GA.tables, table: GA.table }; try { localStorage.setItem('nexbil_g_' + user.phone_4, JSON.stringify(d)); } catch (e) {}
+  if (!sb || noData) return false; const { error } = await sb.from('game_scores').update({ data: d }).eq('phone_4', user.phone_4).eq('game', 'billiard'); return !error;
+}
+async function addPoints(n) {
+  if (!user || !sb || !n) return false;
+  try {
+    const { data } = await sb.from('game_scores').select('best_score,total_games').eq('phone_4', user.phone_4).eq('game', 'billiard').maybeSingle();
+    const { error } = await sb.from('game_scores').upsert({ phone_4: user.phone_4, game: 'billiard', display_name: user.display_name, avatar_url: user.avatar_url, best_score: (GA.earned = (data?.best_score || 0) + n), total_games: (data?.total_games || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: 'phone_4,game' });
+    return !error;
+  } catch (e) { return false; }
+}
+const authReady = (async () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('nexchat_session_user') || 'null');
+    if (s?.phone_4 && sb) {
+      const { data, error } = await sb.from('chat_users').select('phone_4,pin,display_name,avatar_url').eq('phone_4', s.phone_4).maybeSingle();
+      if (!error && data) { if (data.pin === s.pin) user = { phone_4: data.phone_4, display_name: data.display_name, avatar_url: data.avatar_url }; }
+      else user = { phone_4: s.phone_4, display_name: s.display_name, avatar_url: s.avatar_url };
+    }
+  } catch (e) {}
+  if (user) { $('joinCode').inputMode = 'numeric'; await loadGarage(); } updateAcct();
+})();
+function drawCuePrev(c, cu) { const g = c.createLinearGradient(8, 0, 102, 0); g.addColorStop(0, '#f8fafc'); g.addColorStop(.04, cu.shaft); g.addColorStop(.6, cu.shaft); g.addColorStop(.62, '#d4d4d8'); g.addColorStop(.64, cu.butt); g.addColorStop(1, cu.butt); c.fillStyle = g; c.beginPath(); c.moveTo(8, 25); c.lineTo(102, 22); c.lineTo(102, 34); c.lineTo(8, 31); c.fill(); }
+function drawTablePrev(c, t) { c.fillStyle = t.rail; c.fillRect(0, 0, 110, 56); c.strokeStyle = t.trim; c.lineWidth = 2; c.strokeRect(4, 4, 102, 48); c.fillStyle = t.cloth; c.fillRect(10, 10, 90, 36); c.fillStyle = t.cloth2; c.fillRect(10, 36, 90, 10); c.fillStyle = '#0b1120'; [[10, 10], [100, 10], [10, 46], [100, 46], [55, 10], [55, 46]].forEach(p => { c.beginPath(); c.arc(p[0], p[1], 4, 0, 7); c.fill(); }); }
+function shopRow(kind, i) {
+  const list = kind === 'cue' ? CUES : TABLES, it = list[i], owned = (kind === 'cue' ? GA.cues : GA.tables).includes(i), sel = (kind === 'cue' ? GA.cue : GA.table) === i, can = user && bal() >= it.price;
+  const btn = !user ? '' : owned ? (sel ? '<span class="text-xs text-emerald-300 font-bold">Dipakai</span>' : `<button class="btn btn-p !py-1.5" onclick="useItem('${kind}',${i})">Pakai</button>`) : `<button class="btn ${can ? 'btn-p' : ''} !py-1.5" onclick="buyItem('${kind}',${i})">${it.price} coin</button>`;
+  const sub = kind === 'cue' ? 'Garis bidik ' + Math.round(it.guide * 100) + '%' : 'Kain & rangka custom';
+  return `<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-900 border ${sel && user ? 'border-emerald-500' : 'border-slate-800'}"><canvas id="p_${kind}${i}" width="110" height="56" class="rounded-xl shrink-0 bg-slate-950"></canvas><div class="flex-1 min-w-0"><div class="font-bold truncate">${it.n}</div><div class="text-xs text-slate-400">${sub}</div></div>${btn}</div>`;
+}
+function renderShop() {
+  $('gBal').textContent = user ? bal() : '—'; if (!user) $('gMsg').textContent = 'Masuk lewat chat untuk mengumpulkan coin dan membeli.';
+  $('gCues').innerHTML = CUES.map((_, i) => shopRow('cue', i)).join(''); $('gTables').innerHTML = TABLES.map((_, i) => shopRow('table', i)).join('');
+  CUES.forEach((c, i) => { const g = $('p_cue' + i).getContext('2d'); g.fillStyle = '#0f172a'; g.fillRect(0, 0, 110, 56); drawCuePrev(g, c); });
+  TABLES.forEach((t, i) => drawTablePrev($('p_table' + i).getContext('2d'), t));
+}
+function openShop() { phase = 'shop'; scr('sShop'); $('title').textContent = 'Toko'; $('sub').textContent = ''; $('gMsg').textContent = ''; renderShop(); if (user) loadGarage().then(renderShop); }
+async function buyItem(kind, i) {
+  if (!user) return; const it = (kind === 'cue' ? CUES : TABLES)[i]; $('gMsg').textContent = 'Memproses…'; await loadGarage(); const arr = kind === 'cue' ? GA.cues : GA.tables;
+  if (arr.includes(i)) { $('gMsg').textContent = ''; renderShop(); return; }
+  if (bal() < it.price) { $('gMsg').textContent = 'Coin kurang ' + (it.price - bal()) + '. Menangkan pertandingan untuk menambah coin.'; renderShop(); return; }
+  GA.spent += it.price; arr.push(i); if (kind === 'cue') GA.cue = i; else GA.table = i;
+  const ok = await saveGarage(); updateAcct(); $('gMsg').textContent = ok ? it.n + ' dibeli dan dipakai!' : it.n + ' dibeli. Tersimpan di perangkat ini; jalankan SQL kolom data agar ikut ke perangkat lain.'; renderShop();
+}
+async function useItem(kind, i) { if (!user) return; if (kind === 'cue') GA.cue = i; else GA.table = i; await saveGarage(); renderShop(); }
+
+/* ===== undangan ke live chat ===== */
+let gch = null;
+async function ensureG() { if (gch) return; gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } }); await new Promise(r => { gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); }); setTimeout(r, 3000); }); }
+async function invite(ph) {
+  if (!sb || !user || !room) return false;
+  const text = `🎱 ${user.display_name} mengundang kamu main biliar NexBilliard! Gabung ruang #${room} · nexgame:billiard:${room}`, now = new Date().toISOString(), cid = user.phone_4 + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const m = { id: cid, client_msg_id: cid, sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now };
+  try { await ensureG(); gch.send({ type: 'broadcast', event: 'live_chat_message', payload: { message: m, sender_profile: { phone_4: user.phone_4, display_name: user.display_name, presence_mode: 'online' } } }); } catch (e) {}
+  const { error } = await sb.from('chat_messages').insert({ sender_phone: user.phone_4, receiver_phone: ph, message_text: text, image_data: null, created_at: now });
+  return !error;
+}
+async function sendInvite(ph, btn) { btn.disabled = true; btn.textContent = 'Mengirim…'; const ok = await invite(ph); btn.textContent = ok ? 'Terkirim ✓' : 'Gagal'; btn.disabled = false; }
+function renderInvites() {
+  if (!isHost || !user) { $('inviteBox').classList.add('hidden'); return; }
+  let cs = []; try { cs = JSON.parse(localStorage.getItem('nexchat_contacts_' + user.phone_4) || '[]'); } catch (e) {}
+  $('inviteBox').classList.remove('hidden');
+  $('inviteList').innerHTML = cs.length ? cs.map(c => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(c.display_name)} <span class="text-emerald-400 font-mono text-xs">#${esc(c.phone_4)}</span></span><button class="btn btn-p !py-1.5" onclick="sendInvite('${String(c.phone_4).replace(/\D/g, '')}',this)">Undang</button></div>`).join('') : '<p class="text-xs text-slate-400">Belum ada kontak. Tambahkan kontak lewat chat.</p>';
+}
+
+/* ===== navigasi & jaringan ===== */
+let mode = 'bot', me = 0, phase = 'menu', started = false, ch = null, room = '', isHost = false, oppName = 'Lawan', simming = false, waitEnd = false, pendingEnd = null, shooter = 0, awarded = false, botT = null;
+const opt = { typ: '8', level: 2 }, myId = Math.random().toString(36).slice(2, 8);
+const scr = id => ['sMenu', 'sLobby', 'sShop', 'sGame'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const send = p => ch && ch.send({ type: 'broadcast', event: 'b', payload: p });
+const meta = pl => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, playing: !!pl });
+function pickOpt(k, v, el) { opt[k] = v; [...el.parentNode.children].forEach(b => b.classList.remove('on')); el.classList.add('on'); }
+function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
+function toMenu() { closeRoom(); clearTimeout(botT); phase = 'menu'; started = false; simming = false; $('res').classList.add('hidden'); scr('sMenu'); $('title').textContent = 'NexBilliard'; $('sub').textContent = ''; updateAcct(); }
+function leaveWith(m) { toMenu(); $('mMsg').textContent = m; }
+function createRoom() {
+  if (!sb) { $('mMsg').textContent = 'Supabase tidak tersedia.'; return; }
+  let c = user ? user.phone_4 : ''; if (!c) { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (let i = 0; i < 4; i++) c += a[Math.floor(Math.random() * a.length)]; }
+  openRoom(c, true);
+}
+function joinRoomUI(c) {
+  c = (typeof c === 'string' ? c : $('joinCode').value).replace('#', '').trim().toUpperCase();
+  if (c.length !== 4) { $('mMsg').textContent = 'Masukkan nomor host (4 digit).'; return; }
+  if (user && c === user.phone_4) { $('mMsg').textContent = 'Itu nomor Anda sendiri. Tekan Buat ruang untuk menjadi host.'; return; }
+  openRoom(c, false);
+  setTimeout(() => { if (phase === 'lobby' && !isHost && room === c && !presenceList().some(x => x.host)) leaveWith('Ruang tidak ditemukan atau host belum membuat ruang.'); }, 6000);
+}
+function openRoom(code, host) {
+  closeRoom(); room = code; isHost = host; mode = 'online'; me = host ? 0 : 1; $('mMsg').textContent = '';
+  ch = sb.channel('nexbil_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
+  ch.on('broadcast', { event: 'b' }, ({ payload }) => onNet(payload)); ch.on('presence', { event: 'sync' }, onPresence);
+  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track(meta(false)); });
+  phase = 'lobby'; scr('sLobby'); $('title').textContent = 'Ruang Biliar'; $('sub').textContent = host ? 'Anda host' : 'Menunggu host'; renderLobby([]); renderInvites();
+}
+const presenceList = () => { if (!ch) return []; const st = ch.presenceState(); return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] })); };
+function renderLobby(l) {
+  l = l || presenceList(); $('lobbyCode').textContent = (user && room === user.phone_4 ? '#' : '') + room;
+  $('lobbyList').innerHTML = l.map(x => `<div class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800"><span class="flex-1 truncate">${esc(x.name)}${x.id === myId ? ' (Anda)' : ''}</span>${x.host ? '<span class="text-xs text-amber-300">Host</span>' : ''}</div>`).join('');
+  $('startBtn').classList.toggle('hidden', !isHost); $('hostOpts').classList.toggle('hidden', !isHost); $('startBtn').disabled = l.length < 2; $('waitTxt').classList.toggle('hidden', isHost);
+}
+function onPresence() {
+  const l = presenceList(); const h = l.find(x => x.host);
+  if (!isHost && phase === 'lobby' && h && h.playing) { leaveWith('Permainan sedang berlangsung.'); return; }
+  if (l.length > 2 && l.findIndex(x => x.id === myId) >= 2) { leaveWith('Ruang penuh (2 pemain).'); return; }
+  const o = l.find(x => x.id !== myId); if (o) oppName = o.name || 'Lawan';
+  if (phase === 'lobby') renderLobby(l); else if (phase === 'game' && mode === 'online' && l.length < 2 && !over) $('info').textContent = 'Lawan terputus…';
+}
+function hostStart() { const l = presenceList(); if (!isHost || l.length < 2) return; const seed = Math.floor(Math.random() * 1e9); ch.track(meta(true)); send({ t: 'start', typ: opt.typ, seed }); newGame(opt.typ, seed); }
+function goLobby() { phase = 'lobby'; started = false; simming = false; if (isHost && ch) ch.track(meta(false)); $('res').classList.add('hidden'); scr('sLobby'); renderLobby(); renderInvites(); }
+function onNet(p) {
+  if (p.t === 'start' && !isHost && phase !== 'game') newGame(p.typ, p.seed);
+  else if (p.t === 'shot' && started && !simming && !over && turn !== me) fire(p.vx, p.vy, p.cx, p.cy);
+  else if (p.t === 'end') { if (simming || !waitEnd) pendingEnd = p.st; else applyEnd(p.st); }
+  else if (p.t === 'resign' && started && !over) { winner = me; over = true; msg = 'Lawan menyerah'; refreshInfo(); showResult(); }
+  else if (p.t === 'again' && !isHost) goLobby();
+}
+
+/* ===== alur permainan ===== */
+function startBot() { mode = 'bot'; me = 0; level = opt.level; closeRoom(); newGame(opt.typ, Math.floor(Math.random() * 1e9)); }
+function startLocal() { mode = 'local'; me = 0; closeRoom(); newGame(opt.typ, Math.floor(Math.random() * 1e9)); }
+function newGame(t, seed) {
+  typ = t; balls = rack(t, seed); groups = [null, null]; turn = 0; shots = 0; bih = true; bihLimit = true; over = false; winner = null; msg = ''; newShot();
+  simming = false; waitEnd = false; pendingEnd = null; awarded = false; started = true; phase = 'game'; aimAng = 0; scr('sGame'); $('res').classList.add('hidden');
+  $('title').textContent = t === '8' ? 'Bola 8' : 'Bola 9'; $('sub').textContent = mode === 'bot' ? 'Lawan bot · ' + ['', 'Mudah', 'Sedang', 'Sulit'][level] : mode === 'online' ? 'Melawan ' + oppName + ' · Ruang ' + room : 'Dua pemain';
+  refreshInfo(); setTimeout(resize, 30);
+}
+const nm = i => mode === 'bot' ? (i === 0 ? 'Anda' : 'Bot') : mode === 'local' ? 'Pemain ' + (i + 1) : (i === me ? 'Anda' : oppName);
+function refreshInfo() {
+  if (!started) return; let s;
+  if (over) s = nm(winner) + ' menang!';
+  else { s = 'Giliran ' + nm(turn); if (typ === '8') { const g = groups[turn]; s += g ? ' · ' + (g === 's' ? 'Solid 1–7' : 'Stripe 9–15') : ' · Meja terbuka'; } else { let low = 99; for (let i = 1; i <= 9; i++) if (!balls[i].p && i < low) low = i; s += ' · Target: bola ' + low; } if (bih) s += ' · Bola di tangan'; }
+  $('info').textContent = s + (msg ? '  [' + msg + ']' : '');
+}
+const canAim = () => started && phase === 'game' && !simming && !waitEnd && !over && (mode === 'local' || (mode === 'bot' ? turn === 0 : turn === me));
+function fire(vx, vy, cx, cy) { clearTimeout(botT); if (cx != null) { balls[0].x = cx; balls[0].y = cy; } balls[0].p = false; balls[0].vx = vx; balls[0].vy = vy; newShot(); simming = true; acc = 0; shooter = turn; bih = false; refreshInfo(); }
+function doShoot() { if (!canAim()) return; const v = 120 + (+$('pw').value) * 12.6, c = balls[0], vx = Math.cos(aimAng) * v, vy = Math.sin(aimAng) * v; if (mode === 'online') send({ t: 'shot', vx, vy, cx: c.x, cy: c.y }); fire(vx, vy, c.x, c.y); }
+const snap = () => ({ b: balls.map(b => [+b.x.toFixed(2), +b.y.toFixed(2), b.p ? 1 : 0]), turn, groups, bih, bihLimit, over, winner, msg, shots });
+function endSim() {
+  simming = false;
+  if (mode !== 'online' || shooter === me) { resolve(); if (mode === 'online') send({ t: 'end', st: snap() }); post(); }
+  else { waitEnd = true; if (pendingEnd) { const st = pendingEnd; pendingEnd = null; applyEnd(st); } }
+}
+function applyEnd(st) { st.b.forEach((a, i) => { const b = balls[i]; b.x = a[0]; b.y = a[1]; b.p = !!a[2]; b.vx = b.vy = 0; }); ({ turn, groups, bih, bihLimit, over, winner, msg, shots } = st); waitEnd = false; post(); }
+function post() { if (bih && balls[0].p) defaultCue(); refreshInfo(); if (over) { showResult(); return; } if (mode === 'bot' && turn === 1) scheduleBot(); }
+function scheduleBot() {
+  $('info').textContent = 'Bot membidik…'; clearTimeout(botT);
+  botT = setTimeout(() => { if (!started || over || mode !== 'bot' || turn !== 1 || simming) return; const pl = botPlan(); aimAng = pl.ang; botT = setTimeout(() => { if (started && !over && mode === 'bot' && !simming) fire(pl.vx, pl.vy, pl.cx, pl.cy); }, 700); }, 700);
+}
+function resign() {
+  if (!started || over || !confirm('Menyerah dan mengakhiri permainan?')) return;
+  if (mode === 'online') send({ t: 'resign' }); winner = mode === 'local' ? 1 - turn : 1 - me; over = true; msg = 'Menyerah'; clearTimeout(botT); simming = false; refreshInfo(); showResult();
+}
+async function showResult() {
+  const win = mode === 'bot' ? winner === 0 : mode === 'online' ? winner === me : null; let pts = 0;
+  if (mode === 'bot') pts = win ? [0, 5, 10, 15][level] : 1; else if (mode === 'online') pts = win ? 60 : 10;
+  $('resT').textContent = mode === 'local' ? nm(winner) + ' menang!' : win ? '🏆 Kamu menang!' : 'Kamu kalah'; $('resR').textContent = msg || (typ === '8' ? 'Bola 8' : 'Bola 9'); $('resP').textContent = '';
+  $('resBtn').textContent = mode === 'online' ? (isHost ? 'Main lagi' : 'Kembali ke lobi') : 'Main lagi'; $('res').classList.remove('hidden');
+  if (pts && !awarded) { awarded = true; if (user) { const ok = await addPoints(pts); $('resP').textContent = ok ? '+' + pts + ' coin tersimpan · saldo ' + bal() : ''; } else $('resP').textContent = '+' + pts + ' coin (masuk lewat chat untuk menyimpan)'; }
+}
+function resAgain() { if (mode === 'online') { if (isHost) send({ t: 'again' }); goLobby(); } else newGame(typ, Math.floor(Math.random() * 1e9)); }
+
+/* ===== gambar, input, loop ===== */
+const cv = $('cv'), ctx = cv.getContext('2d'), S = 2; let portrait = false, aimAng = 0, acc = 0, last = 0, dragCue = false;
+function resize() { const b = $('cbox'); if (!b.clientWidth) return; portrait = b.clientHeight > b.clientWidth * 1.05; cv.width = (portrait ? TH : TW) * S; cv.height = (portrait ? TW : TH) * S; }
+addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250)); window.visualViewport?.addEventListener('resize', resize);
+function toLogical(e) {
+  const r = cv.getBoundingClientRect(), cw = portrait ? TH : TW, ch2 = portrait ? TW : TH, sc = Math.min(r.width / cw, r.height / ch2), ox = (r.width - cw * sc) / 2, oy = (r.height - ch2 * sc) / 2;
+  const sx = (e.clientX - r.left - ox) / sc, sy = (e.clientY - r.top - oy) / sc; return portrait ? { x: sy, y: TH - sx } : { x: sx, y: sy };
+}
+function setAim(p) { const c = balls[0]; aimAng = Math.atan2(p.y - c.y, p.x - c.x); }
+function placeCue(p) { const x = Math.max(L + R, Math.min(bihLimit ? 300 : RT - R, p.x)), y = Math.max(T + R, Math.min(B - R, p.y)); if (free(x, y, 0)) { balls[0].x = x; balls[0].y = y; balls[0].p = false; } }
+cv.addEventListener('pointerdown', e => { if (!canAim()) return; const p = toLogical(e), c = balls[0]; cv.setPointerCapture(e.pointerId); if (bih && (p.x - c.x) ** 2 + (p.y - c.y) ** 2 < 900) dragCue = true; else setAim(p); });
+cv.addEventListener('pointermove', e => { if (!canAim()) return; const p = toLogical(e); if (dragCue) placeCue(p); else if (e.buttons || e.pointerType === 'mouse') setAim(p); });
+const upd = () => { dragCue = false; }; cv.addEventListener('pointerup', upd); cv.addEventListener('pointercancel', upd);
+function holdBtn(id, d) { const el = $(id); let iv; const go = () => { if (canAim()) aimAng += d; }; el.addEventListener('pointerdown', e => { e.preventDefault(); go(); clearInterval(iv); iv = setInterval(go, 40); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, () => clearInterval(iv))); }
+holdBtn('aL', -.004); holdBtn('aR', .004);
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('help').classList.add('hidden'); if (phase !== 'game' || !canAim()) return;
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doShoot(); } else if (e.key === 'ArrowLeft') aimAng -= .01; else if (e.key === 'ArrowRight') aimAng += .01;
+  else if (e.key === 'ArrowUp') { $('pw').value = Math.min(100, +$('pw').value + 3); $('pwv').textContent = $('pw').value; } else if (e.key === 'ArrowDown') { $('pw').value = Math.max(1, +$('pw').value - 3); $('pwv').textContent = $('pw').value; }
+});
+const BC = ['#f8fafc', '#facc15', '#2563eb', '#dc2626', '#7c3aed', '#f97316', '#16a34a', '#7f1d1d', '#111827'], colOf = id => id === 0 ? BC[0] : BC[((id - 1) % 8) + 1];
+function drawTable() {
+  const tb = TABLES[GA.table]; ctx.fillStyle = tb.rail; ctx.fillRect(0, 0, TW, TH); ctx.strokeStyle = tb.trim; ctx.lineWidth = 3; ctx.strokeRect(10, 10, TW - 20, TH - 20);
+  const g = ctx.createRadialGradient(TW / 2, TH / 2, 60, TW / 2, TH / 2, 420); g.addColorStop(0, tb.cloth); g.addColorStop(1, tb.cloth2); ctx.fillStyle = g; ctx.fillRect(L, T, RT - L, B - T);
+  ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 5; ctx.strokeRect(L + 2, T + 2, RT - L - 4, B - T - 4);
+  ctx.fillStyle = tb.trim; for (let i = 1; i < 8; i++) { const x = L + (RT - L) * i / 8, y = T + (B - T) * i / 8; if (i !== 4) { [[x, 24], [x, TH - 24]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); }); } if (i < 4 || i > 4 || true) { [[24, y], [TW - 24, y]].forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 7); ctx.fill(); }); } }
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.arc(FX, CY, 2.5, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(300, T); ctx.lineTo(300, B); ctx.stroke();
+  POCK.forEach(q => { ctx.fillStyle = '#020617'; ctx.beginPath(); ctx.arc(q[0], q[1], q[2] + 1, 0, 7); ctx.fill(); ctx.strokeStyle = tb.trim; ctx.lineWidth = 2; ctx.stroke(); });
+}
+function drawBall(b) {
+  if (b.p) return; const col = colOf(b.id), stripe = (typ === '8' && b.id > 8) || (typ === '9' && b.id === 9);
+  ctx.save(); ctx.translate(b.x, b.y); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.arc(2, 3, R, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.fillStyle = stripe ? '#f8fafc' : col; ctx.fill();
+  if (stripe) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.clip(); ctx.fillStyle = col; ctx.fillRect(-R, -R * .52, 2 * R, R * 1.04); ctx.restore(); }
+  if (b.id > 0) { ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.arc(0, 0, R * .48, 0, 7); ctx.fill(); ctx.fillStyle = '#0f172a'; ctx.font = '700 8px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(b.id, 0, .5); }
+  const g = ctx.createRadialGradient(-3, -4, 1, 0, 0, R); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.fill(); ctx.restore();
+}
+function castRay(x, y, dx, dy) {
+  let tm = 1e9, hit = null;
+  for (const b of balls) { if (b.id === 0 || b.p) continue; const fx = b.x - x, fy = b.y - y, pr = fx * dx + fy * dy; if (pr <= 0) continue; const pp = fx * fx + fy * fy - pr * pr; if (pp > 4 * R * R) continue; const t = pr - Math.sqrt(4 * R * R - pp); if (t < tm) { tm = t; hit = b; } }
+  const tx = dx > 0 ? (RT - R - x) / dx : dx < 0 ? (L + R - x) / dx : 1e9, ty = dy > 0 ? (B - R - y) / dy : dy < 0 ? (T + R - y) / dy : 1e9, tw = Math.min(tx, ty); if (tw < tm) { tm = tw; hit = null; }
+  return { t: tm, hit };
+}
+function drawCue() {
+  const c = balls[0]; if (c.p) return; const cu = CUES[GA.cue], pull = 6 + (+$('pw').value) * .8, dx = Math.cos(aimAng), dy = Math.sin(aimAng);
+  if (canAim()) {
+    const r = castRay(c.x, c.y, dx, dy), mx = 700 * cu.guide, len = Math.min(r.t, mx);
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + dx * len, c.y + dy * len); ctx.stroke(); ctx.setLineDash([]);
+    if (r.t <= mx) { const ex = c.x + dx * r.t, ey = c.y + dy * r.t; ctx.beginPath(); ctx.arc(ex, ey, R, 0, 7); ctx.stroke(); if (r.hit) { let nx = r.hit.x - ex, ny = r.hit.y - ey; const nl = Math.sqrt(nx * nx + ny * ny) || 1; nx /= nl; ny /= nl; ctx.strokeStyle = 'rgba(250,204,21,.9)'; ctx.beginPath(); ctx.moveTo(r.hit.x, r.hit.y); ctx.lineTo(r.hit.x + nx * 60 * cu.guide, r.hit.y + ny * 60 * cu.guide); ctx.stroke(); } }
+  }
+  if (simming) return;
+  ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(aimAng); const s0 = R + 4 + (canAim() ? pull : 6), Ls = 300, g = ctx.createLinearGradient(-s0, 0, -s0 - Ls, 0);
+  g.addColorStop(0, '#bfdbfe'); g.addColorStop(.02, '#f8fafc'); g.addColorStop(.04, cu.shaft); g.addColorStop(.58, cu.shaft); g.addColorStop(.6, '#d4d4d8'); g.addColorStop(.62, cu.butt); g.addColorStop(1, cu.butt);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-s0, -1.8); ctx.lineTo(-s0 - Ls, -4.5); ctx.lineTo(-s0 - Ls, 4.5); ctx.lineTo(-s0, 1.8); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function draw() {
+  if (phase !== 'game') return; ctx.setTransform(S, 0, 0, S, 0, 0); ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 0, 2000, 2000);
+  if (portrait) { ctx.translate(TH, 0); ctx.rotate(Math.PI / 2); }
+  drawTable(); balls.forEach(drawBall); if (started) drawCue();
+  if (bih && canAim()) { const c = balls[0]; ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.x, c.y, R + 5, 0, 7); ctx.stroke(); }
+}
+function frame(t) {
+  requestAnimationFrame(frame); const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+  if (simming) { acc += dt; let n = 0; while (acc >= H && n < 10) { step(); acc -= H; n++; if (stopped()) { endSim(); break; } } }
+  draw();
+}
+requestAnimationFrame(frame);
+
+/* ===== undangan dari chat: ?room=KODE ===== */
+(async () => { const code = new URLSearchParams(location.search).get('room'); if (!code) return; await authReady; history.replaceState(null, '', location.pathname); joinRoomUI(code.toUpperCase()); })();
+</script>
+</body>
+</html>

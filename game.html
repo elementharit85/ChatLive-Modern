@@ -109,9 +109,19 @@ a.alt{background:var(--line);color:var(--text);padding:9px 16px;font-size:14px;b
         <div class="art" style="background:#0b1120"><i style="left:70px;top:14px;width:220px;height:100px;border:26px solid #334155;border-radius:50%;background:#14532d"></i><i style="left:88px;top:104px;width:26px;height:14px;background:#ef4444;border-radius:4px"></i><i style="left:128px;top:104px;width:26px;height:14px;background:#3b82f6;border-radius:4px"></i><i style="left:262px;top:46px;width:14px;height:24px;background:#eab308;border-radius:4px"></i></div>
         <div class="body">
           <h2>NexRace</h2>
-          <p>Balapan tap 3 lap lawan teman. Undangan masuk langsung ke live chat.</p>
+          <p>Balapan tap 3 lap lawan teman. Kumpulkan poin, beli 5 mobil sport di garasi.</p>
           <div class="stats"><div>Poinmu<b id="raceMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="raceTopName"></span><b id="raceTop">0</b></div></div>
           <a class="btn" id="goRace" href="gamerace.html">Main NexRace</a>
+        </div>
+      </section>
+
+      <section class="card billiard">
+        <div class="art" style="background:#0b1120"><i style="left:50px;top:16px;width:260px;height:96px;background:#15803d;border:8px solid #5b3a1e;border-radius:10px"></i><i style="left:120px;top:56px;width:16px;height:16px;background:#f8fafc;border-radius:50%"></i><i style="left:200px;top:46px;width:16px;height:16px;background:#facc15;border-radius:50%"></i><i style="left:218px;top:56px;width:16px;height:16px;background:#111827;border-radius:50%"></i><i style="left:200px;top:66px;width:16px;height:16px;background:#dc2626;border-radius:50%"></i><i style="left:20px;top:84px;width:150px;height:5px;background:#fde68a;transform:rotate(-28deg);border-radius:3px"></i></div>
+        <div class="body">
+          <h2>NexBilliard</h2>
+          <p>Biliar bola 8 &amp; 9. Lawan bot atau kontak, beli stik dan meja custom.</p>
+          <div class="stats"><div>Coinmu<b id="billiardMine">0</b></div><div class="rec" style="text-align:right">Rekor <span id="billiardTopName"></span><b id="billiardTop">0</b></div></div>
+          <a class="btn" id="goBilliard" href="gamebilliard.html">Main NexBilliard</a>
         </div>
       </section>
     </div>
@@ -157,7 +167,7 @@ const HN = ['Gubuk', 'Rumah Kayu', 'Rumah Batu', 'Villa'];
 async function loadScores(user) {
   const { data, error } = await sb.from('game_scores').select('phone_4,game,display_name,best_score,data').order('best_score', { ascending: false }).limit(500);
   if (error) { $('msg').textContent = 'Skor belum bisa dimuat. Jalankan SQL terbaru di Supabase (kolom game).'; return; }
-  for (const g of ['jump', 'jet', 'grow', 'multi', 'chess', 'race']) {
+  for (const g of ['jump', 'jet', 'grow', 'multi', 'chess', 'race', 'billiard']) {
     const rows = data.filter(r => r.game === g);
     const mine = rows.find(r => r.phone_4 === user.phone_4);
     $(g + 'Mine').textContent = mine ? mine.best_score : 0;
