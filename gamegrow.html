@@ -348,7 +348,6 @@ function drawHouse(t, now) {
   const cx = 200, by = 152;
   ctx.save();
 
-  // Bayangan tanah di bawah rumah
   const widths = [82, 110, 134, 156, 178, 200];
   const w = widths[t] || 82;
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
@@ -356,7 +355,6 @@ function drawHouse(t, now) {
   ctx.ellipse(cx, by + 4, w * 0.56, 12, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Cerobong Asap (untuk Rumah Kayu ke atas)
   if (t >= 1 && Math.random() < 0.08) {
     smokes.push({ x: cx + w * 0.28, y: by - (55 + t * 8), r: 4, a: 0.55 });
   }
@@ -368,16 +366,13 @@ function drawHouse(t, now) {
   smokes = smokes.filter(s => s.a > 0);
 
   if (t === 0) {
-    // LEVEL 0: Gubuk Bambu & Atap Jerami
     const h = 42;
     ctx.fillStyle = '#854d0e';
     ctx.fillRect(cx - 38, by - h, 76, h);
-    // Tekstur bilah bambu vertikal
     ctx.strokeStyle = '#713f12'; ctx.lineWidth = 1.5;
     for (let x = cx - 32; x <= cx + 32; x += 8) {
       ctx.beginPath(); ctx.moveTo(x, by - h); ctx.lineTo(x, by); ctx.stroke();
     }
-    // Atap jerami berlapis
     ctx.fillStyle = '#a16207';
     ctx.beginPath();
     ctx.moveTo(cx - 48, by - h + 4);
@@ -388,17 +383,13 @@ function drawHouse(t, now) {
     for (let i = -40; i <= 40; i += 8) {
       ctx.beginPath(); ctx.moveTo(cx, by - h - 28); ctx.lineTo(cx + i, by - h + 3); ctx.stroke();
     }
-    // Pintu kayu & jendela kecil
     ctx.fillStyle = '#451a03'; ctx.fillRect(cx - 9, by - 26, 18, 26);
     ctx.fillStyle = '#fef08a'; ctx.fillRect(cx - 28, by - 26, 12, 12);
     ctx.strokeStyle = '#451a03'; ctx.strokeRect(cx - 28, by - 26, 12, 12);
 
   } else if (t === 1) {
-    // LEVEL 1: Rumah Kayu Log Cabin
     const h = 52;
-    // Cerobong
     ctx.fillStyle = '#57534e'; ctx.fillRect(cx + 24, by - h - 26, 14, 30);
-    // Dinding kayu log horizontal
     const g = ctx.createLinearGradient(0, by - h, 0, by);
     g.addColorStop(0, '#b45309'); g.addColorStop(1, '#78350f');
     ctx.fillStyle = g; ctx.fillRect(cx - 50, by - h, 100, h);
@@ -406,14 +397,12 @@ function drawHouse(t, now) {
     for (let y = by - h + 8; y < by; y += 8) {
       ctx.beginPath(); ctx.moveTo(cx - 50, y); ctx.lineTo(cx + 50, y); ctx.stroke();
     }
-    // Atap sirap kayu
     ctx.fillStyle = '#7c2d12';
     ctx.beginPath();
     ctx.moveTo(cx - 60, by - h + 3);
     ctx.lineTo(cx, by - h - 34);
     ctx.lineTo(cx + 60, by - h + 3);
     ctx.closePath(); ctx.fill();
-    // Pintu & Jendela hangat
     ctx.fillStyle = '#3b1909'; ctx.fillRect(cx - 10, by - 30, 20, 30);
     ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(cx + 6, by - 14, 2, 0, 7); ctx.fill();
     [-34, 20].forEach(ox => {
@@ -422,27 +411,22 @@ function drawHouse(t, now) {
     });
 
   } else if (t === 2) {
-    // LEVEL 2: Rumah Batu Eropa
     const h = 64;
     ctx.fillStyle = '#78716c'; ctx.fillRect(cx + 32, by - h - 28, 16, 32);
-    // Pondasi & Dinding batu
     ctx.fillStyle = '#94a3b8'; ctx.fillRect(cx - 62, by - h, 124, h);
     ctx.fillStyle = '#475569'; ctx.fillRect(cx - 64, by - 10, 128, 10);
-    // Tekstur bata batu
     ctx.fillStyle = '#64748b';
     for (let r = 0; r < 4; r++) {
       for (let c = -2; c <= 2; c++) {
         ctx.fillRect(cx + c * 22 + (r % 2) * 10, by - h + 10 + r * 12, 12, 6);
       }
     }
-    // Atap genteng biru tua
     ctx.fillStyle = '#1e3a8a';
     ctx.beginPath();
     ctx.moveTo(cx - 72, by - h + 4);
     ctx.lineTo(cx, by - h - 38);
     ctx.lineTo(cx + 72, by - h + 4);
     ctx.closePath(); ctx.fill();
-    // Pintu lengkung & Jendela
     ctx.fillStyle = '#451a03';
     ctx.beginPath(); ctx.arc(cx, by - 22, 12, Math.PI, 0); ctx.lineTo(cx + 12, by); ctx.lineTo(cx - 12, by); ctx.fill();
     [-44, 26].forEach(ox => {
@@ -451,16 +435,12 @@ function drawHouse(t, now) {
     });
 
   } else if (t === 3) {
-    // LEVEL 3: Villa Modern 2 Lantai
     const h = 76;
-    // Lantai 1 & 2
     ctx.fillStyle = '#f8fafc'; ctx.fillRect(cx - 72, by - 44, 144, 44);
     ctx.fillStyle = '#e2e8f0'; ctx.fillRect(cx - 56, by - h, 112, 34);
-    // Aksen kayu modern & atap miring
     ctx.fillStyle = '#d97706';
     ctx.fillRect(cx - 76, by - 46, 152, 5);
     ctx.fillRect(cx - 62, by - h - 6, 124, 7);
-    // Kaca panorama berkilau
     const glass = ctx.createLinearGradient(0, by - h, 0, by);
     glass.addColorStop(0, '#38bdf8'); glass.addColorStop(1, '#0284c7');
     ctx.fillStyle = glass;
@@ -468,55 +448,42 @@ function drawHouse(t, now) {
     ctx.fillRect(cx + 6, by - h + 7, 38, 20);
     ctx.fillRect(cx - 60, by - 34, 34, 24);
     ctx.fillRect(cx + 26, by - 34, 34, 24);
-    // Pintu ganda modern & semak hias
     ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 14, by - 32, 28, 32);
     ctx.fillStyle = '#16a34a';
     ctx.beginPath(); ctx.arc(cx - 66, by - 4, 8, 0, 7); ctx.arc(cx + 66, by - 4, 8, 0, 7); ctx.fill();
 
   } else if (t === 4) {
-    // LEVEL 4: Mansion Mewah Berpilar Marmer
     const h = 84;
     ctx.fillStyle = '#fef3c7'; ctx.fillRect(cx - 84, by - 52, 168, 52);
     ctx.fillStyle = '#fde68a'; ctx.fillRect(cx - 60, by - h, 120, 34);
-    // Atap Mansard Merah Marun & Emas
     ctx.fillStyle = '#991b1b';
     ctx.beginPath();
     ctx.moveTo(cx - 90, by - 52); ctx.lineTo(cx - 64, by - h - 22);
     ctx.lineTo(cx + 64, by - h - 22); ctx.lineTo(cx + 90, by - 52);
     ctx.closePath(); ctx.fill();
-    // 4 Pilar Marmer Putih
     ctx.fillStyle = '#ffffff';
     [-70, -36, 28, 62].forEach(px => ctx.fillRect(cx + px, by - 50, 8, 50));
-    // Jendela & Pintu Emas
     ctx.fillStyle = '#fef08a';
     [-54, 38].forEach(ox => ctx.fillRect(cx + ox, by - 38, 16, 24));
     ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 15, by - 36, 30, 36);
     ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.strokeRect(cx - 15, by - 36, 30, 36);
 
   } else {
-    // LEVEL 5: Istana Sultan (Menara Kembar, Kubah Emas & Air Mancur)
-    const h = 90;
-    // Menara Kiri & Kanan
     ctx.fillStyle = '#f1f5f9';
     ctx.fillRect(cx - 94, by - 78, 30, 78);
     ctx.fillRect(cx + 64, by - 78, 30, 78);
-    // Bangunan Utama
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(cx - 66, by - 68, 132, 68);
-    // Kubah Emas Utama & Menara
     const gold = ctx.createLinearGradient(0, by - 115, 0, by - 65);
     gold.addColorStop(0, '#fde047'); gold.addColorStop(1, '#d97706');
     ctx.fillStyle = gold;
     ctx.beginPath(); ctx.arc(cx, by - 68, 34, Math.PI, 0); ctx.fill();
     ctx.beginPath(); ctx.moveTo(cx - 98, by - 78); ctx.lineTo(cx - 79, by - 106); ctx.lineTo(cx - 60, by - 78); ctx.fill();
     ctx.beginPath(); ctx.moveTo(cx + 60, by - 78); ctx.lineTo(cx + 79, by - 106); ctx.lineTo(cx + 98, by - 78); ctx.fill();
-    // Puncak Menara
     ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.moveTo(cx, by - 102); ctx.lineTo(cx, by - 114); ctx.stroke();
-    // Gerbang Istana Karpet Merah
     ctx.fillStyle = '#dc2626'; ctx.fillRect(cx - 14, by - 38, 28, 42);
     ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2.5; ctx.strokeRect(cx - 14, by - 38, 28, 38);
-    // Jendela Istana Bercahaya
     ctx.fillStyle = '#38bdf8';
     [-46, 30, -84, 74].forEach(ox => ctx.fillRect(cx + ox, by - 54, 14, 22));
   }
@@ -524,7 +491,7 @@ function drawHouse(t, now) {
   ctx.restore();
 }
 
-// 2. Gambar Tanaman Lebih Realistis (Daun, Bulir Padi, Tongkol Jagung, Ruas Tebu)
+// 2. Gambar Tanaman Lebih Realistis
 function drawCrop(k, x, y, pr, now) {
   const sway = Math.sin(now / 350 + x) * (pr * 3.5);
   const h = k === 'tebu' ? 14 + pr * 42 : 10 + pr * 30;
@@ -534,7 +501,6 @@ function drawCrop(k, x, y, pr, now) {
     const tx = bx + sway;
     const ty = y - h;
 
-    // Daun melengkung kiri & kanan
     ctx.strokeStyle = pr < 0.7 ? '#22c55e' : '#16a34a';
     ctx.lineWidth = 2.2;
     ctx.beginPath();
@@ -544,7 +510,6 @@ function drawCrop(k, x, y, pr, now) {
     ctx.quadraticCurveTo(bx + 10, y - h * 0.8, bx + 12 + sway * 0.5, y - h * 0.65);
     ctx.stroke();
 
-    // Batang Utama
     ctx.strokeStyle = pr < 0.7 ? '#4ade80' : (k === 'tebu' ? '#84cc16' : '#65a30d');
     ctx.lineWidth = k === 'tebu' ? 4.5 : 3;
     ctx.beginPath();
@@ -552,10 +517,8 @@ function drawCrop(k, x, y, pr, now) {
     ctx.quadraticCurveTo(bx + sway * 0.4, y - h * 0.5, tx, ty);
     ctx.stroke();
 
-    // Hasil Panen saat mulai matang (pr >= 0.65)
     if (pr >= 0.65) {
       if (k === 'padi') {
-        // Bulir-bulir padi emas merunduk
         ctx.fillStyle = '#facc15';
         for (let g = 0; g < 4; g++) {
           ctx.beginPath();
@@ -563,7 +526,6 @@ function drawCrop(k, x, y, pr, now) {
           ctx.fill();
         }
       } else if (k === 'jagung') {
-        // Tongkol jagung kuning + kelobot hijau
         ctx.fillStyle = '#fde047';
         ctx.beginPath();
         ctx.ellipse(tx, y - h * 0.62, 4.5, 9, 0, 0, Math.PI * 2);
@@ -572,7 +534,6 @@ function drawCrop(k, x, y, pr, now) {
         ctx.fillRect(tx - 2, y - h * 0.66, 4, 2);
         ctx.fillRect(tx - 2, y - h * 0.58, 4, 2);
       } else {
-        // Ruas batang tebu manis ungu-hijau & daun pucuk rimbun
         ctx.fillStyle = '#581c87';
         ctx.fillRect(bx - 2.5 + sway * 0.3, y - h * 0.35, 5, 2.5);
         ctx.fillRect(bx - 2.5 + sway * 0.6, y - h * 0.68, 5, 2.5);
@@ -586,18 +547,17 @@ function drawCrop(k, x, y, pr, now) {
   }
 }
 
-// 3. Gambar Player Stickman Petani + Animasi Tanam (Cangkul) & Panen (Sabit)
+// 3. Gambar Player Stickman Petani + Animasi Tanam & Panen
 function drawStickman(now) {
   ctx.save();
   ctx.translate(P.x, P.y);
 
-  // Bayangan kaki
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
   ctx.beginPath();
   ctx.ellipse(0, 18, 12, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  const d = P.dir; // 1 kanan, -1 kiri
+  const d = P.dir;
   let legSwing = P.moving ? Math.sin(P.walkCycle) * 8 : 0;
   let armSwing = P.moving ? -Math.sin(P.walkCycle) * 8 : Math.sin(now / 400) * 1.5;
   let bodyTilt = P.moving ? d * 0.08 : 0;
@@ -606,19 +566,16 @@ function drawStickman(now) {
 
   if (P.anim) {
     animProg = Math.min(1, (now - P.anim.start) / P.anim.dur);
-    // Ayunan badan membungkuk saat mencangkul / menyabit
-    const strike = Math.sin(animProg * Math.PI * 3); // 3 kali ayunan
+    const strike = Math.sin(animProg * Math.PI * 3);
     bodyTilt = d * (0.25 + Math.abs(strike) * 0.22);
     legSwing = 4;
     toolAngle = strike * 1.15;
 
-    // Trigger efek partikel di tengah animasi
     if (animProg >= 0.45 && !P.anim.fxDone) {
       P.anim.fxDone = true;
       const q = PL[P.anim.plotIdx];
       spawnParticles(q.x + 34, q.y + 38, P.anim.type === 'plant' ? '#78350f' : '#facc15', 10, 'dirt');
     }
-    // Selesai animasi
     if (animProg >= 1) {
       const doneAnim = P.anim;
       P.anim = null;
@@ -629,7 +586,6 @@ function drawStickman(now) {
 
   ctx.rotate(bodyTilt);
 
-  // Kaki Stickman (Celana Denim Petani)
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.strokeStyle = '#1e3a8a';
@@ -639,12 +595,10 @@ function drawStickman(now) {
   ctx.moveTo(0, 4); ctx.lineTo(5 - legSwing, 17);
   ctx.stroke();
 
-  // Sepatu Boots Cokelat
   ctx.fillStyle = '#451a03';
   ctx.fillRect(-8 + legSwing, 15, 6, 4);
   ctx.fillRect(3 - legSwing, 15, 6, 4);
 
-  // Badan Stickman (Baju Hijau Emerald + Overall)
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 5;
   ctx.beginPath();
@@ -659,7 +613,6 @@ function drawStickman(now) {
   ctx.lineTo(0, 4);
   ctx.stroke();
 
-  // Tangan Belakang
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 3.5;
   ctx.beginPath();
@@ -667,12 +620,10 @@ function drawStickman(now) {
   ctx.lineTo(-d * 7 - armSwing * 0.5, 1);
   ctx.stroke();
 
-  // Tangan Depan & Alat Pertanian (Cangkul saat Tanam / Sabit saat Panen)
   ctx.save();
   ctx.translate(0, -9);
   if (P.anim) {
     ctx.rotate(d * (-0.5 + toolAngle));
-    // Lengan mengayun alat
     ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 3.8;
     ctx.beginPath();
@@ -681,14 +632,12 @@ function drawStickman(now) {
     ctx.stroke();
 
     if (P.anim.type === 'plant') {
-      // Gambar Cangkul (Hoe) + Taburan Bibit
       ctx.strokeStyle = '#92400e';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(d * 4, 2);
       ctx.lineTo(d * 24, 10);
       ctx.stroke();
-      // Mata besi cangkul
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 3.5;
       ctx.beginPath();
@@ -696,14 +645,12 @@ function drawStickman(now) {
       ctx.lineTo(d * 20, 17);
       ctx.stroke();
     } else if (P.anim.type === 'harvest') {
-      // Gambar Sabit Emas (Golden Sickle) + Efek Slash
       ctx.strokeStyle = '#92400e';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(d * 6, 2);
       ctx.lineTo(d * 14, 6);
       ctx.stroke();
-      // Bilah sabit melengkung berkilau
       ctx.strokeStyle = '#facc15';
       ctx.lineWidth = 3.5;
       ctx.beginPath();
@@ -711,7 +658,6 @@ function drawStickman(now) {
       ctx.stroke();
     }
   } else {
-    // Tangan normal saat berjalan
     ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 3.5;
     ctx.beginPath();
@@ -721,7 +667,6 @@ function drawStickman(now) {
   }
   ctx.restore();
 
-  // Kepala Stickman Bulat
   ctx.fillStyle = '#fde68a';
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 2.5;
@@ -730,14 +675,12 @@ function drawStickman(now) {
   ctx.fill();
   ctx.stroke();
 
-  // Mata menghadap arah jalan
   ctx.fillStyle = '#0f172a';
   ctx.beginPath();
   ctx.arc(d * 2.8, -19.5, 1.4, 0, Math.PI * 2);
   ctx.arc(d * 6.0, -19.5, 1.4, 0, Math.PI * 2);
   ctx.fill();
 
-  // Topi Caping / Jerami Petani
   ctx.fillStyle = '#f59e0b';
   ctx.strokeStyle = '#78350f';
   ctx.lineWidth = 1.5;
@@ -749,7 +692,6 @@ function drawStickman(now) {
   ctx.arc(0, -25, 7, Math.PI, 0);
   ctx.fill();
   ctx.stroke();
-  // Pita topi merah
   ctx.fillStyle = '#ef4444';
   ctx.fillRect(-6.5, -26.5, 13, 2);
 
@@ -761,7 +703,6 @@ function draw() {
   const epoch = Date.now();
   const n = started ? near() : null;
 
-  // 1. Latar Rumput Gradasi Realistis & Langit/Taman Atas
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 600);
   bgGrad.addColorStop(0, '#065f46');
   bgGrad.addColorStop(0.28, '#15803d');
@@ -769,11 +710,9 @@ function draw() {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, 400, 600);
 
-  // Tekstur hamparan rumput lembut
   ctx.fillStyle = 'rgba(22, 163, 74, 0.35)';
   for (let y = 160; y < 600; y += 36) ctx.fillRect(0, y, 400, 18);
 
-  // Semak & Pohon Hias di sekitar Rumah
   ctx.fillStyle = '#064e3b';
   [[38, 138, 22], [65, 145, 16], [362, 138, 22], [335, 145, 16]].forEach(([bx, by, br]) => {
     ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
@@ -782,7 +721,6 @@ function draw() {
     ctx.fillStyle = '#064e3b';
   });
 
-  // Jalan Setapak Batu (Cobblestone) dari Rumah ke Kebun
   ctx.fillStyle = '#78716c';
   ctx.fillRect(182, 150, 36, 56);
   ctx.fillStyle = '#a8a29e';
@@ -790,31 +728,25 @@ function draw() {
     ctx.beginPath(); ctx.ellipse(sx + 5, sy + 4, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
   });
 
-  // 2. Gambar Rumah Sesuai Tingkat
   drawHouse(S.house, now);
   if (n && n.t === 'h') {
     ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3;
     ctx.strokeRect(145, 84, 110, 74);
   }
 
-  // 3. Gambar 12 Petak Lahan (Terbuka vs Terkunci / Bisa Dibeli)
   ctx.textAlign = 'center';
   ctx.font = '700 12px Fredoka, sans-serif';
 
   PL.forEach((q, i) => {
     const unlocked = i < S.unlockedPlots;
-    // Bayangan petak
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.fillRect(q.x + 3, q.y + 4, 68, 68);
 
     if (unlocked) {
-      // Bingkai kayu pematang lahan
       ctx.fillStyle = '#92400e';
       ctx.fillRect(q.x - 2, q.y - 2, 72, 72);
-      // Tanah gembur subur
       ctx.fillStyle = '#5c2d0c';
       ctx.fillRect(q.x, q.y, 68, 68);
-      // Alur cangkulan tanah
       ctx.fillStyle = '#3b1906';
       for (let k = 1; k <= 4; k++) ctx.fillRect(q.x + 4, q.y + k * 13, 60, 4);
 
@@ -826,7 +758,6 @@ function draw() {
         ctx.fillText(pr < 1 ? fmt(s.e - epoch) : '✨ Panen!', q.x + 34, q.y - 5 - (pr >= 1 ? Math.abs(Math.sin(now / 180)) * 4 : 0));
       }
     } else {
-      // Lahan Belum Dibeli (Rumput gelap + Pagar Kayu + Papan Harga)
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(q.x, q.y, 68, 68);
       ctx.strokeStyle = '#475569';
@@ -835,7 +766,6 @@ function draw() {
       ctx.strokeRect(q.x + 2, q.y + 2, 64, 64);
       ctx.setLineDash([]);
 
-      // Papan Kayu "Beli Lahan"
       ctx.fillStyle = '#78350f';
       ctx.fillRect(q.x + 31, q.y + 32, 6, 20);
       ctx.fillStyle = '#d97706';
@@ -856,10 +786,8 @@ function draw() {
     }
   });
 
-  // 4. Gambar Karakter Stickman Petani
   drawStickman(now);
 
-  // 5. Render Partikel Tanah / Bibit / Panen
   particles.forEach(pt => {
     ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
     ctx.fillStyle = pt.c;
@@ -868,13 +796,12 @@ function draw() {
     ctx.fill();
     pt.x += pt.vx;
     pt.y += pt.vy;
-    pt.vy += 0.12; // gravitasi
+    pt.vy += 0.12;
     pt.life--;
   });
   ctx.globalAlpha = 1;
   particles = particles.filter(pt => pt.life > 0);
 
-  // 6. Teks Melayang (+Koin)
   ctx.fillStyle = '#fbbf24';
   ctx.font = '700 16px Fredoka, sans-serif';
   floats.forEach(f => {
@@ -885,7 +812,6 @@ function draw() {
   ctx.globalAlpha = 1;
   floats = floats.filter(f => f.t > 0);
 
-  // 7. Update Tombol Aksi Kanan Bawah
   const b = $('act');
   if (!started || !n) {
     b.disabled = true; b.textContent = 'Dekati kebun';
