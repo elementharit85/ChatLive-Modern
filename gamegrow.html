@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>NexGrow — Kebun & Rumah</title>
+<title>NexGrow — Kebun, Peternakan & Kehidupan</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0b1120;--panel:#0f172a;--line:#1e293b;--text:#e2e8f0;--mute:#94a3b8;--brand:#34d399;--warn:#fbbf24}
+:root{--bg:#0b1120;--panel:#0f172a;--line:#1e293b;--text:#e2e8f0;--mute:#94a3b8;--brand:#34d399;--warn:#fbbf24;--danger:#f43f5e}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:'Fredoka',system-ui,sans-serif;overflow:hidden;touch-action:none}
 #app{height:100%;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
@@ -15,29 +15,39 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-famil
 @media(max-width:600px){#stage{height:100dvh;width:100%;aspect-ratio:auto;border:0;border-radius:0}}
 canvas{width:100%;height:100%;display:block;object-fit:contain}
 .hidden{display:none!important}
-.hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;pointer-events:none}
-.chip{background:rgba(15,23,42,.85);border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700;backdrop-filter:blur(4px)}
-.coin{width:14px;height:14px;border-radius:50%;background: radial-gradient(circle at 30% 30%, #fde047, #d97706);display:inline-block;box-shadow:0 0 6px rgba(251,191,36,.6)}
-.lv{flex:1;flex-direction:column;align-items:stretch;gap:3px;font-size:13px}
-.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden}
+.hud{position:absolute;top:6px;left:8px;right:8px;display:flex;gap:6px;align-items:center;pointer-events:none;z-index:2}
+.chip{background:rgba(15,23,42,.88);border:1px solid var(--line);border-radius:12px;padding:5px 9px;display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px;backdrop-filter:blur(4px)}
+.coin{width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fde047, #d97706);display:inline-block;box-shadow:0 0 6px rgba(251,191,36,.6)}
+.lv{flex:1;flex-direction:column;align-items:stretch;gap:2px;font-size:12px;min-width:0}
+.bar{height:5px;background:var(--line);border-radius:6px;overflow:hidden}
 #xpbar{height:100%;background:linear-gradient(90deg,#10b981,#34d399);width:0;transition:width .3s}
-.lv small{color:var(--mute);font-weight:500;font-size:11px}
-.top2{position:absolute;top:58px;left:8px;display:flex;gap:6px}
-.mini{font:inherit;font-size:13px;font-weight:700;background:rgba(15,23,42,.85);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-decoration:none;cursor:pointer;backdrop-filter:blur(4px)}
-#joyZone{position:absolute;left:18px;bottom:calc(22px + env(safe-area-inset-bottom));width:130px;height:130px;border-radius:50%;background:rgba(15,23,42,.45);border:2px solid rgba(226,232,240,.35);touch-action:none;display:flex;align-items:center;justify-content:center}
-#knob{width:52px;height:52px;border-radius:50%;background:rgba(52,211,153,.85);border:2px solid #052e22;pointer-events:none}
-#act{position:absolute;right:20px;bottom:calc(36px + env(safe-area-inset-bottom));min-width:112px;height:84px;border-radius:24px;border:0;background:var(--brand);color:#052e22;font:inherit;font-weight:700;font-size:16px;padding:0 16px;cursor:pointer;box-shadow:0 6px 20px rgba(52,211,153,.35)}
+.lv small{color:var(--mute);font-weight:500;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top2{position:absolute;top:54px;left:8px;right:8px;display:flex;gap:5px;flex-wrap:wrap;z-index:2}
+.mini{font:inherit;font-size:11.5px;font-weight:700;background:rgba(15,23,42,.88);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:5px 9px;text-decoration:none;cursor:pointer;backdrop-filter:blur(4px);display:inline-flex;align-items:center;gap:4px}
+.mini:active{transform:scale(.96)}
+.mini.warn{border-color:var(--warn);color:var(--warn)}
+.mini.danger{border-color:var(--danger);background:rgba(244,63,94,.2);color:#fda4af;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
+#joyZone{position:absolute;left:16px;bottom:calc(18px + env(safe-area-inset-bottom));width:124px;height:124px;border-radius:50%;background:rgba(15,23,42,.45);border:2px solid rgba(226,232,240,.35);touch-action:none;display:flex;align-items:center;justify-content:center;z-index:2}
+#knob{width:48px;height:48px;border-radius:50%;background:rgba(52,211,153,.85);border:2px solid #052e22;pointer-events:none}
+#act{position:absolute;right:16px;bottom:calc(30px + env(safe-area-inset-bottom));min-width:116px;height:80px;border-radius:22px;border:0;background:var(--brand);color:#052e22;font:inherit;font-weight:700;font-size:15px;padding:0 14px;cursor:pointer;box-shadow:0 6px 20px rgba(52,211,153,.35);z-index:2}
 #act:disabled{background:#334155;color:var(--mute);box-shadow:none}
-#panel{position:absolute;inset:0;background:rgba(11,17,32,.9);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
-.box{width:100%;max-width:340px;max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
-.box h2{margin:0;font-size:20px}.box p{margin:0;color:var(--mute);font-size:13px}
-.opt{font:inherit;color:var(--text);text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;cursor:pointer}
-.opt b{font-size:16px}.opt span{font-size:12px;color:var(--mute)}
-.opt:disabled{opacity:.5}.opt.on{border-color:var(--brand)}
-.close{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px;background:var(--line);color:var(--text);cursor:pointer;text-align:center;text-decoration:none}
-.row{display:flex;align-items:center;gap:8px;font-size:14px;background:var(--bg);border-radius:10px;padding:6px 8px}
-.row img{width:26px;height:26px;border-radius:8px}.row .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .s{color:var(--brand);font-weight:700;text-align:right;font-size:12px}
-#toast{position:absolute;left:50%;top:104px;transform:translateX(-50%);background:var(--brand);color:#052e22;font-weight:700;padding:8px 14px;border-radius:12px;font-size:14px;z-index:6;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#panel{position:absolute;inset:0;background:rgba(11,17,32,.92);display:flex;align-items:center;justify-content:center;padding:14px;z-index:5}
+.box{width:100%;max-width:360px;max-height:92%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px;display:flex;flex-direction:column;gap:8px}
+.box h2{margin:0;font-size:19px;color:var(--brand)}.box h3{margin:6px 0 2px;font-size:14px;color:var(--warn)}.box p{margin:0;color:var(--mute);font-size:12.5px;line-height:1.4}
+.tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px}
+.tab{font:inherit;font-size:12px;font-weight:700;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--mute);cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--brand);color:#052e22;border-color:var(--brand)}
+.opt{font:inherit;color:var(--text);text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px 11px;display:flex;flex-direction:column;gap:2px;cursor:pointer}
+.opt b{font-size:14.5px;display:flex;justify-content:space-between;align-items:center}.opt span{font-size:11.5px;color:var(--mute);line-height:1.35}
+.opt:disabled{opacity:.48;cursor:not-allowed}.opt.on{border-color:var(--brand);background:rgba(52,211,153,.08)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px}
+.stat-card b{display:block;font-size:14px;color:var(--brand);margin-bottom:2px}
+.close{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px;background:var(--line);color:var(--text);cursor:pointer;text-align:center;text-decoration:none;margin-top:4px}
+.row{display:flex;align-items:center;gap:8px;font-size:13px;background:var(--bg);border-radius:10px;padding:6px 8px}
+.row img{width:26px;height:26px;border-radius:8px}.row .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .s{color:var(--brand);font-weight:700;text-align:right;font-size:11.5px}
+#toast{position:absolute;left:50%;top:116px;transform:translateX(-50%);background:var(--brand);color:#052e22;font-weight:700;padding:8px 14px;border-radius:12px;font-size:13px;z-index:6;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.45);max-width:92%;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -45,37 +55,48 @@ canvas{width:100%;height:100%;display:block;object-fit:contain}
   <canvas id="cv" width="400" height="600"></canvas>
   <div class="hud">
     <div class="chip"><i class="coin"></i><b id="coins">0</b></div>
-    <div class="chip lv"><span id="lvl">Lv 1</span><div class="bar"><div id="xpbar"></div></div><small id="xptxt"></small></div>
+    <div class="chip" id="seasonChip" title="Musim & Cuaca">☀️ Kemarau</div>
+    <div class="chip lv">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span id="lvl">Lv 1</span><small id="xptxt"></small></div>
+      <div class="bar"><div id="xpbar"></div></div>
+    </div>
   </div>
   <div class="top2">
-    <a class="mini" href="game.html">Menu game</a>
-    <button class="mini" onclick="openLandShop()">+ Lahan</button>
-    <button class="mini" onclick="openHow()" title="Cara bermain" aria-label="Cara bermain">?</button>
-    <button class="mini" onclick="openRank()">Peringkat</button>
+    <a class="mini" href="game.html">◀ Menu</a>
+    <button class="mini" onclick="openBarn()">📦 Gudang</button>
+    <button class="mini" onclick="openRanch()">🐄 Ternak</button>
+    <button class="mini" onclick="openGarage()">🚜 Garasi</button>
+    <button class="mini" onclick="openKitchen()">🍳 Masak</button>
+    <button class="mini" onclick="openHunt()">🏹 Buru</button>
+    <button class="mini" onclick="openSkillsTech()">⚡ Skill & Tek</button>
+    <button class="mini" onclick="openLandShop()">🌱 +Lahan</button>
+    <button class="mini" onclick="openRank()">🏆 Rank</button>
+    <button class="mini" onclick="openHow()">?</button>
   </div>
   <div id="joyZone"><div id="knob"></div></div>
-  <button id="act" disabled>Dekati kebun</button>
+  <button id="act" disabled>Dekati objek</button>
   <div id="toast" class="hidden"></div>
   <div id="panel"><div class="box"><h2>Memeriksa akun…</h2></div></div>
 </div></div>
 
 <script>
-/* ============ SUPABASE (TIDAK DIUBAH) ============ */
+/* ============ SUPABASE (SISTEM INTI TETAP SAMA) ============ */
 const SUPABASE_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* ============ DATA GAME ============ */
-const BASE_MIN = 5; // menit tunggu dasar (ubah ke 0.2 untuk uji coba cepat)
+/* ============ DATA GAME LENGKAP ============ */
+const BASE_MIN = 5; // menit tunggu dasar (5 menit)
 const CROPS = {
-  padi:   { n: 'Padi Emas',   lv: 1, v: 20,  xp: 10, c: '#facc15' },
-  jagung: { n: 'Jagung Manis',lv: 2, v: 60,  xp: 25, c: '#fde047' },
-  tebu:   { n: 'Tebu Manis',  lv: 3, v: 150, xp: 60, c: '#4ade80' }
+  padi:    { n: 'Padi Emas',    lv: 1, v: 25,  xp: 12, c: '#facc15', icon: '🌾' },
+  jagung:  { n: 'Jagung Manis', lv: 2, v: 65,  xp: 28, c: '#fde047', icon: '🌽' },
+  tebu:    { n: 'Tebu Manis',   lv: 3, v: 155, xp: 65, c: '#4ade80', icon: '🎋' },
+  gandum:  { n: 'Gandum Unggul',lv: 4, v: 260, xp: 110,c: '#f59e0b', icon: '🍞' }
 };
 
-// Update Rumah: Ditambah Mansion Mewah & Istana Sultan
+// Rumah + Furnitur
 const HOUSES = [
   { n: 'Gubuk Bambu',   p: 0,     b: 1.0,  desc: 'Tempat berteduh sederhana dari kayu & jerami.' },
   { n: 'Rumah Kayu',    p: 400,   b: 1.1,  desc: 'Rumah kayu pinus hangat dengan cerobong batu.' },
@@ -85,34 +106,173 @@ const HOUSES = [
   { n: 'Istana Sultan', p: 75000, b: 2.2,  desc: 'Istana kasta tertinggi dengan menara kembar & air mancur.' }
 ];
 
-// 12 Petak Lahan (4 kolom x 3 baris) — 6 lahan pertama terbuka gratis, lahan 7-12 bisa dibeli
+const FURNITURES = [
+  { id: 'bed',     n: 'Kasur Empuk',       p: 250,  b: 0.05, icon: '🛏️', desc: '+5% bonus harga jual panen & masakan.' },
+  { id: 'stove',   n: 'Kompor Koki',       p: 600,  b: 0.08, icon: '🔥', desc: '+8% bonus harga jual & buka dapur modern.' },
+  { id: 'sofa',    n: 'Sofa Kulit',        p: 1400, b: 0.10, icon: '🛋️', desc: '+10% bonus EXP semua aktivitas.' },
+  { id: 'trophy',  n: 'Lemari Trofi Emas', p: 3200, b: 0.15, icon: '🏆', desc: '+15% bonus koin dari panen & ternak.' },
+  { id: 'smarttv', n: 'Radar Cuaca & TV',  p: 6500, b: 0.20, icon: '📺', desc: '+20% bonus koin & kurangi risiko bencana.' }
+];
+
+// Peternakan (Ranch)
+const ANIMALS = {
+  ayam:    { n: 'Ayam Petelur', icon: '🐔', p: 200,  prod: 'telur', prodName: 'Telur Segar', v: 35,  xp: 15, ms: 90000 },
+  kambing: { n: 'Kambing Etawa',icon: '🐐', p: 650,  prod: 'susu',  prodName: 'Susu Murni',  v: 95,  xp: 35, ms: 150000 },
+  sapi:    { n: 'Sapi Perah',   icon: '🐄', p: 1800, prod: 'keju',  prodName: 'Susu & Daging',v: 240, xp: 80, ms: 210000 }
+};
+
+// Kendaraan & Mobil (Gerobak, Motor, Traktor, Mobil Pickup, Mobil Sport)
+const VEHICLES = [
+  { id: 'none',    n: 'Jalan Kaki',     p: 0,     spd: 1.0,  harvBonus: 0,    icon: '🚶', col: '#64748b', desc: 'Kecepatan jalan standar.' },
+  { id: 'cart',    n: 'Gerobak Kayu',   p: 350,   spd: 1.22, harvBonus: 0.05, icon: '🛒', col: '#b45309', desc: 'Kecepatan +22%, hasil panen +5%.' },
+  { id: 'motor',   n: 'Motor Trail',    p: 1200,  spd: 1.50, harvBonus: 0.10, icon: '🏍️', col: '#ef4444', desc: 'Kecepatan +50%, lincah keliling kebun.' },
+  { id: 'tractor', n: 'Traktor Tani',   p: 3500,  spd: 1.35, harvBonus: 0.25, icon: '🚜', col: '#16a34a', desc: 'Kecepatan +35%, panen & tanam +25% hasil!' },
+  { id: 'pickup',  n: 'Mobil Pickup',   p: 8500,  spd: 1.65, harvBonus: 0.35, icon: '🛻', col: '#2563eb', desc: 'Angkut hasil kebun besar (+35% nilai jual).' },
+  { id: 'sport',   n: 'Mobil Sport GT', p: 22000, spd: 2.00, harvBonus: 0.50, icon: '🏎️', col: '#eab308', desc: 'Kecepatan kilat +100% & gengsi sultan (+50% bonus).' }
+];
+
+// Memasak (Dapur)
+const RECIPES = [
+  { id: 'nasi_telur', n: 'Nasi Telur Spesial', icon: '🍳', req: { padi: 1, telur: 1 }, sell: 95,  xp: 35, desc: 'Olahan padi & telur hangat.' },
+  { id: 'jagung_bakar',n:'Jagung Bakar Madu',  icon: '🌽', req: { jagung: 1, tebu: 1 },sell: 340, xp: 90, desc: 'Jagung manis bakar karamel tebu.' },
+  { id: 'steak_susu', n: 'Steak Buruan & Susu',icon: '🥩', req: { daging: 1, susu: 1 },sell: 290, xp: 85, desc: 'Daging hasil berburu + susu segar.' },
+  { id: 'kue_sultan', n: 'Kue Tart Kerajaan',  icon: '🎂', req: { gandum: 1, telur: 1, susu: 1, tebu: 1 }, sell: 820, xp: 220, desc: 'Hidangan mewah berharga jual tinggi!' }
+];
+
+// Keamanan (Pagar & Perlindungan Ternak/Kebun)
+const SECURITY = [
+  { n: 'Tanpa Pagar',        p: 0,    prot: 0,    desc: 'Rawan pencuri ternak & kerusakan badai.' },
+  { n: 'Pagar Kayu Kokoh',   p: 450,  prot: 0.35, desc: 'Melindungi 35% dari serangan hewan liar & banjir.' },
+  { n: 'Pagar Besi & Anjing',p: 1600, prot: 0.70, desc: 'Anjing penjaga + pagar besi (70% proteksi bencana/pencuri).' },
+  { n: 'Perisai Turret Laser',p: 5500,prot: 0.95, desc: 'Keamanan otomatis 95% tahan badai, kekeringan & serigala.' }
+];
+
+// Teknologi (Progression)
+const TECHS = [
+  { id: 'irigasi',   n: 'Irigasi Tetes Otomatis', p: 800,  lv: 2, icon: '💧', desc: 'Kebal efek lambat Musim Kemarau & Kekeringan + tumbuh 15% lebih cepat.' },
+  { id: 'greenhouse',n: 'Rumah Kaca Pemanas',     p: 2400, lv: 3, icon: '🌡️', desc: 'Kebal pembekuan Musim Dingin & hasil panen +20%.' },
+  { id: 'bibit_gmo', n: 'Genetika Bibit Unggul',  p: 5000, lv: 4, icon: '🧬', desc: 'Semua tanaman & ternak menghasilkan +30% koin & EXP.' },
+  { id: 'drone',     n: 'Drone Panen & Cuaca',    p: 12000,lv: 5, icon: '🛸', desc: 'Menangkal Bencana Badai/Banjir & percepat waktu tumbuh 25%.' }
+];
+
+// Musim (Berganti setiap 90 detik)
+const SEASONS = [
+  { id: 'kemarau', n: 'Musim Kemarau', icon: '☀️', growMod: 0.85, sky: '#065f46', grass1: '#15803d', grass2: '#166534', desc: 'Tanah kering (-15% kecepatan tumbuh tanpa Irigasi).' },
+  { id: 'hujan',   n: 'Musim Hujan',   icon: '🌧️', growMod: 1.25, sky: '#0f172a', grass1: '#047857', grass2: '#064e3b', desc: 'Air melimpah (+25% kecepatan tumbuh tanaman!).' },
+  { id: 'dingin',  n: 'Musim Dingin',  icon: '❄️', growMod: 0.75, sky: '#1e293b', grass1: '#334155', grass2: '#1e293b', desc: 'Suhu beku (-25% kecepatan tumbuh tanpa Rumah Kaca).' }
+];
+
+// 12 Petak Lahan (4 kolom x 3 baris)
 const PL = [
-  // Baris 1 & 2 (6 Lahan Awal Gratis)
-  [24, 210], [116, 210], [208, 210],
-  [24, 300], [116, 300], [208, 300],
-  // Lahan Tambahan yang Bisa Dibeli (Petak 7 - 12)
-  [300, 210], [300, 300],
-  [24, 390], [116, 390], [208, 390], [300, 390]
+  [22, 235], [108, 235], [194, 235],
+  [22, 318], [108, 318], [194, 318],
+  [280, 235],[280, 318],
+  [22, 401], [108, 401], [194, 401], [280, 401]
 ].map(([x, y]) => ({ x, y }));
 
-// Harga beli untuk petak ke-7 sampai ke-12 (indeks 6..11)
 const LAND_PRICES = [0, 0, 0, 0, 0, 0, 150, 350, 750, 1500, 3000, 6000];
 
-let S = { coins: 0, exp: 0, house: 0, unlockedPlots: 6, plots: Array(12).fill(null) };
-let U = null, ready = false, LS = '', started = false, saveT = null;
-const level = () => 1 + Math.floor(Math.sqrt(S.exp / 40));
-const growMs = () => Math.min(4, 1 + .2 * (level() - 1)) * BASE_MIN * 60000;
-const bonus = () => (HOUSES[S.house] || HOUSES[0]).b;
-const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+// Zona Interaksi Peta (Rumah, Gudang, Kandang Ternak, Garasi, Hutan Berburu/Tambang)
+const ZONES = {
+  house:  { x: 185, y: 145, label: '🏠 Rumah & Furnitur' },
+  barn:   { x: 62,  y: 155, label: '📦 Gudang & Dapur' },
+  ranch:  { x: 325, y: 155, label: '🐄 Peternakan' },
+  garage: { x: 85,  y: 505, label: '🚜 Garasi Mobil' },
+  hunt:   { x: 315, y: 505, label: '🏹 Hutan & Tambang' }
+};
 
-/* ============ AUTH + SIMPAN (SISTEM TETAP SAMA) ============ */
+let S = {
+  coins: 0,
+  exp: 0,
+  house: 0,
+  unlockedPlots: 6,
+  plots: Array(12).fill(null),
+  // Fitur Baru (Tersimpan otomatis di JSON data Supabase & localStorage)
+  barnCap: 25,
+  inv: { padi: 0, jagung: 0, tebu: 0, gandum: 0, telur: 0, susu: 0, keju: 0, daging: 0, kayu: 0, batu: 0, besi: 0 },
+  cooked: {},
+  animals: [], // [{ type: 'ayam', readyAt: ms }]
+  ranchLv: 1,
+  vehicles: ['none'],
+  curVehicle: 'none',
+  furniture: [],
+  security: 0,
+  skills: { farming: 0, mining: 0, crafting: 0 }, // XP per skill
+  techs: [],
+  lastHunt: 0,
+  lastMine: 0
+};
+
+let U = null, ready = false, LS = '', started = false, saveT = null;
+let curSeasonIdx = 0, seasonTimer = Date.now(), activeDisaster = null; // { id, n, icon, until, desc }
+let weatherDrops = [];
+
+const level = () => 1 + Math.floor(Math.sqrt(S.exp / 40));
+const skillLv = k => 1 + Math.floor(Math.sqrt((S.skills?.[k] || 0) / 30));
+const hasTech = id => (S.techs || []).includes(id);
+const hasFurn = id => (S.furniture || []).includes(id);
+const vehObj = () => VEHICLES.find(v => v.id === S.curVehicle) || VEHICLES[0];
+
+// Perhitungan Bonus Total (Rumah + Furnitur + Kendaraan + Skill Farming + Teknologi)
+function bonus() {
+  let b = (HOUSES[S.house] || HOUSES[0]).b;
+  FURNITURES.forEach(f => { if (hasFurn(f.id)) b += f.b; });
+  b += vehObj().harvBonus;
+  b += (skillLv('farming') - 1) * 0.05;
+  if (hasTech('greenhouse')) b += 0.20;
+  if (hasTech('bibit_gmo')) b += 0.30;
+  return b;
+}
+
+// Perhitungan Waktu Tumbuh (Dipengaruhi Musim, Bencana, Irigasi, Drone, Skill)
+function growMs() {
+  let base = Math.min(3.5, 1 + 0.15 * (level() - 1)) * BASE_MIN * 60000;
+  const season = SEASONS[curSeasonIdx];
+  let speed = season.growMod;
+  if (season.id === 'kemarau' && hasTech('irigasi')) speed = 1.15;
+  if (season.id === 'dingin' && hasTech('greenhouse')) speed = 1.10;
+  if (hasTech('drone')) speed *= 1.25;
+  speed *= (1 + (skillLv('farming') - 1) * 0.04);
+  if (activeDisaster && activeDisaster.id === 'kekeringan' && !hasTech('irigasi')) speed *= 0.65;
+  return Math.max(15000, Math.round(base / speed));
+}
+
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const totalInv = () => Object.values(S.inv || {}).reduce((a, b) => a + (b || 0), 0);
+
+/* ============ AUTH + SIMPAN (SISTEM INTI TETAP SAMA) ============ */
 function setPanel(html, closable = true) {
   $('panel').innerHTML = '<div class="box">' + html + (closable ? '<button class="close" onclick="closePanel()">Tutup</button>' : '') + '</div>';
   $('panel').classList.remove('hidden');
 }
 function closePanel() { if (started) $('panel').classList.add('hidden'); }
 function bad(m) { setPanel('<h2>Belum masuk</h2><p>' + esc(m) + '</p><a class="close" style="background:var(--brand);color:#052e22" href="index.html">Ke halaman chat</a>', false); }
-function toast(t) { const e = $('toast'); e.textContent = t; e.classList.remove('hidden'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.add('hidden'), 2400); }
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.remove('hidden'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.add('hidden'), 2800); }
+
+function normalizeState(pick) {
+  if (!pick) return;
+  const up = Math.max(6, Math.min(12, pick.unlockedPlots || (pick.plots ? pick.plots.length : 6)));
+  S = {
+    coins: pick.coins || 0,
+    exp: pick.exp || 0,
+    house: Math.min(HOUSES.length - 1, pick.house || 0),
+    unlockedPlots: up,
+    plots: Array.from({ length: 12 }, (_, i) => pick.plots?.[i] || null),
+    barnCap: pick.barnCap || 25,
+    inv: { padi: 0, jagung: 0, tebu: 0, gandum: 0, telur: 0, susu: 0, keju: 0, daging: 0, kayu: 0, batu: 0, besi: 0, ...(pick.inv || {}) },
+    cooked: pick.cooked || {},
+    animals: Array.isArray(pick.animals) ? pick.animals : [],
+    ranchLv: pick.ranchLv || 1,
+    vehicles: Array.isArray(pick.vehicles) && pick.vehicles.length ? pick.vehicles : ['none'],
+    curVehicle: pick.curVehicle || 'none',
+    furniture: Array.isArray(pick.furniture) ? pick.furniture : [],
+    security: pick.security || 0,
+    skills: { farming: 0, mining: 0, crafting: 0, ...(pick.skills || {}) },
+    techs: Array.isArray(pick.techs) ? pick.techs : [],
+    lastHunt: pick.lastHunt || 0,
+    lastMine: pick.lastMine || 0
+  };
+}
 
 async function boot() {
   const ps = new URLSearchParams(location.search); let s = null;
@@ -136,20 +296,13 @@ async function boot() {
     if (ready) { const { data } = await sb.from('game_scores').select('data').eq('phone_4', U.phone_4).eq('game', 'grow').maybeSingle(); remote = data?.data; }
   } catch (e) {}
   const pick = [remote, local].filter(Boolean).sort((a, b) => (b.exp || 0) - (a.exp || 0))[0];
-  if (pick) {
-    const up = Math.max(6, Math.min(12, pick.unlockedPlots || (pick.plots ? pick.plots.length : 6)));
-    S = {
-      coins: pick.coins || 0,
-      exp: pick.exp || 0,
-      house: Math.min(HOUSES.length - 1, pick.house || 0),
-      unlockedPlots: up,
-      plots: Array.from({ length: 12 }, (_, i) => pick.plots?.[i] || null)
-    };
-  }
+  normalizeState(pick);
   started = true; closePanel(); hud();
   if (!ready) toast('Supabase belum siap — progres hanya di perangkat ini');
 }
+
 function save() {
+  if (!LS) return;
   localStorage.setItem(LS, JSON.stringify(S));
   if (!ready) return;
   clearTimeout(saveT);
@@ -163,14 +316,64 @@ function save() {
 }
 setInterval(() => { if (started) save(); }, 30000);
 
-/* ============ STICKMAN, PARTIKEL & AKSI ============ */
-let P = {
-  x: 200, y: 185,
-  dir: 1,          // 1 menghadap kanan, -1 menghadap kiri
-  walkCycle: 0,    // siklus langkah kaki
-  moving: false,
-  anim: null       // { type: 'plant' | 'harvest', start: ms, dur: ms, plotIdx: i, cropKey: k }
-};
+/* ============ SISTEM MUSIM & BENCANA ALAM ============ */
+function updateSeasonAndDisaster() {
+  const now = Date.now();
+  // Ganti musim setiap 90 detik
+  if (now - seasonTimer > 90000) {
+    seasonTimer = now;
+    curSeasonIdx = (curSeasonIdx + 1) % SEASONS.length;
+    const sn = SEASONS[curSeasonIdx];
+    toast(`${sn.icon} Pergantian Musim: ${sn.n}!`);
+    hud();
+    // Peluang bencana saat pergantian musim (30%)
+    if (Math.random() < 0.30 && !activeDisaster) triggerDisaster();
+  }
+  if (activeDisaster && now > activeDisaster.until) {
+    toast(`✅ Bencana ${activeDisaster.n} telah berakhir!`);
+    activeDisaster = null;
+    hud();
+  }
+}
+
+function triggerDisaster() {
+  if (hasTech('drone') && Math.random() < 0.75) {
+    toast('🛸 Drone Cuaca berhasil menangkal bencana alam!');
+    return;
+  }
+  const types = [
+    { id: 'banjir',     n: 'Banjir Bandang', icon: '🌊', desc: 'Genangan air merusak petak tanpa pagar keamanan!' },
+    { id: 'kekeringan', n: 'Kekeringan Ekstrem', icon: '🔥', desc: 'Tanaman tumbuh lebih lambat tanpa Irigasi!' },
+    { id: 'badai',      n: 'Badai Petir',    icon: '⛈️', desc: 'Angin kencang mengancam ternak & hasil kebun!' }
+  ];
+  const d = types[Math.floor(Math.random() * types.length)];
+  activeDisaster = { ...d, until: Date.now() + 35000 };
+
+  const prot = (SECURITY[S.security] || SECURITY[0]).prot;
+  if (Math.random() < prot) {
+    toast(`🛡️ ${SECURITY[S.security].n} melindungi kebunmu dari ${d.n}!`);
+  } else {
+    // Efek kerusakan ringan jika keamanan rendah
+    if (d.id === 'banjir' || d.id === 'badai') {
+      const plantedIdx = S.plots.map((p, idx) => p ? idx : -1).filter(idx => idx >= 0);
+      if (plantedIdx.length > 0 && Math.random() < (0.6 - prot * 0.5)) {
+        const lost = plantedIdx[Math.floor(Math.random() * plantedIdx.length)];
+        S.plots[lost] = null;
+        toast(`${d.icon} ${d.n}! 1 petak tanaman hanyut (Tingkatkan Pagar Keamanan!).`);
+        save();
+      } else {
+        toast(`${d.icon} Peringatan ${d.n}! Untung tanamanmu selamat.`);
+      }
+    } else {
+      toast(`${d.icon} ${d.n} melanda! Waktu tumbuh melambat sementara.`);
+    }
+  }
+  hud();
+}
+setInterval(() => { if (started) updateSeasonAndDisaster(); }, 2000);
+
+/* ============ STICKMAN, PARTIKEL & INTERAKSI PETA ============ */
+let P = { x: 200, y: 195, dir: 1, walkCycle: 0, moving: false, anim: null };
 let floats = [], particles = [], smokes = [], keys = {}, jv = { x: 0, y: 0 };
 
 function spawnParticles(x, y, color, count = 12, type = 'dirt') {
@@ -191,68 +394,438 @@ function spawnParticles(x, y, color, count = 12, type = 'dirt') {
 }
 
 function near() {
-  let b = null, bd = 56;
+  let b = null, bd = 52;
   PL.forEach((q, i) => {
-    const d = Math.hypot(P.x - (q.x + 34), P.y - (q.y + 34));
+    const d = Math.hypot(P.x - (q.x + 32), P.y - (q.y + 32));
     if (d < bd) { bd = d; b = { t: 'p', i }; }
   });
-  if (Math.hypot(P.x - 200, P.y - 165) < bd) b = { t: 'h' };
+  Object.entries(ZONES).forEach(([k, z]) => {
+    const d = Math.hypot(P.x - z.x, P.y - z.y);
+    if (d < bd + 6) { bd = d; b = { t: k, label: z.label }; }
+  });
   return b;
 }
 
 function act() {
   if (!started || !$('panel').classList.contains('hidden') || P.anim) return;
   const n = near(); if (!n) return;
-  if (n.t === 'h') return openHouse();
-  // Jika petak belum dibeli, buka dialog beli lahan
-  if (n.i >= S.unlockedPlots) return openLandShop(n.i);
-  const q = S.plots[n.i];
-  if (!q) return openCrops(n.i);
-  if (Date.now() >= q.e) startHarvestAnim(n.i);
+  if (n.t === 'house')  return openHouse();
+  if (n.t === 'barn')   return openBarn();
+  if (n.t === 'ranch')  return openRanch();
+  if (n.t === 'garage') return openGarage();
+  if (n.t === 'hunt')   return openHunt();
+  if (n.t === 'p') {
+    if (n.i >= S.unlockedPlots) return openLandShop(n.i);
+    const q = S.plots[n.i];
+    if (!q) return openCrops(n.i);
+    if (Date.now() >= q.e) startHarvestAnim(n.i);
+  }
 }
 
+/* ============ PERTANIAN & GUDANG ============ */
 function openCrops(i) {
-  setPanel('<h2>Tanam apa?</h2><p>Waktu tumbuh: ' + fmt(growMs()) + ' (makin lama di level tinggi)</p>' +
+  const sn = SEASONS[curSeasonIdx];
+  setPanel(`<h2>🌱 Tanam di Petak #${i + 1}</h2><p>${sn.icon} <b>${sn.n}</b> · Waktu tumbuh: <b>${fmt(growMs())}</b><br>Bonus Total: <b>+${Math.round((bonus() - 1) * 100)}%</b> (Farming Lv.${skillLv('farming')})</p>` +
     Object.entries(CROPS).map(([k, c]) => {
       const lock = level() < c.lv;
-      return `<button class="opt" ${lock ? 'disabled' : ''} onclick="plant(${i},'${k}')"><b>🌾 ${c.n}</b><span>${lock ? '🔒 Butuh Level ' + c.lv : 'Jual ' + Math.round(c.v * bonus()) + ' koin · +' + c.xp + ' EXP'}</span></button>`;
+      return `<button class="opt" ${lock ? 'disabled' : ''} onclick="plant(${i},'${k}')"><b><span>${c.icon} ${c.n}</span><span>+${c.xp} EXP</span></b><span>${lock ? '🔒 Butuh Level ' + c.lv : 'Nilai Jual Gudang: ~' + Math.round(c.v * bonus()) + ' koin'}</span></button>`;
     }).join(''));
 }
 
 function plant(i, k) {
   if (i >= S.unlockedPlots || S.plots[i] || level() < CROPS[k].lv || P.anim) return;
   closePanel();
-  // Posisikan menghadap petak & mulai animasi Stickman Mencangkul + Menebar Bibit
-  const px = PL[i].x + 34;
+  const px = PL[i].x + 32;
   P.dir = px >= P.x ? 1 : -1;
-  P.anim = { type: 'plant', start: performance.now(), dur: 950, plotIdx: i, cropKey: k, fxDone: false };
+  P.anim = { type: 'plant', start: performance.now(), dur: 900, plotIdx: i, cropKey: k, fxDone: false };
 }
 
 function finalizePlant(i, k) {
   const now = Date.now();
   S.plots[i] = { c: k, s: now, e: now + growMs() };
-  spawnParticles(PL[i].x + 34, PL[i].y + 42, '#78350f', 14, 'dirt');
-  spawnParticles(PL[i].x + 34, PL[i].y + 36, '#fde047', 8, 'seed');
-  save();
+  S.skills.farming = (S.skills.farming || 0) + 5;
+  spawnParticles(PL[i].x + 32, PL[i].y + 38, '#78350f', 14, 'dirt');
+  spawnParticles(PL[i].x + 32, PL[i].y + 32, '#fde047', 8, 'seed');
+  save(); hud();
 }
 
 function startHarvestAnim(i) {
   const q = S.plots[i];
   if (!q || Date.now() < q.e || P.anim) return;
-  const px = PL[i].x + 34;
+  const px = PL[i].x + 32;
   P.dir = px >= P.x ? 1 : -1;
-  P.anim = { type: 'harvest', start: performance.now(), dur: 850, plotIdx: i, fxDone: false };
+  P.anim = { type: 'harvest', start: performance.now(), dur: 820, plotIdx: i, fxDone: false };
 }
 
 function harvest(i) {
   const q = S.plots[i]; if (!q) return;
   const c = CROPS[q.c], gain = Math.round(c.v * bonus()), old = level();
-  S.coins += gain; S.exp += c.xp; S.plots[i] = null;
-  spawnParticles(PL[i].x + 34, PL[i].y + 34, c.c, 18, 'harvest');
-  spawnParticles(PL[i].x + 34, PL[i].y + 34, '#22c55e', 10, 'harvest');
-  floats.push({ x: PL[i].x + 34, y: PL[i].y, t: 75, s: '+' + gain + ' 🪙' });
-  if (level() > old) toast('🎉 Naik ke Level ' + level() + '! Tanaman makin bernilai.');
+  const xpGain = Math.round(c.xp * (hasFurn('sofa') ? 1.1 : 1));
+  S.exp += xpGain;
+  S.skills.farming = (S.skills.farming || 0) + 12;
+  S.plots[i] = null;
+
+  // Masuk Gudang jika masih muat, jika penuh langsung terjual otomatis
+  if (totalInv() < S.barnCap) {
+    S.inv[q.c] = (S.inv[q.c] || 0) + 1;
+    // Langsung beri koin dasar + simpan hasil di gudang untuk dimasak/dijual ekstra
+    S.coins += gain;
+    floats.push({ x: PL[i].x + 32, y: PL[i].y, t: 75, s: `+${gain}🪙 & +1 ${c.icon}` });
+  } else {
+    S.coins += gain;
+    floats.push({ x: PL[i].x + 32, y: PL[i].y, t: 75, s: `+${gain}🪙 (Gudang Penuh)` });
+  }
+
+  spawnParticles(PL[i].x + 32, PL[i].y + 32, c.c, 18, 'harvest');
+  if (level() > old) toast('🎉 Naik ke Level ' + level() + '! Fitur & tanaman baru terbuka.');
   save(); hud();
+}
+
+/* ============ GUDANG (BARN) ============ */
+function openBarn() {
+  const used = totalInv();
+  const upCost = S.barnCap * 18;
+  const itemMeta = {
+    padi:   { n: 'Padi Emas', icon: '🌾', v: 15 },
+    jagung: { n: 'Jagung Manis', icon: '🌽', v: 35 },
+    tebu:   { n: 'Tebu Manis', icon: '🎋', v: 75 },
+    gandum: { n: 'Gandum Unggul', icon: '🍞', v: 120 },
+    telur:  { n: 'Telur Segar', icon: '🥚', v: 30 },
+    susu:   { n: 'Susu Murni', icon: '🥛', v: 70 },
+    keju:   { n: 'Keju & Daging Sapi', icon: '🧀', v: 160 },
+    daging: { n: 'Daging Buruan', icon: '🍖', v: 65 },
+    kayu:   { n: 'Kayu Hutan', icon: '🪵', v: 25 },
+    batu:   { n: 'Batu Tambang', icon: '🪨', v: 40 },
+    besi:   { n: 'Bijih Besi', icon: '⛏️', v: 90 }
+  };
+
+  let listHtml = Object.entries(itemMeta).map(([k, m]) => {
+    const qty = S.inv[k] || 0;
+    if (!qty) return '';
+    const sellPrice = Math.round(m.v * qty * bonus());
+    return `<div class="row">
+      <span>${m.icon}</span>
+      <span class="n"><b>${m.n}</b> (x${qty})</span>
+      <button class="mini warn" onclick="sellItem('${k}')">Jual +${sellPrice}🪙</button>
+    </div>`;
+  }).join('');
+
+  if (!listHtml) listHtml = '<p style="text-align:center;padding:10px 0">Gudang masih kosong. Panen kebun, ternak, atau berburu dulu!</p>';
+
+  setPanel(`<h2>📦 Gudang Penyimpanan</h2>
+    <p>Kapasitas Gudang: <b>${used} / ${S.barnCap} item</b>. Simpan bahan untuk dimasak di Dapur atau jual langsung dengan bonus <b>+${Math.round((bonus()-1)*100)}%</b>!</p>
+    ${listHtml}
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <button class="opt" style="flex:1" ${used === 0 ? 'disabled' : ''} onclick="sellAllBarn()"><b>💰 Jual Semua Isi Gudang</b><span>Cairkan seluruh stok bahan menjadi koin</span></button>
+    </div>
+    <button class="opt" ${S.coins < upCost ? 'disabled' : ''} onclick="upgradeBarn()">
+      <b>⬆️ Perbesar Gudang (+15 Slot)</b>
+      <span>Biaya: ${upCost} koin (Kapasitas jadi ${S.barnCap + 15})</span>
+    </button>`);
+}
+
+function sellItem(k) {
+  const prices = { padi: 15, jagung: 35, tebu: 75, gandum: 120, telur: 30, susu: 70, keju: 160, daging: 65, kayu: 25, batu: 40, besi: 90 };
+  const qty = S.inv[k] || 0;
+  if (!qty) return;
+  const gain = Math.round((prices[k] || 20) * qty * bonus());
+  S.coins += gain;
+  S.inv[k] = 0;
+  save(); hud(); openBarn();
+  toast(`💰 Terjual seharga +${gain} koin!`);
+}
+
+function sellAllBarn() {
+  const prices = { padi: 15, jagung: 35, tebu: 75, gandum: 120, telur: 30, susu: 70, keju: 160, daging: 65, kayu: 25, batu: 40, besi: 90 };
+  let total = 0;
+  Object.keys(S.inv).forEach(k => {
+    const q = S.inv[k] || 0;
+    if (q > 0) {
+      total += Math.round((prices[k] || 20) * q * bonus());
+      S.inv[k] = 0;
+    }
+  });
+  if (!total) return;
+  S.coins += total;
+  save(); hud(); openBarn();
+  toast(`🎉 Semua isi gudang terjual +${total} koin!`);
+}
+
+function upgradeBarn() {
+  const upCost = S.barnCap * 18;
+  if (S.coins < upCost) return;
+  S.coins -= upCost;
+  S.barnCap += 15;
+  save(); hud(); openBarn();
+  toast(`📦 Kapasitas Gudang naik menjadi ${S.barnCap}!`);
+}
+
+/* ============ PETERNAKAN (RANCH) ============ */
+function openRanch() {
+  const maxAnimals = S.ranchLv * 3;
+  const now = Date.now();
+  const ranchUpCost = S.ranchLv * 900;
+
+  let ownedHtml = S.animals.map((a, idx) => {
+    const meta = ANIMALS[a.type];
+    const ready = now >= a.readyAt;
+    return `<div class="row">
+      <span style="font-size:18px">${meta.icon}</span>
+      <span class="n"><b>${meta.n}</b><br><small style="color:var(--mute)">${ready ? '✨ Siap diambil!' : 'Produksi: ' + fmt(a.readyAt - now)}</small></span>
+      <button class="mini ${ready ? 'warn' : ''}" ${!ready ? 'disabled' : ''} onclick="collectAnimal(${idx})">${ready ? 'Ambil ' + meta.prodName : 'Tunggu'}</button>
+    </div>`;
+  }).join('');
+
+  if (!ownedHtml) ownedHtml = '<p>Belum ada hewan ternak. Beli di bawah untuk menghasilkan Telur, Susu & Daging!</p>';
+
+  let shopHtml = Object.entries(ANIMALS).map(([k, a]) => {
+    const full = S.animals.length >= maxAnimals;
+    const can = S.coins >= a.p && !full;
+    return `<button class="opt" ${!can ? 'disabled' : ''} onclick="buyAnimal('${k}')">
+      <b><span>${a.icon} Beli ${a.n}</span><span>🪙 ${a.p}</span></b>
+      <span>Hasil: ${a.prodName} (+${a.v} koin & stok dapur setiap ${Math.round(a.ms/1000)} dtk)</span>
+    </button>`;
+  }).join('');
+
+  setPanel(`<h2>🐄 Peternakan (Lv.${S.ranchLv})</h2>
+    <p>Ternak dimiliki: <b>${S.animals.length} / ${maxAnimals} ekor</b>. Keamanan Kandang: <b>${SECURITY[S.security].n}</b></p>
+    ${ownedHtml}
+    <h3>Beli Hewan Ternak Baru</h3>
+    ${shopHtml}
+    <button class="opt" ${S.coins < ranchUpCost || S.ranchLv >= 4 ? 'disabled' : ''} onclick="upgradeRanch()">
+      <b>🏚️ Perluas Kandang Ternak (Lv.${S.ranchLv + 1})</b>
+      <span>${S.ranchLv >= 4 ? '✓ Level Maksimal (12 Ekor)' : 'Biaya: ' + ranchUpCost + ' koin (+3 kapasitas ternak)'}</span>
+    </button>`);
+}
+
+function buyAnimal(type) {
+  const meta = ANIMALS[type];
+  const maxAnimals = S.ranchLv * 3;
+  if (!meta || S.animals.length >= maxAnimals || S.coins < meta.p) return;
+  S.coins -= meta.p;
+  S.animals.push({ type, readyAt: Date.now() + meta.ms });
+  spawnParticles(ZONES.ranch.x, ZONES.ranch.y, '#fbbf24', 15, 'harvest');
+  save(); hud(); openRanch();
+  toast(`${meta.icon} ${meta.n} berhasil dibeli!`);
+}
+
+function collectAnimal(idx) {
+  const a = S.animals[idx];
+  if (!a || Date.now() < a.readyAt) return;
+  const meta = ANIMALS[a.type];
+  const gain = Math.round(meta.v * bonus());
+  S.coins += gain;
+  S.exp += meta.xp;
+  S.skills.farming = (S.skills.farming || 0) + 10;
+  if (totalInv() < S.barnCap) S.inv[meta.prod] = (S.inv[meta.prod] || 0) + 1;
+  a.readyAt = Date.now() + meta.ms;
+  save(); hud(); openRanch();
+  toast(`${meta.icon} Panen ${meta.prodName}: +${gain} koin & masuk Gudang!`);
+}
+
+function upgradeRanch() {
+  const cost = S.ranchLv * 900;
+  if (S.ranchLv >= 4 || S.coins < cost) return;
+  S.coins -= cost;
+  S.ranchLv++;
+  save(); hud(); openRanch();
+  toast(`🐄 Kandang diperluas ke Level ${S.ranchLv}!`);
+}
+
+/* ============ GARASI KENDARAAN & MOBIL ============ */
+function openGarage() {
+  setPanel(`<h2>🚜 Garasi Kendaraan & Mobil</h2>
+    <p>Kendaraan aktif: <b>${vehObj().icon} ${vehObj().n}</b> (Kecepatan <b>${Math.round(vehObj().spd * 100)}%</b> · Bonus Panen <b>+${Math.round(vehObj().harvBonus * 100)}%</b>)</p>` +
+    VEHICLES.map(v => {
+      const owned = S.vehicles.includes(v.id);
+      const active = S.curVehicle === v.id;
+      const can = S.coins >= v.p;
+      return `<button class="opt ${active ? 'on' : ''}" ${(!owned && !can) ? 'disabled' : ''} onclick="selectOrBuyVehicle('${v.id}')">
+        <b><span>${v.icon} ${v.n}</span><span>${active ? '✓ Dipakai' : owned ? 'Pakai' : '🪙 ' + v.p}</span></b>
+        <span>${v.desc}</span>
+      </button>`;
+    }).join(''));
+}
+
+function selectOrBuyVehicle(id) {
+  const v = VEHICLES.find(x => x.id === id);
+  if (!v) return;
+  if (S.vehicles.includes(id)) {
+    S.curVehicle = id;
+    save(); hud(); openGarage();
+    toast(`${v.icon} Sekarang mengendarai ${v.n}!`);
+    return;
+  }
+  if (S.coins < v.p) return;
+  S.coins -= v.p;
+  S.vehicles.push(id);
+  S.curVehicle = id;
+  spawnParticles(P.x, P.y, '#38bdf8', 22, 'harvest');
+  save(); hud(); openGarage();
+  toast(`🎉 Berhasil membeli ${v.icon} ${v.n}!`);
+}
+
+/* ============ MEMASAK (DAPUR) ============ */
+function openKitchen() {
+  const craftLv = skillLv('crafting');
+  const craftBonus = 1 + (craftLv - 1) * 0.08 + (hasFurn('stove') ? 0.12 : 0);
+
+  setPanel(`<h2>🍳 Dapur Memasak (Crafting Lv.${craftLv})</h2>
+    <p>Olah hasil panen, ternak & buruan di Gudang menjadi hidangan bernilai tinggi (Bonus Masak: <b>+${Math.round((craftBonus - 1) * 100)}%</b>)!</p>` +
+    RECIPES.map(r => {
+      const reqStr = Object.entries(r.req).map(([k, q]) => `${k.toUpperCase()} (${S.inv[k] || 0}/${q})`).join(' + ');
+      const canCook = Object.entries(r.req).every(([k, q]) => (S.inv[k] || 0) >= q);
+      const finalSell = Math.round(r.sell * craftBonus * bonus());
+      return `<button class="opt" ${!canCook ? 'disabled' : ''} onclick="cookRecipe('${r.id}')">
+        <b><span>${r.icon} ${r.n}</span><span>Jual +${finalSell}🪙</span></b>
+        <span>Bahan: ${reqStr}<br>${r.desc} (+${r.xp} EXP)</span>
+      </button>`;
+    }).join(''));
+}
+
+function cookRecipe(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return;
+  const canCook = Object.entries(r.req).every(([k, q]) => (S.inv[k] || 0) >= q);
+  if (!canCook) return;
+  Object.entries(r.req).forEach(([k, q]) => { S.inv[k] -= q; });
+  const craftLv = skillLv('crafting');
+  const craftBonus = 1 + (craftLv - 1) * 0.08 + (hasFurn('stove') ? 0.12 : 0);
+  const gain = Math.round(r.sell * craftBonus * bonus());
+  S.coins += gain;
+  S.exp += r.xp;
+  S.skills.crafting = (S.skills.crafting || 0) + 18;
+  save(); hud(); openKitchen();
+  toast(`${r.icon} Masak ${r.n} sukses! Terjual +${gain} koin!`);
+}
+
+/* ============ BERBURU & MENAMBANG (HUTAN & TAMBANG) ============ */
+function openHunt() {
+  const now = Date.now();
+  const huntCd = Math.max(0, 20000 - (now - (S.lastHunt || 0)));
+  const mineCd = Math.max(0, 20000 - (now - (S.lastMine || 0)));
+  const mLv = skillLv('mining');
+
+  setPanel(`<h2>🏹 Hutan Berburu & Tambang</h2>
+    <p>Cari sumber makanan daging liar, kayu hutan, dan tambang bijih mineral (Skill Mining Lv.${mLv}).</p>
+    <button class="opt" ${huntCd > 0 ? 'disabled' : ''} onclick="doHunt()">
+      <b><span>🦌 Berburu di Hutan Belantara</span><span>${huntCd > 0 ? fmt(huntCd) : 'Siap!'}</span></b>
+      <span>Dapatkan Daging Buruan, Kayu & Koin (+EXP Farming & Crafting)</span>
+    </button>
+    <button class="opt" ${mineCd > 0 ? 'disabled' : ''} onclick="doMine()">
+      <b><span>⛏️ Menambang Batu & Bijih Besi</span><span>${mineCd > 0 ? fmt(mineCd) : 'Siap!'}</span></b>
+      <span>Dapatkan Batu, Bijih Besi & Koin (Bonus Skill Mining Lv.${mLv})</span>
+    </button>
+    <h3>🛠️ Crafting Pagar & Peralatan</h3>
+    <button class="opt" ${(S.inv.kayu || 0) < 2 || (S.inv.batu || 0) < 1 ? 'disabled' : ''} onclick="craftTool()">
+      <b><span>⚒️ Tempa Perkakas Tani Baja</span><span>+180🪙 & +50 EXP</span></b>
+      <span>Bahan: KAYU (${S.inv.kayu || 0}/2) + BATU (${S.inv.batu || 0}/1)</span>
+    </button>`);
+}
+
+function doHunt() {
+  const now = Date.now();
+  if (now - (S.lastHunt || 0) < 20000) return;
+  S.lastHunt = now;
+  const meat = 1 + (Math.random() < 0.45 ? 1 : 0);
+  const wood = 1 + Math.floor(Math.random() * 2);
+  const coinGain = Math.round((45 + Math.random() * 35) * bonus());
+  if (totalInv() + meat + wood <= S.barnCap) {
+    S.inv.daging = (S.inv.daging || 0) + meat;
+    S.inv.kayu = (S.inv.kayu || 0) + wood;
+  }
+  S.coins += coinGain;
+  S.exp += 25;
+  S.skills.farming = (S.skills.farming || 0) + 12;
+  spawnParticles(ZONES.hunt.x, ZONES.hunt.y, '#ef4444', 16, 'harvest');
+  save(); hud(); openHunt();
+  toast(`🏹 Hasil Berburu: +${meat} Daging, +${wood} Kayu & +${coinGain}🪙!`);
+}
+
+function doMine() {
+  const now = Date.now();
+  if (now - (S.lastMine || 0) < 20000) return;
+  S.lastMine = now;
+  const mLv = skillLv('mining');
+  const stone = 1 + Math.floor(Math.random() * 2);
+  const iron = Math.random() < (0.35 + mLv * 0.08) ? 1 : 0;
+  const coinGain = Math.round((55 + mLv * 18) * bonus());
+  if (totalInv() + stone + iron <= S.barnCap) {
+    S.inv.batu = (S.inv.batu || 0) + stone;
+    S.inv.besi = (S.inv.besi || 0) + iron;
+  }
+  S.coins += coinGain;
+  S.exp += 30;
+  S.skills.mining = (S.skills.mining || 0) + 20;
+  spawnParticles(ZONES.hunt.x, ZONES.hunt.y, '#94a3b8', 16, 'dirt');
+  save(); hud(); openHunt();
+  toast(`⛏️ Hasil Tambang: +${stone} Batu, +${iron} Besi & +${coinGain}🪙!`);
+}
+
+function craftTool() {
+  if ((S.inv.kayu || 0) < 2 || (S.inv.batu || 0) < 1) return;
+  S.inv.kayu -= 2;
+  S.inv.batu -= 1;
+  const gain = Math.round(180 * bonus());
+  S.coins += gain;
+  S.exp += 50;
+  S.skills.crafting = (S.skills.crafting || 0) + 25;
+  save(); hud(); openHunt();
+  toast(`⚒️ Perkakas berhasil ditempa! Terjual +${gain} koin!`);
+}
+
+/* ============ SKILL, TEKNOLOGI & KEAMANAN ============ */
+function openSkillsTech() {
+  const fLv = skillLv('farming'), mLv = skillLv('mining'), cLv = skillLv('crafting');
+  let techHtml = TECHS.map(t => {
+    const owned = hasTech(t.id);
+    const lockLv = level() < t.lv;
+    const can = !owned && !lockLv && S.coins >= t.p;
+    return `<button class="opt ${owned ? 'on' : ''}" ${!can ? 'disabled' : ''} onclick="buyTech('${t.id}')">
+      <b><span>${t.icon} ${t.n}</span><span>${owned ? '✓ Aktif' : lockLv ? '🔒 Lv.' + t.lv : '🪙 ' + t.p}</span></b>
+      <span>${t.desc}</span>
+    </button>`;
+  }).join('');
+
+  let secHtml = SECURITY.map((s, idx) => {
+    if (idx === 0) return '';
+    const owned = S.security === idx, lower = S.security > idx, can = S.coins >= s.p && !owned && !lower;
+    return `<button class="opt ${owned ? 'on' : ''}" ${!can ? 'disabled' : ''} onclick="buySecurity(${idx})">
+      <b><span>🛡️ ${s.n}</span><span>${owned ? '✓ Terpasang' : lower ? '✓ Dilewati' : '🪙 ' + s.p}</span></b>
+      <span>${s.desc}</span>
+    </button>`;
+  }).join('');
+
+  setPanel(`<h2>⚡ Skill, Teknologi & Keamanan</h2>
+    <div class="grid2">
+      <div class="stat-card"><b>🌾 Farming Lv.${fLv}</b><span>XP: ${S.skills.farming || 0} (+${(fLv-1)*5}% hasil)</span></div>
+      <div class="stat-card"><b>⛏️ Mining Lv.${mLv}</b><span>XP: ${S.skills.mining || 0} (+bijih besi)</span></div>
+      <div class="stat-card"><b>🛠️ Crafting Lv.${cLv}</b><span>XP: ${S.skills.crafting || 0} (+${(cLv-1)*8}% masak)</span></div>
+      <div class="stat-card"><b>🛡️ Proteksi: ${Math.round(SECURITY[S.security].prot*100)}%</b><span>${SECURITY[S.security].n}</span></div>
+    </div>
+    <h3>🔬 Riset Teknologi Kebun</h3>
+    ${techHtml}
+    <h3>🛡️ Pagar & Keamanan Ternak/Bencana</h3>
+    ${secHtml}`);
+}
+
+function buyTech(id) {
+  const t = TECHS.find(x => x.id === id);
+  if (!t || hasTech(id) || level() < t.lv || S.coins < t.p) return;
+  S.coins -= t.p;
+  S.techs.push(id);
+  S.exp += 60;
+  save(); hud(); openSkillsTech();
+  toast(`🔬 Teknologi ${t.n} berhasil diaktifkan!`);
+}
+
+function buySecurity(idx) {
+  const s = SECURITY[idx];
+  if (!s || S.security >= idx || S.coins < s.p) return;
+  S.coins -= s.p;
+  S.security = idx;
+  save(); hud(); openSkillsTech();
+  toast(`🛡️ Keamanan ditingkatkan: ${s.n}!`);
 }
 
 /* ============ BELI LAHAN BARU ============ */
@@ -263,14 +836,14 @@ function openLandShop(targetIdx = null) {
   }
   const price = LAND_PRICES[nextIdx];
   const can = S.coins >= price;
-  let html = `<h2>Perluas Lahan Kebun</h2><p>Lahan dimiliki: <b>${S.unlockedPlots} / ${PL.length} petak</b>. Beli lahan baru agar bisa menanam lebih banyak sekaligus!</p>`;
+  let html = `<h2>🌱 Perluas Lahan Kebun</h2><p>Lahan dimiliki: <b>${S.unlockedPlots} / ${PL.length} petak</b>. Beli lahan baru agar bisa menanam lebih banyak sekaligus!</p>`;
   for (let i = 6; i < PL.length; i++) {
     const owned = i < S.unlockedPlots;
     const isNext = i === S.unlockedPlots;
     const pr = LAND_PRICES[i];
     html += `<button class="opt ${owned ? 'on' : ''}" ${!isNext || S.coins < pr ? 'disabled' : ''} onclick="buyLand(${i})">
-      <b>🌱 Petak Lahan #${i + 1}</b>
-      <span>${owned ? '✓ Sudah dimiliki' : isNext ? (pr + ' koin' + (can ? ' — Klik untuk beli!' : ' (kurang ' + (pr - S.coins) + ' koin)')) : '🔒 Buka Petak #' + i + ' dulu (' + pr + ' koin)'}</span>
+      <b><span>🌱 Petak Lahan #${i + 1}</span><span>${owned ? '✓ Dimiliki' : '🪙 ' + pr}</span></b>
+      <span>${owned ? 'Lahan siap ditanami' : isNext ? (can ? 'Klik untuk membuka lahan ini!' : 'Kurang ' + (pr - S.coins) + ' koin') : '🔒 Buka Petak #' + i + ' terlebih dahulu'}</span>
     </button>`;
   }
   setPanel(html);
@@ -283,289 +856,371 @@ function buyLand(i) {
   S.coins -= price;
   S.unlockedPlots++;
   const q = PL[i];
-  spawnParticles(q.x + 34, q.y + 34, '#34d399', 20, 'harvest');
-  floats.push({ x: q.x + 34, y: q.y, t: 75, s: 'Lahan #' + (i + 1) + ' Terbuka!' });
+  spawnParticles(q.x + 32, q.y + 32, '#34d399', 20, 'harvest');
+  floats.push({ x: q.x + 32, y: q.y, t: 75, s: 'Lahan #' + (i + 1) + ' Terbuka!' });
   save(); hud(); openLandShop();
   toast('🌱 Petak Lahan #' + (i + 1) + ' berhasil dibeli!');
 }
 
-/* ============ UPDATE RUMAH ============ */
+/* ============ RUMAH & FURNITUR ============ */
 function openHouse() {
   const cur = HOUSES[S.house] || HOUSES[0];
-  setPanel('<h2>🏠 ' + cur.n + '</h2><p>' + cur.desc + '<br>Bonus panen saat ini: <b>+' + Math.round((bonus() - 1) * 100) + '% koin</b>.</p>' +
-    HOUSES.map((h, i) => {
-      if (!i) return '';
-      const own = S.house === i, lower = S.house > i, can = S.coins >= h.p;
-      return `<button class="opt ${own ? 'on' : ''}" ${own || lower || !can ? 'disabled' : ''} onclick="buyHouse(${i})">
-        <b>${h.n} (+${Math.round((h.b - 1) * 100)}% Koin)</b>
-        <span>${h.desc}<br>${own ? '✓ Rumahmu sekarang' : lower ? '✓ Sudah dilewati' : '🪙 ' + h.p + ' koin' + (can ? '' : ' (kurang ' + (h.p - S.coins) + ')')}</span>
-      </button>`;
-    }).join(''));
+  let houseHtml = HOUSES.map((h, i) => {
+    if (!i) return '';
+    const own = S.house === i, lower = S.house > i, can = S.coins >= h.p;
+    return `<button class="opt ${own ? 'on' : ''}" ${own || lower || !can ? 'disabled' : ''} onclick="buyHouse(${i})">
+      <b><span>🏠 ${h.n}</span><span>+${Math.round((h.b - 1) * 100)}% Koin</span></b>
+      <span>${h.desc}<br>${own ? '✓ Rumahmu sekarang' : lower ? '✓ Sudah dilewati' : '🪙 ' + h.p + ' koin' + (can ? '' : ' (kurang ' + (h.p - S.coins) + ')')}</span>
+    </button>`;
+  }).join('');
+
+  let furnHtml = FURNITURES.map(f => {
+    const own = hasFurn(f.id), can = S.coins >= f.p && !own;
+    return `<button class="opt ${own ? 'on' : ''}" ${!can ? 'disabled' : ''} onclick="buyFurniture('${f.id}')">
+      <b><span>${f.icon} ${f.n}</span><span>${own ? '✓ Terpasang' : '🪙 ' + f.p}</span></b>
+      <span>${f.desc}</span>
+    </button>`;
+  }).join('');
+
+  setPanel(`<h2>🏠 ${cur.n} & Furnitur</h2>
+    <p>${cur.desc}<br>Total Bonus Pendapatan saat ini: <b>+${Math.round((bonus() - 1) * 100)}% koin</b>.</p>
+    <h3>🛋️ Beli Furnitur Interior</h3>
+    ${furnHtml}
+    <h3>🏰 Upgrade Bangunan Rumah</h3>
+    ${houseHtml}`);
 }
 
 function buyHouse(i) {
   const h = HOUSES[i]; if (S.house >= i || S.coins < h.p) return;
   S.coins -= h.p; S.house = i;
-  spawnParticles(200, 130, '#fbbf24', 26, 'harvest');
+  spawnParticles(ZONES.house.x, ZONES.house.y, '#fbbf24', 26, 'harvest');
   save(); hud(); openHouse(); toast('🏡 Selamat! Kini kamu punya ' + h.n + '!');
 }
 
+function buyFurniture(id) {
+  const f = FURNITURES.find(x => x.id === id);
+  if (!f || hasFurn(id) || S.coins < f.p) return;
+  S.coins -= f.p;
+  S.furniture.push(id);
+  S.exp += 35;
+  save(); hud(); openHouse();
+  toast(`${f.icon} Furnitur ${f.n} berhasil dipasang di rumah!`);
+}
+
 function openHow() {
-  setPanel('<h2>Cara bermain</h2>' + [
-    ['Gerak Stickman', 'Gunakan <b>joystick</b> di kiri bawah (atau WASD / tombol panah) untuk menggerakkan petani Stickman.'],
-    ['Tanam & Animasi', 'Dekati petak kosong, tekan <b>Tanam</b>, lalu pilih bibit. Stickman akan mencangkul dan menebar benih!'],
-    ['Panen Sabit', 'Saat tanaman matang, tekan <b>Panen</b>. Stickman akan mengayunkan sabit untuk memanen koin + EXP.'],
-    ['Beli Lahan Baru', 'Dekati lahan terkunci (atau klik tombol <b>+ Lahan</b>) untuk membeli hingga <b>12 petak kebun</b>.'],
-    ['Upgrade Rumah', 'Dekati rumah di atas peta untuk meng-upgrade hingga <b>Mansion Mewah & Istana Sultan</b> (bonus panen s/d +120%).']
-  ].map(r => '<div class="opt" style="cursor:default"><b>' + r[0] + '</b><span style="color:var(--text);font-size:13px">' + r[1] + '</span></div>').join(''));
+  setPanel('<h2>📖 Panduan Lengkap NexGrow</h2>' + [
+    ['☀️ Musim & Cuaca', 'Musim berganti otomatis antara <b>Kemarau, Hujan, dan Musim Dingin</b>. Musim hujan mempercepat panen, sedangkan musim dingin/kemarau membutuhkan teknologi Rumah Kaca/Irigasi.'],
+    ['🐄 Peternakan & Gudang', 'Beli <b>Ayam, Kambing, dan Sapi</b> di Kandang kanan atas. Hasil panen & ternak masuk ke <b>Gudang</b> untuk dijual atau dimasak.'],
+    ['🚜 Mobil & Kendaraan', 'Buka <b>Garasi</b> untuk membeli <b>Gerobak, Motor Trail, Traktor, Mobil Pickup, hingga Mobil Sport GT</b> yang mempercepat gerak Stickman & menambah bonus panen!'],
+    ['🍳 Memasak & 🏹 Berburu', 'Berburu daging/kayu & menambang bijih di pos kanan bawah, lalu olah menjadi masakan mahal di <b>Dapur</b>.'],
+    ['🛡️ Keamanan & Bencana', 'Pasang <b>Pagar Kayu/Besi/Laser</b> dan <b>Drone</b> untuk melindungi kebun dari <b>Banjir, Kekeringan, dan Badai Petir</b>.']
+  ].map(r => '<div class="opt" style="cursor:default"><b>' + r[0] + '</b><span>' + r[1] + '</span></div>').join(''));
 }
 
 async function openRank() {
   if (!ready) return setPanel('<h2>Peringkat</h2><p>Belum tersambung ke Supabase.</p>');
   setPanel('<h2>Peringkat</h2><p>Memuat…</p>');
   const { data } = await sb.from('game_scores').select('phone_4,display_name,avatar_url,best_score,data').eq('game', 'grow').order('best_score', { ascending: false }).limit(10);
-  setPanel('<h2>Peringkat EXP & Rumah</h2>' + ((data || []).map((r, i) => {
+  setPanel('<h2>🏆 Peringkat Sultan NexGrow</h2>' + ((data || []).map((r, i) => {
     const hIdx = Math.min(HOUSES.length - 1, r.data?.house || 0);
-    const plotsCnt = r.data?.unlockedPlots || 6;
-    return `<div class="row"><span>${i + 1}</span><img src="${esc(r.avatar_url)}" alt=""><span class="n">${esc(r.display_name)}</span><span class="s">${r.best_score} EXP<br>${esc(HOUSES[hIdx].n)} (${plotsCnt} Lahan)</span></div>`;
+    const vId = r.data?.curVehicle || 'none';
+    const vObj = VEHICLES.find(v => v.id === vId) || VEHICLES[0];
+    return `<div class="row"><span>${i + 1}</span><img src="${esc(r.avatar_url)}" alt=""><span class="n">${esc(r.display_name)}</span><span class="s">${r.best_score} EXP<br>${esc(HOUSES[hIdx].n)} · ${vObj.icon}</span></div>`;
   }).join('') || '<p>Belum ada data.</p>'));
 }
 
 function hud() {
   const L = level(), lo = 40 * (L - 1) ** 2, hi = 40 * L * L;
   const hName = (HOUSES[S.house] || HOUSES[0]).n;
+  const sn = SEASONS[curSeasonIdx];
   $('coins').textContent = S.coins;
-  $('lvl').textContent = `Lv ${L} · ${hName} (${S.unlockedPlots}/12 Lahan)`;
+  $('lvl').textContent = `Lv ${L} · ${hName}`;
   $('xpbar').style.width = Math.min(100, (S.exp - lo) / (hi - lo) * 100) + '%';
-  $('xptxt').textContent = S.exp + ' / ' + hi + ' EXP';
+  $('xptxt').textContent = `${S.exp}/${hi} EXP`;
+
+  const sc = $('seasonChip');
+  if (activeDisaster) {
+    sc.textContent = `${activeDisaster.icon} ${activeDisaster.n}`;
+    sc.style.borderColor = '#f43f5e';
+    sc.style.color = '#fda4af';
+  } else {
+    sc.textContent = `${sn.icon} ${sn.n.replace('Musim ', '')}`;
+    sc.style.borderColor = 'var(--line)';
+    sc.style.color = 'var(--text)';
+  }
 }
 
-/* ============ GRAFIS REALISTIS (RUMAH, TANAMAN, STICKMAN) ============ */
+/* ============ GRAFIS REALISTIS (MUSIM, RUMAH, KANDANG, GUDANG, MOBIL, STICKMAN) ============ */
 const cv = $('cv'), ctx = cv.getContext('2d');
 
-// 1. Gambar Rumah Realistis (6 Level Upgrade)
-function drawHouse(t, now) {
-  const cx = 200, by = 152;
+// Gambar Gudang (Barn) di Kiri Atas
+function drawBarnBuilding() {
+  const cx = ZONES.barn.x, by = ZONES.barn.y;
   ctx.save();
-
-  const widths = [82, 110, 134, 156, 178, 200];
-  const w = widths[t] || 82;
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(cx, by + 4, 38, 10, 0, 0, Math.PI * 2); ctx.fill();
+  // Dinding Merah Gudang Klasik
+  ctx.fillStyle = '#b91c1c';
+  ctx.fillRect(cx - 32, by - 42, 64, 42);
+  // Atap Gambrel Barn
+  ctx.fillStyle = '#7f1d1d';
   ctx.beginPath();
-  ctx.ellipse(cx, by + 4, w * 0.56, 12, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(cx - 36, by - 42);
+  ctx.lineTo(cx - 20, by - 60);
+  ctx.lineTo(cx + 20, by - 60);
+  ctx.lineTo(cx + 36, by - 42);
+  ctx.closePath(); ctx.fill();
+  // Pintu Silang Putih
+  ctx.fillStyle = '#450a0a';
+  ctx.fillRect(cx - 14, by - 28, 28, 28);
+  ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2;
+  ctx.strokeRect(cx - 14, by - 28, 28, 28);
+  ctx.beginPath();
+  ctx.moveTo(cx - 14, by - 28); ctx.lineTo(cx + 14, by);
+  ctx.moveTo(cx + 14, by - 28); ctx.lineTo(cx - 14, by);
+  ctx.stroke();
+  // Label kapasitas
+  ctx.fillStyle = '#fef08a'; ctx.font = '700 10px Fredoka, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`📦 ${totalInv()}/${S.barnCap}`, cx, by - 64);
+  ctx.restore();
+}
+
+// Gambar Peternakan (Ranch) & Hewan di Kanan Atas
+function drawRanchBuilding(now) {
+  const cx = ZONES.ranch.x, by = ZONES.ranch.y;
+  ctx.save();
+  // Hamparan tanah kandang
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(cx - 42, by - 42, 84, 50, 8) : ctx.rect(cx - 42, by - 42, 84, 50); ctx.fill();
+  // Pagar Kandang
+  ctx.strokeStyle = '#d97706'; ctx.lineWidth = 2.5;
+  ctx.strokeRect(cx - 42, by - 42, 84, 50);
+  // Atap teduh kandang
+  ctx.fillStyle = '#92400e';
+  ctx.fillRect(cx - 40, by - 48, 80, 12);
+
+  // Gambar hewan ternak yang dimiliki (maks tampil 6 ikon bergerak)
+  const epoch = Date.now();
+  let readyCnt = 0;
+  S.animals.slice(0, 6).forEach((a, i) => {
+    if (epoch >= a.readyAt) readyCnt++;
+    const ax = cx - 26 + (i % 3) * 26 + Math.sin(now / 500 + i * 2) * 3;
+    const ay = by - 24 + Math.floor(i / 3) * 18;
+    ctx.font = '14px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(ANIMALS[a.type]?.icon || '🐔', ax, ay);
+  });
+
+  ctx.fillStyle = readyCnt > 0 ? '#fde047' : '#e2e8f0';
+  ctx.font = '700 10px Fredoka, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(readyCnt > 0 ? `✨ ${readyCnt} Siap Panen!` : `🐄 Ternak (${S.animals.length})`, cx, by - 53);
+  ctx.restore();
+}
+
+// Gambar Pos Garasi & Hutan/Tambang di Bawah
+function drawBottomZones(now) {
+  // Garasi Kiri Bawah
+  const gx = ZONES.garage.x, gy = ZONES.garage.y;
+  ctx.save();
+  ctx.fillStyle = '#334155'; ctx.fillRect(gx - 38, gy - 26, 76, 36);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(gx - 28, gy - 18, 56, 28);
+  ctx.fillStyle = '#38bdf8'; ctx.fillRect(gx - 40, gy - 30, 80, 6);
+  ctx.font = '18px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText(vehObj().icon, gx, gy + 2);
+  ctx.fillStyle = '#7dd3fc'; ctx.font = '700 10px Fredoka, sans-serif';
+  ctx.fillText('🚜 Garasi Mobil', gx, gy - 34);
+  ctx.restore();
+
+  // Hutan Berburu & Tambang Kanan Bawah
+  const hx = ZONES.hunt.x, hy = ZONES.hunt.y;
+  ctx.save();
+  // Gua Tambang Batu
+  ctx.fillStyle = '#475569';
+  ctx.beginPath(); ctx.arc(hx + 14, hy + 6, 22, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath(); ctx.arc(hx + 14, hy + 6, 13, Math.PI, 0); ctx.fill();
+  // Pepohonan Hutan Berburu
+  ctx.fillStyle = '#78350f'; ctx.fillRect(hx - 24, hy - 8, 6, 16);
+  ctx.fillStyle = '#15803d';
+  ctx.beginPath(); ctx.moveTo(hx - 36, hy - 4); ctx.lineTo(hx - 21, hy - 32); ctx.lineTo(hx - 6, hy - 4); ctx.fill();
+  ctx.fillStyle = '#fde047'; ctx.font = '700 10px Fredoka, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('🏹 Buru & Tambang', hx, hy - 35);
+  ctx.restore();
+}
+
+// Gambar Pagar Keamanan Kebun
+function drawSecurityFence() {
+  if (S.security <= 0) return;
+  ctx.save();
+  const cols = ['#78350f', '#d97706', '#94a3b8', '#38bdf8'];
+  ctx.strokeStyle = cols[S.security] || '#d97706';
+  ctx.lineWidth = S.security === 3 ? 3 : 2.5;
+  if (S.security === 3) ctx.setLineDash([8, 4]);
+  ctx.strokeRect(12, 222, 348, 258);
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// Gambar Rumah Realistis (6 Level Upgrade + Indikator Furnitur)
+function drawHouse(t, now) {
+  const cx = ZONES.house.x, by = ZONES.house.y;
+  ctx.save();
+  const widths = [74, 96, 114, 130, 146, 164];
+  const w = widths[t] || 74;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(cx, by + 4, w * 0.54, 10, 0, 0, Math.PI * 2); ctx.fill();
 
   if (t >= 1 && Math.random() < 0.08) {
-    smokes.push({ x: cx + w * 0.28, y: by - (55 + t * 8), r: 4, a: 0.55 });
+    smokes.push({ x: cx + w * 0.25, y: by - (48 + t * 6), r: 3.5, a: 0.55 });
   }
   smokes.forEach(s => {
     ctx.fillStyle = `rgba(226,232,240,${s.a})`;
     ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
-    s.y -= 0.45; s.x += Math.sin(now / 400) * 0.25; s.r += 0.08; s.a -= 0.008;
+    s.y -= 0.4; s.x += Math.sin(now / 400) * 0.2; s.r += 0.07; s.a -= 0.009;
   });
   smokes = smokes.filter(s => s.a > 0);
 
   if (t === 0) {
-    const h = 42;
-    ctx.fillStyle = '#854d0e';
-    ctx.fillRect(cx - 38, by - h, 76, h);
-    ctx.strokeStyle = '#713f12'; ctx.lineWidth = 1.5;
-    for (let x = cx - 32; x <= cx + 32; x += 8) {
-      ctx.beginPath(); ctx.moveTo(x, by - h); ctx.lineTo(x, by); ctx.stroke();
-    }
+    const h = 38;
+    ctx.fillStyle = '#854d0e'; ctx.fillRect(cx - 34, by - h, 68, h);
     ctx.fillStyle = '#a16207';
-    ctx.beginPath();
-    ctx.moveTo(cx - 48, by - h + 4);
-    ctx.lineTo(cx, by - h - 30);
-    ctx.lineTo(cx + 48, by - h + 4);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 2;
-    for (let i = -40; i <= 40; i += 8) {
-      ctx.beginPath(); ctx.moveTo(cx, by - h - 28); ctx.lineTo(cx + i, by - h + 3); ctx.stroke();
-    }
-    ctx.fillStyle = '#451a03'; ctx.fillRect(cx - 9, by - 26, 18, 26);
-    ctx.fillStyle = '#fef08a'; ctx.fillRect(cx - 28, by - 26, 12, 12);
-    ctx.strokeStyle = '#451a03'; ctx.strokeRect(cx - 28, by - 26, 12, 12);
-
+    ctx.beginPath(); ctx.moveTo(cx - 42, by - h + 3); ctx.lineTo(cx, by - h - 26); ctx.lineTo(cx + 42, by - h + 3); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#451a03'; ctx.fillRect(cx - 8, by - 22, 16, 22);
   } else if (t === 1) {
-    const h = 52;
-    ctx.fillStyle = '#57534e'; ctx.fillRect(cx + 24, by - h - 26, 14, 30);
-    const g = ctx.createLinearGradient(0, by - h, 0, by);
-    g.addColorStop(0, '#b45309'); g.addColorStop(1, '#78350f');
-    ctx.fillStyle = g; ctx.fillRect(cx - 50, by - h, 100, h);
-    ctx.strokeStyle = '#451a03'; ctx.lineWidth = 1;
-    for (let y = by - h + 8; y < by; y += 8) {
-      ctx.beginPath(); ctx.moveTo(cx - 50, y); ctx.lineTo(cx + 50, y); ctx.stroke();
-    }
+    const h = 46;
+    ctx.fillStyle = '#b45309'; ctx.fillRect(cx - 44, by - h, 88, h);
     ctx.fillStyle = '#7c2d12';
-    ctx.beginPath();
-    ctx.moveTo(cx - 60, by - h + 3);
-    ctx.lineTo(cx, by - h - 34);
-    ctx.lineTo(cx + 60, by - h + 3);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#3b1909'; ctx.fillRect(cx - 10, by - 30, 20, 30);
-    ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(cx + 6, by - 14, 2, 0, 7); ctx.fill();
-    [-34, 20].forEach(ox => {
-      ctx.fillStyle = '#fde68a'; ctx.fillRect(cx + ox, by - 34, 15, 15);
-      ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2; ctx.strokeRect(cx + ox, by - 34, 15, 15);
-    });
-
+    ctx.beginPath(); ctx.moveTo(cx - 52, by - h + 3); ctx.lineTo(cx, by - h - 28); ctx.lineTo(cx + 52, by - h + 3); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#3b1909'; ctx.fillRect(cx - 9, by - 26, 18, 26);
+    ctx.fillStyle = '#fde68a'; ctx.fillRect(cx - 30, by - 30, 13, 13); ctx.fillRect(cx + 17, by - 30, 13, 13);
   } else if (t === 2) {
-    const h = 64;
-    ctx.fillStyle = '#78716c'; ctx.fillRect(cx + 32, by - h - 28, 16, 32);
-    ctx.fillStyle = '#94a3b8'; ctx.fillRect(cx - 62, by - h, 124, h);
-    ctx.fillStyle = '#475569'; ctx.fillRect(cx - 64, by - 10, 128, 10);
-    ctx.fillStyle = '#64748b';
-    for (let r = 0; r < 4; r++) {
-      for (let c = -2; c <= 2; c++) {
-        ctx.fillRect(cx + c * 22 + (r % 2) * 10, by - h + 10 + r * 12, 12, 6);
-      }
-    }
+    const h = 54;
+    ctx.fillStyle = '#94a3b8'; ctx.fillRect(cx - 52, by - h, 104, h);
     ctx.fillStyle = '#1e3a8a';
-    ctx.beginPath();
-    ctx.moveTo(cx - 72, by - h + 4);
-    ctx.lineTo(cx, by - h - 38);
-    ctx.lineTo(cx + 72, by - h + 4);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#451a03';
-    ctx.beginPath(); ctx.arc(cx, by - 22, 12, Math.PI, 0); ctx.lineTo(cx + 12, by); ctx.lineTo(cx - 12, by); ctx.fill();
-    [-44, 26].forEach(ox => {
-      ctx.fillStyle = '#7dd3fc'; ctx.fillRect(cx + ox, by - 42, 18, 20);
-      ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2; ctx.strokeRect(cx + ox, by - 42, 18, 20);
-    });
-
+    ctx.beginPath(); ctx.moveTo(cx - 60, by - h + 3); ctx.lineTo(cx, by - h - 32); ctx.lineTo(cx + 60, by - h + 3); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#451a03'; ctx.fillRect(cx - 10, by - 28, 20, 28);
+    ctx.fillStyle = '#7dd3fc'; ctx.fillRect(cx - 38, by - 36, 15, 16); ctx.fillRect(cx + 23, by - 36, 15, 16);
   } else if (t === 3) {
-    const h = 76;
-    ctx.fillStyle = '#f8fafc'; ctx.fillRect(cx - 72, by - 44, 144, 44);
-    ctx.fillStyle = '#e2e8f0'; ctx.fillRect(cx - 56, by - h, 112, 34);
-    ctx.fillStyle = '#d97706';
-    ctx.fillRect(cx - 76, by - 46, 152, 5);
-    ctx.fillRect(cx - 62, by - h - 6, 124, 7);
-    const glass = ctx.createLinearGradient(0, by - h, 0, by);
-    glass.addColorStop(0, '#38bdf8'); glass.addColorStop(1, '#0284c7');
-    ctx.fillStyle = glass;
-    ctx.fillRect(cx - 44, by - h + 7, 38, 20);
-    ctx.fillRect(cx + 6, by - h + 7, 38, 20);
-    ctx.fillRect(cx - 60, by - 34, 34, 24);
-    ctx.fillRect(cx + 26, by - 34, 34, 24);
-    ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 14, by - 32, 28, 32);
-    ctx.fillStyle = '#16a34a';
-    ctx.beginPath(); ctx.arc(cx - 66, by - 4, 8, 0, 7); ctx.arc(cx + 66, by - 4, 8, 0, 7); ctx.fill();
-
+    const h = 64;
+    ctx.fillStyle = '#f8fafc'; ctx.fillRect(cx - 60, by - 38, 120, 38);
+    ctx.fillStyle = '#e2e8f0'; ctx.fillRect(cx - 46, by - h, 92, 28);
+    ctx.fillStyle = '#d97706'; ctx.fillRect(cx - 64, by - 40, 128, 4); ctx.fillRect(cx - 50, by - h - 5, 100, 6);
+    ctx.fillStyle = '#38bdf8'; ctx.fillRect(cx - 36, by - h + 6, 30, 16); ctx.fillRect(cx + 6, by - h + 6, 30, 16);
+    ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 12, by - 28, 24, 28);
   } else if (t === 4) {
-    const h = 84;
-    ctx.fillStyle = '#fef3c7'; ctx.fillRect(cx - 84, by - 52, 168, 52);
-    ctx.fillStyle = '#fde68a'; ctx.fillRect(cx - 60, by - h, 120, 34);
+    const h = 70;
+    ctx.fillStyle = '#fef3c7'; ctx.fillRect(cx - 68, by - 44, 136, 44);
     ctx.fillStyle = '#991b1b';
-    ctx.beginPath();
-    ctx.moveTo(cx - 90, by - 52); ctx.lineTo(cx - 64, by - h - 22);
-    ctx.lineTo(cx + 64, by - h - 22); ctx.lineTo(cx + 90, by - 52);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    [-70, -36, 28, 62].forEach(px => ctx.fillRect(cx + px, by - 50, 8, 50));
-    ctx.fillStyle = '#fef08a';
-    [-54, 38].forEach(ox => ctx.fillRect(cx + ox, by - 38, 16, 24));
-    ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 15, by - 36, 30, 36);
-    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.strokeRect(cx - 15, by - 36, 30, 36);
-
+    ctx.beginPath(); ctx.moveTo(cx - 74, by - 44); ctx.lineTo(cx - 52, by - h - 14); ctx.lineTo(cx + 52, by - h - 14); ctx.lineTo(cx + 74, by - 44); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff'; [-56, -28, 22, 50].forEach(px => ctx.fillRect(cx + px, by - 42, 6, 42));
+    ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 12, by - 30, 24, 30);
   } else {
-    ctx.fillStyle = '#f1f5f9';
-    ctx.fillRect(cx - 94, by - 78, 30, 78);
-    ctx.fillRect(cx + 64, by - 78, 30, 78);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(cx - 66, by - 68, 132, 68);
-    const gold = ctx.createLinearGradient(0, by - 115, 0, by - 65);
-    gold.addColorStop(0, '#fde047'); gold.addColorStop(1, '#d97706');
-    ctx.fillStyle = gold;
-    ctx.beginPath(); ctx.arc(cx, by - 68, 34, Math.PI, 0); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(cx - 98, by - 78); ctx.lineTo(cx - 79, by - 106); ctx.lineTo(cx - 60, by - 78); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(cx + 60, by - 78); ctx.lineTo(cx + 79, by - 106); ctx.lineTo(cx + 98, by - 78); ctx.fill();
-    ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(cx, by - 102); ctx.lineTo(cx, by - 114); ctx.stroke();
-    ctx.fillStyle = '#dc2626'; ctx.fillRect(cx - 14, by - 38, 28, 42);
-    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2.5; ctx.strokeRect(cx - 14, by - 38, 28, 38);
-    ctx.fillStyle = '#38bdf8';
-    [-46, 30, -84, 74].forEach(ox => ctx.fillRect(cx + ox, by - 54, 14, 22));
+    ctx.fillStyle = '#f1f5f9'; ctx.fillRect(cx - 76, by - 64, 24, 64); ctx.fillRect(cx + 52, by - 64, 24, 64);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - 54, by - 56, 108, 56);
+    ctx.fillStyle = '#eab308';
+    ctx.beginPath(); ctx.arc(cx, by - 56, 28, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#dc2626'; ctx.fillRect(cx - 12, by - 32, 24, 32);
   }
 
+  // Atap Kaca / Radar jika punya Teknologi
+  if (hasTech('drone')) {
+    const dx = cx + Math.cos(now / 600) * 45, dy = by - 78 + Math.sin(now / 300) * 5;
+    ctx.font = '14px system-ui'; ctx.textAlign = 'center'; ctx.fillText('🛸', dx, dy);
+  }
   ctx.restore();
 }
 
-// 2. Gambar Tanaman Lebih Realistis
+// Gambar Tanaman Lebih Realistis
 function drawCrop(k, x, y, pr, now) {
-  const sway = Math.sin(now / 350 + x) * (pr * 3.5);
-  const h = k === 'tebu' ? 14 + pr * 42 : 10 + pr * 30;
+  const sway = Math.sin(now / 350 + x) * (pr * 3.2);
+  const h = k === 'tebu' ? 12 + pr * 36 : 9 + pr * 26;
 
   for (let i = -1; i <= 1; i++) {
-    const bx = x + i * 17;
+    const bx = x + i * 15;
     const tx = bx + sway;
     const ty = y - h;
 
     ctx.strokeStyle = pr < 0.7 ? '#22c55e' : '#16a34a';
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(bx, y - h * 0.35);
-    ctx.quadraticCurveTo(bx - 10, y - h * 0.6, bx - 12 + sway * 0.5, y - h * 0.45);
+    ctx.quadraticCurveTo(bx - 8, y - h * 0.6, bx - 10 + sway * 0.5, y - h * 0.45);
     ctx.moveTo(bx, y - h * 0.55);
-    ctx.quadraticCurveTo(bx + 10, y - h * 0.8, bx + 12 + sway * 0.5, y - h * 0.65);
+    ctx.quadraticCurveTo(bx + 8, y - h * 0.8, bx + 10 + sway * 0.5, y - h * 0.65);
     ctx.stroke();
 
     ctx.strokeStyle = pr < 0.7 ? '#4ade80' : (k === 'tebu' ? '#84cc16' : '#65a30d');
-    ctx.lineWidth = k === 'tebu' ? 4.5 : 3;
+    ctx.lineWidth = k === 'tebu' ? 4 : 2.8;
     ctx.beginPath();
     ctx.moveTo(bx, y);
     ctx.quadraticCurveTo(bx + sway * 0.4, y - h * 0.5, tx, ty);
     ctx.stroke();
 
     if (pr >= 0.65) {
-      if (k === 'padi') {
-        ctx.fillStyle = '#facc15';
-        for (let g = 0; g < 4; g++) {
-          ctx.beginPath();
-          ctx.ellipse(tx + (g - 1.5) * 2.5, ty + g * 2.2, 2.5, 4, 0.4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (k === 'jagung') {
-        ctx.fillStyle = '#fde047';
-        ctx.beginPath();
-        ctx.ellipse(tx, y - h * 0.62, 4.5, 9, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(tx - 2, y - h * 0.66, 4, 2);
-        ctx.fillRect(tx - 2, y - h * 0.58, 4, 2);
-      } else {
-        ctx.fillStyle = '#581c87';
-        ctx.fillRect(bx - 2.5 + sway * 0.3, y - h * 0.35, 5, 2.5);
-        ctx.fillRect(bx - 2.5 + sway * 0.6, y - h * 0.68, 5, 2.5);
-        ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(tx, ty); ctx.lineTo(tx - 9, ty - 8);
-        ctx.moveTo(tx, ty); ctx.lineTo(tx + 9, ty - 8);
-        ctx.stroke();
-      }
+      ctx.fillStyle = CROPS[k]?.c || '#facc15';
+      ctx.beginPath();
+      ctx.ellipse(tx, ty + 2, 3.5, 6, 0.2, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
 
-// 3. Gambar Player Stickman Petani + Animasi Tanam & Panen
+// Gambar Player Stickman + Kendaraan (Gerobak / Motor / Traktor / Mobil Sport) + Animasi Cangkul & Sabit
 function drawStickman(now) {
   ctx.save();
   ctx.translate(P.x, P.y);
 
-  ctx.fillStyle = 'rgba(0,0,0,0.32)';
-  ctx.beginPath();
-  ctx.ellipse(0, 18, 12, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-
   const d = P.dir;
+  const vId = S.curVehicle;
+  const v = vehObj();
+
+  // Jika sedang mengendarai Mobil / Traktor / Motor / Gerobak (saat tidak mencangkul)
+  if (vId !== 'none' && !P.anim) {
+    ctx.save();
+    ctx.scale(d, 1);
+    // Bayangan kendaraan
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(0, 19, 22, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Bodi kendaraan di bawah/sekitar Stickman
+    ctx.fillStyle = v.col;
+    if (vId === 'cart') {
+      ctx.fillRect(-20, 2, 26, 12);
+      ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(6, 8); ctx.lineTo(18, 4); ctx.stroke();
+    } else if (vId === 'motor') {
+      ctx.beginPath(); ctx.moveTo(-16, 12); ctx.lineTo(-4, 2); ctx.lineTo(14, 4); ctx.lineTo(18, 12); ctx.closePath(); ctx.fill();
+    } else if (vId === 'tractor') {
+      ctx.fillRect(-20, -4, 36, 18);
+      ctx.fillStyle = '#14532d'; ctx.fillRect(-16, -18, 20, 14);
+    } else {
+      // Pickup / Sport GT
+      ctx.beginPath();
+      ctx.moveTo(-24, 14); ctx.lineTo(-22, 2); ctx.lineTo(-8, -6); ctx.lineTo(10, -6); ctx.lineTo(24, 4); ctx.lineTo(24, 14);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#bae6fd'; ctx.fillRect(-6, -4, 14, 7);
+    }
+    // Roda Kendaraan Berputar
+    ctx.fillStyle = '#0f172a';
+    const r1 = vId === 'tractor' ? 8 : 5.5;
+    ctx.beginPath(); ctx.arc(-12, 15, r1, 0, Math.PI * 2); ctx.arc(13, 15, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath(); ctx.arc(-12, 15, 2.2, 0, Math.PI * 2); ctx.arc(13, 15, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Bayangan kaki standar
+  if (vId === 'none' || P.anim) {
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.beginPath(); ctx.ellipse(0, 18, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
   let legSwing = P.moving ? Math.sin(P.walkCycle) * 8 : 0;
   let armSwing = P.moving ? -Math.sin(P.walkCycle) * 8 : Math.sin(now / 400) * 1.5;
   let bodyTilt = P.moving ? d * 0.08 : 0;
   let toolAngle = 0;
-  let animProg = 0;
 
   if (P.anim) {
-    animProg = Math.min(1, (now - P.anim.start) / P.anim.dur);
+    const animProg = Math.min(1, (now - P.anim.start) / P.anim.dur);
     const strike = Math.sin(animProg * Math.PI * 3);
     bodyTilt = d * (0.25 + Math.abs(strike) * 0.22);
     legSwing = 4;
@@ -574,7 +1229,7 @@ function drawStickman(now) {
     if (animProg >= 0.45 && !P.anim.fxDone) {
       P.anim.fxDone = true;
       const q = PL[P.anim.plotIdx];
-      spawnParticles(q.x + 34, q.y + 38, P.anim.type === 'plant' ? '#78350f' : '#facc15', 10, 'dirt');
+      spawnParticles(q.x + 32, q.y + 34, P.anim.type === 'plant' ? '#78350f' : '#facc15', 10, 'dirt');
     }
     if (animProg >= 1) {
       const doneAnim = P.anim;
@@ -586,115 +1241,87 @@ function drawStickman(now) {
 
   ctx.rotate(bodyTilt);
 
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#1e3a8a';
-  ctx.lineWidth = 4.2;
+  // Kaki Stickman
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#1e3a8a'; ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(0, 4); ctx.lineTo(-5 + legSwing, 17);
-  ctx.moveTo(0, 4); ctx.lineTo(5 - legSwing, 17);
+  ctx.moveTo(0, 4); ctx.lineTo(-5 + legSwing, 16);
+  ctx.moveTo(0, 4); ctx.lineTo(5 - legSwing, 16);
   ctx.stroke();
 
-  ctx.fillStyle = '#451a03';
-  ctx.fillRect(-8 + legSwing, 15, 6, 4);
-  ctx.fillRect(3 - legSwing, 15, 6, 4);
+  // Badan Stickman
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 5); ctx.stroke();
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(0, 4); ctx.stroke();
 
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(0, -12);
-  ctx.lineTo(0, 5);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#10b981';
-  ctx.lineWidth = 3.2;
-  ctx.beginPath();
-  ctx.moveTo(0, -11);
-  ctx.lineTo(0, 4);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 3.5;
-  ctx.beginPath();
-  ctx.moveTo(0, -9);
-  ctx.lineTo(-d * 7 - armSwing * 0.5, 1);
-  ctx.stroke();
-
+  // Tangan & Alat Cangkul / Sabit
   ctx.save();
   ctx.translate(0, -9);
   if (P.anim) {
     ctx.rotate(d * (-0.5 + toolAngle));
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 3.8;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(d * 12, 4);
-    ctx.stroke();
-
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3.6;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(d * 12, 4); ctx.stroke();
     if (P.anim.type === 'plant') {
-      ctx.strokeStyle = '#92400e';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(d * 4, 2);
-      ctx.lineTo(d * 24, 10);
-      ctx.stroke();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.moveTo(d * 23, 8);
-      ctx.lineTo(d * 20, 17);
-      ctx.stroke();
-    } else if (P.anim.type === 'harvest') {
-      ctx.strokeStyle = '#92400e';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(d * 6, 2);
-      ctx.lineTo(d * 14, 6);
-      ctx.stroke();
-      ctx.strokeStyle = '#facc15';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.arc(d * 18, 2, 9, d > 0 ? 0.2 : Math.PI - 1.8, d > 0 ? 1.9 : Math.PI - 0.2);
-      ctx.stroke();
+      ctx.strokeStyle = '#92400e'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(d * 4, 2); ctx.lineTo(d * 23, 10); ctx.stroke();
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(d * 22, 8); ctx.lineTo(d * 19, 16); ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.arc(d * 17, 2, 8.5, d > 0 ? 0.2 : Math.PI - 1.8, d > 0 ? 1.9 : Math.PI - 0.2); ctx.stroke();
     }
   } else {
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(d * 7 + armSwing * 0.6, 9);
-    ctx.stroke();
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(d * 7 + armSwing * 0.5, 8); ctx.stroke();
   }
   ctx.restore();
 
-  ctx.fillStyle = '#fde68a';
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.arc(0, -19, 7.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
+  // Kepala & Topi Caping Petani
+  ctx.fillStyle = '#fde68a'; ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.arc(0, -18.5, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#0f172a';
-  ctx.beginPath();
-  ctx.arc(d * 2.8, -19.5, 1.4, 0, Math.PI * 2);
-  ctx.arc(d * 6.0, -19.5, 1.4, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(d * 2.5, -19, 1.3, 0, 7); ctx.arc(d * 5.5, -19, 1.3, 0, 7); ctx.fill();
+  ctx.fillStyle = '#f59e0b'; ctx.strokeStyle = '#78350f'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.ellipse(0, -24, 12, 3.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -24, 6.5, Math.PI, 0); ctx.fill(); ctx.stroke();
 
-  ctx.fillStyle = '#f59e0b';
-  ctx.strokeStyle = '#78350f';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.ellipse(0, -25, 13, 3.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, -25, 7, Math.PI, 0);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ef4444';
-  ctx.fillRect(-6.5, -26.5, 13, 2);
+  ctx.restore();
+}
 
+// Efek Cuaca (Hujan / Salju Musim Dingin / Banjir)
+function drawWeather(now) {
+  const sn = SEASONS[curSeasonIdx];
+  const isRain = sn.id === 'hujan' || (activeDisaster && (activeDisaster.id === 'badai' || activeDisaster.id === 'banjir'));
+  const isSnow = sn.id === 'dingin';
+
+  if ((isRain || isSnow) && weatherDrops.length < 45) {
+    weatherDrops.push({
+      x: Math.random() * 400,
+      y: -10,
+      vy: isSnow ? 1.2 + Math.random() * 1.2 : 6 + Math.random() * 4,
+      vx: isSnow ? Math.sin(now / 500) * 0.6 : -1.2
+    });
+  }
+
+  ctx.save();
+  weatherDrops.forEach(w => {
+    if (isSnow) {
+      ctx.fillStyle = 'rgba(241,245,249,0.8)';
+      ctx.beginPath(); ctx.arc(w.x, w.y, 2.2, 0, Math.PI * 2); ctx.fill();
+    } else if (isRain) {
+      ctx.strokeStyle = 'rgba(125,211,252,0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(w.x, w.y); ctx.lineTo(w.x + w.vx * 2, w.y + 9); ctx.stroke();
+    }
+    w.x += w.vx; w.y += w.vy;
+  });
+  weatherDrops = weatherDrops.filter(w => w.y < 610 && (isRain || isSnow));
+
+  if (activeDisaster && activeDisaster.id === 'banjir') {
+    ctx.fillStyle = 'rgba(14, 116, 144, 0.25)';
+    ctx.fillRect(0, 210, 400, 390);
+  }
   ctx.restore();
 }
 
@@ -702,123 +1329,115 @@ function draw() {
   const now = performance.now();
   const epoch = Date.now();
   const n = started ? near() : null;
+  const sn = SEASONS[curSeasonIdx];
 
+  // 1. Latar Sesuai Musim (Kemarau / Hujan / Dingin)
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 600);
-  bgGrad.addColorStop(0, '#065f46');
-  bgGrad.addColorStop(0.28, '#15803d');
-  bgGrad.addColorStop(1, '#14532d');
+  bgGrad.addColorStop(0, sn.sky);
+  bgGrad.addColorStop(0.28, sn.grass1);
+  bgGrad.addColorStop(1, sn.grass2);
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, 400, 600);
 
-  ctx.fillStyle = 'rgba(22, 163, 74, 0.35)';
-  for (let y = 160; y < 600; y += 36) ctx.fillRect(0, y, 400, 18);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  for (let y = 175; y < 600; y += 36) ctx.fillRect(0, y, 400, 18);
 
-  ctx.fillStyle = '#064e3b';
-  [[38, 138, 22], [65, 145, 16], [362, 138, 22], [335, 145, 16]].forEach(([bx, by, br]) => {
-    ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#047857';
-    ctx.beginPath(); ctx.arc(bx - 4, by - 4, br * 0.75, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#064e3b';
-  });
-
+  // Jalan Setapak Batu
   ctx.fillStyle = '#78716c';
-  ctx.fillRect(182, 150, 36, 56);
-  ctx.fillStyle = '#a8a29e';
-  [[186, 155], [202, 158], [188, 172], [204, 176], [190, 190], [202, 193]].forEach(([sx, sy]) => {
-    ctx.beginPath(); ctx.ellipse(sx + 5, sy + 4, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
-  });
+  ctx.fillRect(172, 145, 28, 85);
 
+  // 2. Bangunan Utama: Gudang, Rumah, Peternakan, Garasi, Hutan/Tambang
+  drawBarnBuilding();
   drawHouse(S.house, now);
-  if (n && n.t === 'h') {
-    ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3;
-    ctx.strokeRect(145, 84, 110, 74);
+  drawRanchBuilding(now);
+  drawBottomZones(now);
+  drawSecurityFence();
+
+  // Highlight Zona jika didekati
+  if (n && n.t !== 'p') {
+    const z = ZONES[n.t];
+    if (z) {
+      ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2.5;
+      ctx.strokeRect(z.x - 42, z.y - 46, 84, 58);
+    }
   }
 
+  // 3. Gambar 12 Petak Lahan Kebun
   ctx.textAlign = 'center';
-  ctx.font = '700 12px Fredoka, sans-serif';
+  ctx.font = '700 11px Fredoka, sans-serif';
 
   PL.forEach((q, i) => {
     const unlocked = i < S.unlockedPlots;
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.fillRect(q.x + 3, q.y + 4, 68, 68);
+    ctx.fillStyle = 'rgba(0,0,0,0.26)';
+    ctx.fillRect(q.x + 3, q.y + 4, 64, 64);
 
     if (unlocked) {
-      ctx.fillStyle = '#92400e';
-      ctx.fillRect(q.x - 2, q.y - 2, 72, 72);
-      ctx.fillStyle = '#5c2d0c';
-      ctx.fillRect(q.x, q.y, 68, 68);
+      ctx.fillStyle = hasTech('irigasi') ? '#0284c7' : '#92400e';
+      ctx.fillRect(q.x - 2, q.y - 2, 68, 68);
+      ctx.fillStyle = sn.id === 'dingin' && !hasTech('greenhouse') ? '#475569' : '#5c2d0c';
+      ctx.fillRect(q.x, q.y, 64, 64);
       ctx.fillStyle = '#3b1906';
-      for (let k = 1; k <= 4; k++) ctx.fillRect(q.x + 4, q.y + k * 13, 60, 4);
+      for (let k = 1; k <= 4; k++) ctx.fillRect(q.x + 4, q.y + k * 12, 56, 3.5);
 
       const s = S.plots[i];
       if (s) {
         const pr = Math.min(1, (epoch - s.s) / (s.e - s.s));
-        drawCrop(s.c, q.x + 34, q.y + 58, pr, now);
+        drawCrop(s.c, q.x + 32, q.y + 54, pr, now);
         ctx.fillStyle = pr >= 1 ? '#fde047' : '#ffffff';
-        ctx.fillText(pr < 1 ? fmt(s.e - epoch) : '✨ Panen!', q.x + 34, q.y - 5 - (pr >= 1 ? Math.abs(Math.sin(now / 180)) * 4 : 0));
+        ctx.fillText(pr < 1 ? fmt(s.e - epoch) : '✨ Panen!', q.x + 32, q.y - 4 - (pr >= 1 ? Math.abs(Math.sin(now / 180)) * 3 : 0));
       }
     } else {
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(q.x, q.y, 68, 68);
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 4]);
-      ctx.strokeRect(q.x + 2, q.y + 2, 64, 64);
-      ctx.setLineDash([]);
-
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(q.x + 31, q.y + 32, 6, 20);
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(q.x + 12, q.y + 16, 44, 20);
-      ctx.strokeStyle = '#451a03'; ctx.lineWidth = 1.5;
-      ctx.strokeRect(q.x + 12, q.y + 16, 44, 20);
-
-      ctx.fillStyle = '#fef08a';
-      ctx.font = '700 10px Fredoka, sans-serif';
-      ctx.fillText(i === S.unlockedPlots ? '🪙 ' + LAND_PRICES[i] : '🔒 #' + (i + 1), q.x + 34, q.y + 29);
-      ctx.font = '700 12px Fredoka, sans-serif';
+      ctx.fillRect(q.x, q.y, 64, 64);
+      ctx.strokeStyle = '#475569'; ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]); ctx.strokeRect(q.x + 2, q.y + 2, 60, 60); ctx.setLineDash([]);
+      ctx.fillStyle = '#d97706'; ctx.fillRect(q.x + 10, q.y + 18, 44, 18);
+      ctx.fillStyle = '#fef08a'; ctx.font = '700 9.5px Fredoka, sans-serif';
+      ctx.fillText(i === S.unlockedPlots ? '🪙 ' + LAND_PRICES[i] : '🔒 #' + (i + 1), q.x + 32, q.y + 30);
+      ctx.font = '700 11px Fredoka, sans-serif';
     }
 
     if (n && n.t === 'p' && n.i === i) {
       ctx.strokeStyle = unlocked ? '#ffffff' : '#fbbf24';
       ctx.lineWidth = 3;
-      ctx.strokeRect(q.x - 4, q.y - 4, 76, 76);
+      ctx.strokeRect(q.x - 4, q.y - 4, 72, 72);
     }
   });
 
+  // 4. Karakter Stickman & Kendaraan
   drawStickman(now);
 
+  // 5. Partikel & Cuaca
   particles.forEach(pt => {
     ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
     ctx.fillStyle = pt.c;
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, pt.sz, 0, Math.PI * 2);
-    ctx.fill();
-    pt.x += pt.vx;
-    pt.y += pt.vy;
-    pt.vy += 0.12;
-    pt.life--;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.sz, 0, Math.PI * 2); ctx.fill();
+    pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.12; pt.life--;
   });
   ctx.globalAlpha = 1;
   particles = particles.filter(pt => pt.life > 0);
 
+  drawWeather(now);
+
+  // 6. Teks Melayang
   ctx.fillStyle = '#fbbf24';
-  ctx.font = '700 16px Fredoka, sans-serif';
+  ctx.font = '700 14px Fredoka, sans-serif';
   floats.forEach(f => {
     ctx.globalAlpha = Math.min(1, f.t / 30);
-    ctx.fillText(f.s, f.x, f.y - (75 - f.t) * .8);
+    ctx.fillText(f.s, f.x, f.y - (75 - f.t) * .7);
     f.t--;
   });
   ctx.globalAlpha = 1;
   floats = floats.filter(f => f.t > 0);
 
+  // 7. Tombol Aksi Kanan Bawah
   const b = $('act');
   if (!started || !n) {
-    b.disabled = true; b.textContent = 'Dekati kebun';
+    b.disabled = true; b.textContent = 'Dekati objek';
   } else if (P.anim) {
     b.disabled = true; b.textContent = P.anim.type === 'plant' ? 'Menanam…' : 'Memanen…';
-  } else if (n.t === 'h') {
-    b.disabled = false; b.textContent = '🏠 Rumah';
+  } else if (n.t !== 'p') {
+    b.disabled = false; b.textContent = n.label;
   } else if (n.i >= S.unlockedPlots) {
     b.disabled = false;
     b.textContent = n.i === S.unlockedPlots ? `Beli (${LAND_PRICES[n.i]})` : 'Beli Lahan';
@@ -835,15 +1454,15 @@ function loop() {
   const m = Math.hypot(dx, dy);
   if (m > 1) { dx /= m; dy /= m; }
 
+  const spd = 3.1 * vehObj().spd;
   if ($('panel').classList.contains('hidden') && !P.anim) {
     P.moving = m > 0.08;
     if (P.moving) {
       if (Math.abs(dx) > 0.05) P.dir = dx > 0 ? 1 : -1;
-      P.walkCycle += m * 0.28;
+      P.walkCycle += m * 0.28 * vehObj().spd;
     }
-    P.x = Math.max(16, Math.min(384, P.x + dx * 3.2));
-    const top = (P.x > 110 && P.x < 290) ? 162 : 105;
-    P.y = Math.max(top, Math.min(575, P.y + dy * 3.2));
+    P.x = Math.max(16, Math.min(384, P.x + dx * spd));
+    P.y = Math.max(115, Math.min(575, P.y + dy * spd));
   } else {
     P.moving = false;
   }
