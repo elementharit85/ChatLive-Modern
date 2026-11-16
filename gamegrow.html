@@ -16,18 +16,18 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-famil
 canvas{width:100%;height:100%;display:block;object-fit:contain}
 .hidden{display:none!important}
 .hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;pointer-events:none}
-.chip{background:rgba(15,23,42,.85);border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700}
-.coin{width:14px;height:14px;border-radius:50%;background:var(--warn);display:inline-block}
+.chip{background:rgba(15,23,42,.85);border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700;backdrop-filter:blur(4px)}
+.coin{width:14px;height:14px;border-radius:50%;background: radial-gradient(circle at 30% 30%, #fde047, #d97706);display:inline-block;box-shadow:0 0 6px rgba(251,191,36,.6)}
 .lv{flex:1;flex-direction:column;align-items:stretch;gap:3px;font-size:13px}
 .bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden}
-#xpbar{height:100%;background:var(--brand);width:0}
+#xpbar{height:100%;background:linear-gradient(90deg,#10b981,#34d399);width:0;transition:width .3s}
 .lv small{color:var(--mute);font-weight:500;font-size:11px}
 .top2{position:absolute;top:58px;left:8px;display:flex;gap:6px}
-.mini{font:inherit;font-size:13px;font-weight:700;background:rgba(15,23,42,.85);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-decoration:none;cursor:pointer}
+.mini{font:inherit;font-size:13px;font-weight:700;background:rgba(15,23,42,.85);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-decoration:none;cursor:pointer;backdrop-filter:blur(4px)}
 #joyZone{position:absolute;left:18px;bottom:calc(22px + env(safe-area-inset-bottom));width:130px;height:130px;border-radius:50%;background:rgba(15,23,42,.45);border:2px solid rgba(226,232,240,.35);touch-action:none;display:flex;align-items:center;justify-content:center}
 #knob{width:52px;height:52px;border-radius:50%;background:rgba(52,211,153,.85);border:2px solid #052e22;pointer-events:none}
-#act{position:absolute;right:20px;bottom:calc(36px + env(safe-area-inset-bottom));min-width:104px;height:84px;border-radius:24px;border:0;background:var(--brand);color:#052e22;font:inherit;font-weight:700;font-size:16px;padding:0 14px;cursor:pointer}
-#act:disabled{background:#334155;color:var(--mute)}
+#act{position:absolute;right:20px;bottom:calc(36px + env(safe-area-inset-bottom));min-width:112px;height:84px;border-radius:24px;border:0;background:var(--brand);color:#052e22;font:inherit;font-weight:700;font-size:16px;padding:0 16px;cursor:pointer;box-shadow:0 6px 20px rgba(52,211,153,.35)}
+#act:disabled{background:#334155;color:var(--mute);box-shadow:none}
 #panel{position:absolute;inset:0;background:rgba(11,17,32,.9);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
 .box{width:100%;max-width:340px;max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .box h2{margin:0;font-size:20px}.box p{margin:0;color:var(--mute);font-size:13px}
@@ -37,7 +37,7 @@ canvas{width:100%;height:100%;display:block;object-fit:contain}
 .close{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px;background:var(--line);color:var(--text);cursor:pointer;text-align:center;text-decoration:none}
 .row{display:flex;align-items:center;gap:8px;font-size:14px;background:var(--bg);border-radius:10px;padding:6px 8px}
 .row img{width:26px;height:26px;border-radius:8px}.row .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .s{color:var(--brand);font-weight:700;text-align:right;font-size:12px}
-#toast{position:absolute;left:50%;top:104px;transform:translateX(-50%);background:var(--brand);color:#052e22;font-weight:700;padding:8px 14px;border-radius:12px;font-size:14px;z-index:6;white-space:nowrap}
+#toast{position:absolute;left:50%;top:104px;transform:translateX(-50%);background:var(--brand);color:#052e22;font-weight:700;padding:8px 14px;border-radius:12px;font-size:14px;z-index:6;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
@@ -47,7 +47,12 @@ canvas{width:100%;height:100%;display:block;object-fit:contain}
     <div class="chip"><i class="coin"></i><b id="coins">0</b></div>
     <div class="chip lv"><span id="lvl">Lv 1</span><div class="bar"><div id="xpbar"></div></div><small id="xptxt"></small></div>
   </div>
-  <div class="top2"><a class="mini" href="game.html">Menu game</a><button class="mini" onclick="openHow()" title="Cara bermain" aria-label="Cara bermain">?</button><button class="mini" onclick="openRank()">Peringkat</button></div>
+  <div class="top2">
+    <a class="mini" href="game.html">Menu game</a>
+    <button class="mini" onclick="openLandShop()">+ Lahan</button>
+    <button class="mini" onclick="openHow()" title="Cara bermain" aria-label="Cara bermain">?</button>
+    <button class="mini" onclick="openRank()">Peringkat</button>
+  </div>
   <div id="joyZone"><div id="knob"></div></div>
   <button id="act" disabled>Dekati kebun</button>
   <div id="toast" class="hidden"></div>
@@ -55,7 +60,7 @@ canvas{width:100%;height:100%;display:block;object-fit:contain}
 </div></div>
 
 <script>
-/* ============ SUPABASE ============ */
+/* ============ SUPABASE (TIDAK DIUBAH) ============ */
 const SUPABASE_URL = 'https://zyddldgtefrtwjgymbtk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hrVo6BmPk-4b8YQozWzn9g_4xJlLwa-';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -65,23 +70,42 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 /* ============ DATA GAME ============ */
 const BASE_MIN = 5; // menit tunggu dasar (ubah ke 0.2 untuk uji coba cepat)
 const CROPS = {
-  padi:   { n: 'Padi',   lv: 1, v: 20,  xp: 10, c: '#facc15' },
-  jagung: { n: 'Jagung', lv: 2, v: 60,  xp: 25, c: '#fde047' },
-  tebu:   { n: 'Tebu',   lv: 3, v: 150, xp: 60, c: '#4ade80' }
+  padi:   { n: 'Padi Emas',   lv: 1, v: 20,  xp: 10, c: '#facc15' },
+  jagung: { n: 'Jagung Manis',lv: 2, v: 60,  xp: 25, c: '#fde047' },
+  tebu:   { n: 'Tebu Manis',  lv: 3, v: 150, xp: 60, c: '#4ade80' }
 };
+
+// Update Rumah: Ditambah Mansion Mewah & Istana Sultan
 const HOUSES = [
-  { n: 'Gubuk', p: 0, b: 1 }, { n: 'Rumah Kayu', p: 400, b: 1.1 },
-  { n: 'Rumah Batu', p: 2000, b: 1.25 }, { n: 'Villa', p: 8000, b: 1.5 }
+  { n: 'Gubuk Bambu',   p: 0,     b: 1.0,  desc: 'Tempat berteduh sederhana dari kayu & jerami.' },
+  { n: 'Rumah Kayu',    p: 400,   b: 1.1,  desc: 'Rumah kayu pinus hangat dengan cerobong batu.' },
+  { n: 'Rumah Batu',    p: 2000,  b: 1.25, desc: 'Rumah dinding batu kokoh dengan atap genteng.' },
+  { n: 'Villa Modern',  p: 8000,  b: 1.5,  desc: 'Villa 2 lantai berjendela kaca lebar & taman.' },
+  { n: 'Mansion Mewah', p: 25000, b: 1.8,  desc: 'Mansion megah berpilar marmer & balkon emas.' },
+  { n: 'Istana Sultan', p: 75000, b: 2.2,  desc: 'Istana kasta tertinggi dengan menara kembar & air mancur.' }
 ];
-const PL = [[50,250],[165,250],[280,250],[50,380],[165,380],[280,380]].map(([x, y]) => ({ x, y }));
-let S = { coins: 0, exp: 0, house: 0, plots: Array(6).fill(null) };
+
+// 12 Petak Lahan (4 kolom x 3 baris) — 6 lahan pertama terbuka gratis, lahan 7-12 bisa dibeli
+const PL = [
+  // Baris 1 & 2 (6 Lahan Awal Gratis)
+  [24, 210], [116, 210], [208, 210],
+  [24, 300], [116, 300], [208, 300],
+  // Lahan Tambahan yang Bisa Dibeli (Petak 7 - 12)
+  [300, 210], [300, 300],
+  [24, 390], [116, 390], [208, 390], [300, 390]
+].map(([x, y]) => ({ x, y }));
+
+// Harga beli untuk petak ke-7 sampai ke-12 (indeks 6..11)
+const LAND_PRICES = [0, 0, 0, 0, 0, 0, 150, 350, 750, 1500, 3000, 6000];
+
+let S = { coins: 0, exp: 0, house: 0, unlockedPlots: 6, plots: Array(12).fill(null) };
 let U = null, ready = false, LS = '', started = false, saveT = null;
 const level = () => 1 + Math.floor(Math.sqrt(S.exp / 40));
 const growMs = () => Math.min(4, 1 + .2 * (level() - 1)) * BASE_MIN * 60000;
-const bonus = () => HOUSES[S.house].b;
+const bonus = () => (HOUSES[S.house] || HOUSES[0]).b;
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
-/* ============ AUTH + SIMPAN ============ */
+/* ============ AUTH + SIMPAN (SISTEM TETAP SAMA) ============ */
 function setPanel(html, closable = true) {
   $('panel').innerHTML = '<div class="box">' + html + (closable ? '<button class="close" onclick="closePanel()">Tutup</button>' : '') + '</div>';
   $('panel').classList.remove('hidden');
@@ -112,7 +136,16 @@ async function boot() {
     if (ready) { const { data } = await sb.from('game_scores').select('data').eq('phone_4', U.phone_4).eq('game', 'grow').maybeSingle(); remote = data?.data; }
   } catch (e) {}
   const pick = [remote, local].filter(Boolean).sort((a, b) => (b.exp || 0) - (a.exp || 0))[0];
-  if (pick) S = { coins: pick.coins || 0, exp: pick.exp || 0, house: pick.house || 0, plots: Array.from({ length: 6 }, (_, i) => pick.plots?.[i] || null) };
+  if (pick) {
+    const up = Math.max(6, Math.min(12, pick.unlockedPlots || (pick.plots ? pick.plots.length : 6)));
+    S = {
+      coins: pick.coins || 0,
+      exp: pick.exp || 0,
+      house: Math.min(HOUSES.length - 1, pick.house || 0),
+      unlockedPlots: up,
+      plots: Array.from({ length: 12 }, (_, i) => pick.plots?.[i] || null)
+    };
+  }
   started = true; closePanel(); hud();
   if (!ready) toast('Supabase belum siap — progres hanya di perangkat ini');
 }
@@ -130,141 +163,767 @@ function save() {
 }
 setInterval(() => { if (started) save(); }, 30000);
 
-/* ============ AKSI ============ */
-let P = { x: 200, y: 215 }, floats = [], keys = {}, jv = { x: 0, y: 0 };
+/* ============ STICKMAN, PARTIKEL & AKSI ============ */
+let P = {
+  x: 200, y: 185,
+  dir: 1,          // 1 menghadap kanan, -1 menghadap kiri
+  walkCycle: 0,    // siklus langkah kaki
+  moving: false,
+  anim: null       // { type: 'plant' | 'harvest', start: ms, dur: ms, plotIdx: i, cropKey: k }
+};
+let floats = [], particles = [], smokes = [], keys = {}, jv = { x: 0, y: 0 };
+
+function spawnParticles(x, y, color, count = 12, type = 'dirt') {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1 + Math.random() * 2.8;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp - (type === 'harvest' ? 2.2 : 1.2),
+      c: color,
+      sz: type === 'harvest' ? 3 + Math.random() * 3 : 2 + Math.random() * 2.5,
+      life: 28 + Math.floor(Math.random() * 18),
+      maxLife: 45,
+      type
+    });
+  }
+}
+
 function near() {
-  let b = null, bd = 62;
-  PL.forEach((q, i) => { const d = Math.hypot(P.x - (q.x + 35), P.y - (q.y + 35)); if (d < bd) { bd = d; b = { t: 'p', i }; } });
-  if (Math.hypot(P.x - 200, P.y - 178) < bd) b = { t: 'h' };
+  let b = null, bd = 56;
+  PL.forEach((q, i) => {
+    const d = Math.hypot(P.x - (q.x + 34), P.y - (q.y + 34));
+    if (d < bd) { bd = d; b = { t: 'p', i }; }
+  });
+  if (Math.hypot(P.x - 200, P.y - 165) < bd) b = { t: 'h' };
   return b;
 }
+
 function act() {
-  if (!started || !$('panel').classList.contains('hidden')) return;
+  if (!started || !$('panel').classList.contains('hidden') || P.anim) return;
   const n = near(); if (!n) return;
   if (n.t === 'h') return openHouse();
+  // Jika petak belum dibeli, buka dialog beli lahan
+  if (n.i >= S.unlockedPlots) return openLandShop(n.i);
   const q = S.plots[n.i];
   if (!q) return openCrops(n.i);
-  if (Date.now() >= q.e) harvest(n.i);
+  if (Date.now() >= q.e) startHarvestAnim(n.i);
 }
+
 function openCrops(i) {
   setPanel('<h2>Tanam apa?</h2><p>Waktu tumbuh: ' + fmt(growMs()) + ' (makin lama di level tinggi)</p>' +
     Object.entries(CROPS).map(([k, c]) => {
       const lock = level() < c.lv;
-      return `<button class="opt" ${lock ? 'disabled' : ''} onclick="plant(${i},'${k}')"><b>${c.n}</b><span>${lock ? 'Butuh Level ' + c.lv : 'Jual ' + Math.round(c.v * bonus()) + ' koin · +' + c.xp + ' EXP'}</span></button>`;
+      return `<button class="opt" ${lock ? 'disabled' : ''} onclick="plant(${i},'${k}')"><b>🌾 ${c.n}</b><span>${lock ? '🔒 Butuh Level ' + c.lv : 'Jual ' + Math.round(c.v * bonus()) + ' koin · +' + c.xp + ' EXP'}</span></button>`;
     }).join(''));
 }
+
 function plant(i, k) {
-  if (S.plots[i] || level() < CROPS[k].lv) return;
-  const now = Date.now(); S.plots[i] = { c: k, s: now, e: now + growMs() };
-  save(); closePanel();
+  if (i >= S.unlockedPlots || S.plots[i] || level() < CROPS[k].lv || P.anim) return;
+  closePanel();
+  // Posisikan menghadap petak & mulai animasi Stickman Mencangkul + Menebar Bibit
+  const px = PL[i].x + 34;
+  P.dir = px >= P.x ? 1 : -1;
+  P.anim = { type: 'plant', start: performance.now(), dur: 950, plotIdx: i, cropKey: k, fxDone: false };
 }
+
+function finalizePlant(i, k) {
+  const now = Date.now();
+  S.plots[i] = { c: k, s: now, e: now + growMs() };
+  spawnParticles(PL[i].x + 34, PL[i].y + 42, '#78350f', 14, 'dirt');
+  spawnParticles(PL[i].x + 34, PL[i].y + 36, '#fde047', 8, 'seed');
+  save();
+}
+
+function startHarvestAnim(i) {
+  const q = S.plots[i];
+  if (!q || Date.now() < q.e || P.anim) return;
+  const px = PL[i].x + 34;
+  P.dir = px >= P.x ? 1 : -1;
+  P.anim = { type: 'harvest', start: performance.now(), dur: 850, plotIdx: i, fxDone: false };
+}
+
 function harvest(i) {
-  const q = S.plots[i], c = CROPS[q.c], gain = Math.round(c.v * bonus()), old = level();
+  const q = S.plots[i]; if (!q) return;
+  const c = CROPS[q.c], gain = Math.round(c.v * bonus()), old = level();
   S.coins += gain; S.exp += c.xp; S.plots[i] = null;
-  floats.push({ x: PL[i].x + 35, y: PL[i].y, t: 70, s: '+' + gain });
-  if (level() > old) toast('Naik ke Level ' + level() + '! Tanaman makin lama tumbuh.');
+  spawnParticles(PL[i].x + 34, PL[i].y + 34, c.c, 18, 'harvest');
+  spawnParticles(PL[i].x + 34, PL[i].y + 34, '#22c55e', 10, 'harvest');
+  floats.push({ x: PL[i].x + 34, y: PL[i].y, t: 75, s: '+' + gain + ' 🪙' });
+  if (level() > old) toast('🎉 Naik ke Level ' + level() + '! Tanaman makin bernilai.');
   save(); hud();
 }
+
+/* ============ BELI LAHAN BARU ============ */
+function openLandShop(targetIdx = null) {
+  const nextIdx = S.unlockedPlots;
+  if (nextIdx >= PL.length) {
+    return setPanel('<h2>Semua Lahan Terbuka!</h2><p>Kamu sudah memiliki maksimal <b>12 petak lahan</b> subur.</p>');
+  }
+  const price = LAND_PRICES[nextIdx];
+  const can = S.coins >= price;
+  let html = `<h2>Perluas Lahan Kebun</h2><p>Lahan dimiliki: <b>${S.unlockedPlots} / ${PL.length} petak</b>. Beli lahan baru agar bisa menanam lebih banyak sekaligus!</p>`;
+  for (let i = 6; i < PL.length; i++) {
+    const owned = i < S.unlockedPlots;
+    const isNext = i === S.unlockedPlots;
+    const pr = LAND_PRICES[i];
+    html += `<button class="opt ${owned ? 'on' : ''}" ${!isNext || S.coins < pr ? 'disabled' : ''} onclick="buyLand(${i})">
+      <b>🌱 Petak Lahan #${i + 1}</b>
+      <span>${owned ? '✓ Sudah dimiliki' : isNext ? (pr + ' koin' + (can ? ' — Klik untuk beli!' : ' (kurang ' + (pr - S.coins) + ' koin)')) : '🔒 Buka Petak #' + i + ' dulu (' + pr + ' koin)'}</span>
+    </button>`;
+  }
+  setPanel(html);
+}
+
+function buyLand(i) {
+  if (i !== S.unlockedPlots || i >= PL.length) return;
+  const price = LAND_PRICES[i];
+  if (S.coins < price) return;
+  S.coins -= price;
+  S.unlockedPlots++;
+  const q = PL[i];
+  spawnParticles(q.x + 34, q.y + 34, '#34d399', 20, 'harvest');
+  floats.push({ x: q.x + 34, y: q.y, t: 75, s: 'Lahan #' + (i + 1) + ' Terbuka!' });
+  save(); hud(); openLandShop();
+  toast('🌱 Petak Lahan #' + (i + 1) + ' berhasil dibeli!');
+}
+
+/* ============ UPDATE RUMAH ============ */
 function openHouse() {
-  setPanel('<h2>' + HOUSES[S.house].n + '</h2><p>Bonus koin panen +' + Math.round((bonus() - 1) * 100) + '%. Pilih rumah baru dengan koinmu.</p>' +
+  const cur = HOUSES[S.house] || HOUSES[0];
+  setPanel('<h2>🏠 ' + cur.n + '</h2><p>' + cur.desc + '<br>Bonus panen saat ini: <b>+' + Math.round((bonus() - 1) * 100) + '% koin</b>.</p>' +
     HOUSES.map((h, i) => {
       if (!i) return '';
       const own = S.house === i, lower = S.house > i, can = S.coins >= h.p;
-      return `<button class="opt ${own ? 'on' : ''}" ${own || lower || !can ? 'disabled' : ''} onclick="buyHouse(${i})"><b>${h.n}</b><span>Bonus +${Math.round((h.b - 1) * 100)}% koin · ${own ? 'Rumahmu sekarang' : lower ? 'Sudah terlewati' : h.p + ' koin' + (can ? '' : ' (kurang ' + (h.p - S.coins) + ')')}</span></button>`;
+      return `<button class="opt ${own ? 'on' : ''}" ${own || lower || !can ? 'disabled' : ''} onclick="buyHouse(${i})">
+        <b>${h.n} (+${Math.round((h.b - 1) * 100)}% Koin)</b>
+        <span>${h.desc}<br>${own ? '✓ Rumahmu sekarang' : lower ? '✓ Sudah dilewati' : '🪙 ' + h.p + ' koin' + (can ? '' : ' (kurang ' + (h.p - S.coins) + ')')}</span>
+      </button>`;
     }).join(''));
 }
+
 function buyHouse(i) {
   const h = HOUSES[i]; if (S.house >= i || S.coins < h.p) return;
-  S.coins -= h.p; S.house = i; save(); hud(); openHouse(); toast('Kini kamu punya ' + h.n + '!');
+  S.coins -= h.p; S.house = i;
+  spawnParticles(200, 130, '#fbbf24', 26, 'harvest');
+  save(); hud(); openHouse(); toast('🏡 Selamat! Kini kamu punya ' + h.n + '!');
 }
+
 function openHow() {
   setPanel('<h2>Cara bermain</h2>' + [
-    ['Gerak', 'Seret <b>joystick</b> di kiri bawah (atau WASD / panah).'],
-    ['Tanam', 'Dekati petak kosong sampai muncul kotak putih, tekan <b>Tanam</b>, lalu pilih padi, jagung, atau tebu (dibuka sesuai level).'],
-    ['Panen', 'Tunggu hitung mundur (5 menit di level 1, makin lama di level tinggi). Saat tombol berubah <b>Panen</b>, tekan untuk menjual otomatis jadi koin + EXP.'],
-    ['Rumah', 'Dekati rumah di atas peta, beli <b>Rumah Kayu / Batu / Villa</b> dengan koin untuk bonus koin panen.'],
-    ['Rekor', 'Rekor terbaik dihitung dari <b>EXP dan rumah</b>. Lihat di tombol Peringkat.']
+    ['Gerak Stickman', 'Gunakan <b>joystick</b> di kiri bawah (atau WASD / tombol panah) untuk menggerakkan petani Stickman.'],
+    ['Tanam & Animasi', 'Dekati petak kosong, tekan <b>Tanam</b>, lalu pilih bibit. Stickman akan mencangkul dan menebar benih!'],
+    ['Panen Sabit', 'Saat tanaman matang, tekan <b>Panen</b>. Stickman akan mengayunkan sabit untuk memanen koin + EXP.'],
+    ['Beli Lahan Baru', 'Dekati lahan terkunci (atau klik tombol <b>+ Lahan</b>) untuk membeli hingga <b>12 petak kebun</b>.'],
+    ['Upgrade Rumah', 'Dekati rumah di atas peta untuk meng-upgrade hingga <b>Mansion Mewah & Istana Sultan</b> (bonus panen s/d +120%).']
   ].map(r => '<div class="opt" style="cursor:default"><b>' + r[0] + '</b><span style="color:var(--text);font-size:13px">' + r[1] + '</span></div>').join(''));
 }
+
 async function openRank() {
   if (!ready) return setPanel('<h2>Peringkat</h2><p>Belum tersambung ke Supabase.</p>');
   setPanel('<h2>Peringkat</h2><p>Memuat…</p>');
   const { data } = await sb.from('game_scores').select('phone_4,display_name,avatar_url,best_score,data').eq('game', 'grow').order('best_score', { ascending: false }).limit(10);
-  setPanel('<h2>Peringkat EXP & Rumah</h2>' + ((data || []).map((r, i) => `<div class="row"><span>${i + 1}</span><img src="${esc(r.avatar_url)}" alt=""><span class="n">${esc(r.display_name)}</span><span class="s">${r.best_score} EXP<br>${esc(HOUSES[r.data?.house || 0].n)}</span></div>`).join('') || '<p>Belum ada data.</p>'));
+  setPanel('<h2>Peringkat EXP & Rumah</h2>' + ((data || []).map((r, i) => {
+    const hIdx = Math.min(HOUSES.length - 1, r.data?.house || 0);
+    const plotsCnt = r.data?.unlockedPlots || 6;
+    return `<div class="row"><span>${i + 1}</span><img src="${esc(r.avatar_url)}" alt=""><span class="n">${esc(r.display_name)}</span><span class="s">${r.best_score} EXP<br>${esc(HOUSES[hIdx].n)} (${plotsCnt} Lahan)</span></div>`;
+  }).join('') || '<p>Belum ada data.</p>'));
 }
+
 function hud() {
   const L = level(), lo = 40 * (L - 1) ** 2, hi = 40 * L * L;
-  $('coins').textContent = S.coins; $('lvl').textContent = 'Lv ' + L + ' · ' + HOUSES[S.house].n;
+  const hName = (HOUSES[S.house] || HOUSES[0]).n;
+  $('coins').textContent = S.coins;
+  $('lvl').textContent = `Lv ${L} · ${hName} (${S.unlockedPlots}/12 Lahan)`;
   $('xpbar').style.width = Math.min(100, (S.exp - lo) / (hi - lo) * 100) + '%';
   $('xptxt').textContent = S.exp + ' / ' + hi + ' EXP';
 }
 
-/* ============ GAMBAR ============ */
+/* ============ GRAFIS REALISTIS (RUMAH, TANAMAN, STICKMAN) ============ */
 const cv = $('cv'), ctx = cv.getContext('2d');
-function drawHouse(t) {
-  const c = [{ w: 70, h: 44, a: '#a16207', r: '#78350f' }, { w: 100, h: 56, a: '#d97706', r: '#7c2d12' }, { w: 120, h: 70, a: '#94a3b8', r: '#475569' }, { w: 140, h: 90, a: '#f1f5f9', r: '#f59e0b' }][t];
-  const cx = 200, by = 160;
-  ctx.fillStyle = c.a; ctx.fillRect(cx - c.w / 2, by - c.h, c.w, c.h);
-  ctx.fillStyle = c.r; ctx.beginPath(); ctx.moveTo(cx - c.w / 2 - 8, by - c.h); ctx.lineTo(cx, by - c.h - 34); ctx.lineTo(cx + c.w / 2 + 8, by - c.h); ctx.fill();
-  ctx.fillStyle = '#3b2410'; ctx.fillRect(cx - 8, by - 26, 16, 26);
-  ctx.fillStyle = '#7dd3fc'; ctx.fillRect(cx - c.w / 2 + 10, by - c.h + 12, 14, 14); ctx.fillRect(cx + c.w / 2 - 24, by - c.h + 12, 14, 14);
+
+// 1. Gambar Rumah Realistis (6 Level Upgrade)
+function drawHouse(t, now) {
+  const cx = 200, by = 152;
+  ctx.save();
+
+  // Bayangan tanah di bawah rumah
+  const widths = [82, 110, 134, 156, 178, 200];
+  const w = widths[t] || 82;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(cx, by + 4, w * 0.56, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cerobong Asap (untuk Rumah Kayu ke atas)
+  if (t >= 1 && Math.random() < 0.08) {
+    smokes.push({ x: cx + w * 0.28, y: by - (55 + t * 8), r: 4, a: 0.55 });
+  }
+  smokes.forEach(s => {
+    ctx.fillStyle = `rgba(226,232,240,${s.a})`;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    s.y -= 0.45; s.x += Math.sin(now / 400) * 0.25; s.r += 0.08; s.a -= 0.008;
+  });
+  smokes = smokes.filter(s => s.a > 0);
+
+  if (t === 0) {
+    // LEVEL 0: Gubuk Bambu & Atap Jerami
+    const h = 42;
+    ctx.fillStyle = '#854d0e';
+    ctx.fillRect(cx - 38, by - h, 76, h);
+    // Tekstur bilah bambu vertikal
+    ctx.strokeStyle = '#713f12'; ctx.lineWidth = 1.5;
+    for (let x = cx - 32; x <= cx + 32; x += 8) {
+      ctx.beginPath(); ctx.moveTo(x, by - h); ctx.lineTo(x, by); ctx.stroke();
+    }
+    // Atap jerami berlapis
+    ctx.fillStyle = '#a16207';
+    ctx.beginPath();
+    ctx.moveTo(cx - 48, by - h + 4);
+    ctx.lineTo(cx, by - h - 30);
+    ctx.lineTo(cx + 48, by - h + 4);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 2;
+    for (let i = -40; i <= 40; i += 8) {
+      ctx.beginPath(); ctx.moveTo(cx, by - h - 28); ctx.lineTo(cx + i, by - h + 3); ctx.stroke();
+    }
+    // Pintu kayu & jendela kecil
+    ctx.fillStyle = '#451a03'; ctx.fillRect(cx - 9, by - 26, 18, 26);
+    ctx.fillStyle = '#fef08a'; ctx.fillRect(cx - 28, by - 26, 12, 12);
+    ctx.strokeStyle = '#451a03'; ctx.strokeRect(cx - 28, by - 26, 12, 12);
+
+  } else if (t === 1) {
+    // LEVEL 1: Rumah Kayu Log Cabin
+    const h = 52;
+    // Cerobong
+    ctx.fillStyle = '#57534e'; ctx.fillRect(cx + 24, by - h - 26, 14, 30);
+    // Dinding kayu log horizontal
+    const g = ctx.createLinearGradient(0, by - h, 0, by);
+    g.addColorStop(0, '#b45309'); g.addColorStop(1, '#78350f');
+    ctx.fillStyle = g; ctx.fillRect(cx - 50, by - h, 100, h);
+    ctx.strokeStyle = '#451a03'; ctx.lineWidth = 1;
+    for (let y = by - h + 8; y < by; y += 8) {
+      ctx.beginPath(); ctx.moveTo(cx - 50, y); ctx.lineTo(cx + 50, y); ctx.stroke();
+    }
+    // Atap sirap kayu
+    ctx.fillStyle = '#7c2d12';
+    ctx.beginPath();
+    ctx.moveTo(cx - 60, by - h + 3);
+    ctx.lineTo(cx, by - h - 34);
+    ctx.lineTo(cx + 60, by - h + 3);
+    ctx.closePath(); ctx.fill();
+    // Pintu & Jendela hangat
+    ctx.fillStyle = '#3b1909'; ctx.fillRect(cx - 10, by - 30, 20, 30);
+    ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(cx + 6, by - 14, 2, 0, 7); ctx.fill();
+    [-34, 20].forEach(ox => {
+      ctx.fillStyle = '#fde68a'; ctx.fillRect(cx + ox, by - 34, 15, 15);
+      ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2; ctx.strokeRect(cx + ox, by - 34, 15, 15);
+    });
+
+  } else if (t === 2) {
+    // LEVEL 2: Rumah Batu Eropa
+    const h = 64;
+    ctx.fillStyle = '#78716c'; ctx.fillRect(cx + 32, by - h - 28, 16, 32);
+    // Pondasi & Dinding batu
+    ctx.fillStyle = '#94a3b8'; ctx.fillRect(cx - 62, by - h, 124, h);
+    ctx.fillStyle = '#475569'; ctx.fillRect(cx - 64, by - 10, 128, 10);
+    // Tekstur bata batu
+    ctx.fillStyle = '#64748b';
+    for (let r = 0; r < 4; r++) {
+      for (let c = -2; c <= 2; c++) {
+        ctx.fillRect(cx + c * 22 + (r % 2) * 10, by - h + 10 + r * 12, 12, 6);
+      }
+    }
+    // Atap genteng biru tua
+    ctx.fillStyle = '#1e3a8a';
+    ctx.beginPath();
+    ctx.moveTo(cx - 72, by - h + 4);
+    ctx.lineTo(cx, by - h - 38);
+    ctx.lineTo(cx + 72, by - h + 4);
+    ctx.closePath(); ctx.fill();
+    // Pintu lengkung & Jendela
+    ctx.fillStyle = '#451a03';
+    ctx.beginPath(); ctx.arc(cx, by - 22, 12, Math.PI, 0); ctx.lineTo(cx + 12, by); ctx.lineTo(cx - 12, by); ctx.fill();
+    [-44, 26].forEach(ox => {
+      ctx.fillStyle = '#7dd3fc'; ctx.fillRect(cx + ox, by - 42, 18, 20);
+      ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2; ctx.strokeRect(cx + ox, by - 42, 18, 20);
+    });
+
+  } else if (t === 3) {
+    // LEVEL 3: Villa Modern 2 Lantai
+    const h = 76;
+    // Lantai 1 & 2
+    ctx.fillStyle = '#f8fafc'; ctx.fillRect(cx - 72, by - 44, 144, 44);
+    ctx.fillStyle = '#e2e8f0'; ctx.fillRect(cx - 56, by - h, 112, 34);
+    // Aksen kayu modern & atap miring
+    ctx.fillStyle = '#d97706';
+    ctx.fillRect(cx - 76, by - 46, 152, 5);
+    ctx.fillRect(cx - 62, by - h - 6, 124, 7);
+    // Kaca panorama berkilau
+    const glass = ctx.createLinearGradient(0, by - h, 0, by);
+    glass.addColorStop(0, '#38bdf8'); glass.addColorStop(1, '#0284c7');
+    ctx.fillStyle = glass;
+    ctx.fillRect(cx - 44, by - h + 7, 38, 20);
+    ctx.fillRect(cx + 6, by - h + 7, 38, 20);
+    ctx.fillRect(cx - 60, by - 34, 34, 24);
+    ctx.fillRect(cx + 26, by - 34, 34, 24);
+    // Pintu ganda modern & semak hias
+    ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 14, by - 32, 28, 32);
+    ctx.fillStyle = '#16a34a';
+    ctx.beginPath(); ctx.arc(cx - 66, by - 4, 8, 0, 7); ctx.arc(cx + 66, by - 4, 8, 0, 7); ctx.fill();
+
+  } else if (t === 4) {
+    // LEVEL 4: Mansion Mewah Berpilar Marmer
+    const h = 84;
+    ctx.fillStyle = '#fef3c7'; ctx.fillRect(cx - 84, by - 52, 168, 52);
+    ctx.fillStyle = '#fde68a'; ctx.fillRect(cx - 60, by - h, 120, 34);
+    // Atap Mansard Merah Marun & Emas
+    ctx.fillStyle = '#991b1b';
+    ctx.beginPath();
+    ctx.moveTo(cx - 90, by - 52); ctx.lineTo(cx - 64, by - h - 22);
+    ctx.lineTo(cx + 64, by - h - 22); ctx.lineTo(cx + 90, by - 52);
+    ctx.closePath(); ctx.fill();
+    // 4 Pilar Marmer Putih
+    ctx.fillStyle = '#ffffff';
+    [-70, -36, 28, 62].forEach(px => ctx.fillRect(cx + px, by - 50, 8, 50));
+    // Jendela & Pintu Emas
+    ctx.fillStyle = '#fef08a';
+    [-54, 38].forEach(ox => ctx.fillRect(cx + ox, by - 38, 16, 24));
+    ctx.fillStyle = '#78350f'; ctx.fillRect(cx - 15, by - 36, 30, 36);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.strokeRect(cx - 15, by - 36, 30, 36);
+
+  } else {
+    // LEVEL 5: Istana Sultan (Menara Kembar, Kubah Emas & Air Mancur)
+    const h = 90;
+    // Menara Kiri & Kanan
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(cx - 94, by - 78, 30, 78);
+    ctx.fillRect(cx + 64, by - 78, 30, 78);
+    // Bangunan Utama
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - 66, by - 68, 132, 68);
+    // Kubah Emas Utama & Menara
+    const gold = ctx.createLinearGradient(0, by - 115, 0, by - 65);
+    gold.addColorStop(0, '#fde047'); gold.addColorStop(1, '#d97706');
+    ctx.fillStyle = gold;
+    ctx.beginPath(); ctx.arc(cx, by - 68, 34, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - 98, by - 78); ctx.lineTo(cx - 79, by - 106); ctx.lineTo(cx - 60, by - 78); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + 60, by - 78); ctx.lineTo(cx + 79, by - 106); ctx.lineTo(cx + 98, by - 78); ctx.fill();
+    // Puncak Menara
+    ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(cx, by - 102); ctx.lineTo(cx, by - 114); ctx.stroke();
+    // Gerbang Istana Karpet Merah
+    ctx.fillStyle = '#dc2626'; ctx.fillRect(cx - 14, by - 38, 28, 42);
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2.5; ctx.strokeRect(cx - 14, by - 38, 28, 38);
+    // Jendela Istana Bercahaya
+    ctx.fillStyle = '#38bdf8';
+    [-46, 30, -84, 74].forEach(ox => ctx.fillRect(cx + ox, by - 54, 14, 22));
+  }
+
+  ctx.restore();
 }
-function drawCrop(k, x, y, pr) {
-  const h = k === 'tebu' ? 14 + pr * 44 : 8 + pr * 28;
+
+// 2. Gambar Tanaman Lebih Realistis (Daun, Bulir Padi, Tongkol Jagung, Ruas Tebu)
+function drawCrop(k, x, y, pr, now) {
+  const sway = Math.sin(now / 350 + x) * (pr * 3.5);
+  const h = k === 'tebu' ? 14 + pr * 42 : 10 + pr * 30;
+
   for (let i = -1; i <= 1; i++) {
-    const bx = x + i * 18;
-    ctx.strokeStyle = pr < .7 ? '#22c55e' : (k === 'tebu' ? '#4ade80' : '#65a30d'); ctx.lineWidth = k === 'tebu' ? 5 : 3;
-    ctx.beginPath(); ctx.moveTo(bx, y); ctx.lineTo(bx, y - h); ctx.stroke();
-    if (pr >= .7) {
-      ctx.fillStyle = CROPS[k].c;
-      if (k === 'padi') ctx.fillRect(bx - 4, y - h - 6, 8, 10);
-      else if (k === 'jagung') ctx.fillRect(bx - 4, y - h * .6 - 8, 8, 14);
-      else { ctx.fillStyle = '#7c3aed'; ctx.fillRect(bx - 3, y - h * .5, 6, 3); ctx.fillRect(bx - 3, y - h * .8, 6, 3); }
+    const bx = x + i * 17;
+    const tx = bx + sway;
+    const ty = y - h;
+
+    // Daun melengkung kiri & kanan
+    ctx.strokeStyle = pr < 0.7 ? '#22c55e' : '#16a34a';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(bx, y - h * 0.35);
+    ctx.quadraticCurveTo(bx - 10, y - h * 0.6, bx - 12 + sway * 0.5, y - h * 0.45);
+    ctx.moveTo(bx, y - h * 0.55);
+    ctx.quadraticCurveTo(bx + 10, y - h * 0.8, bx + 12 + sway * 0.5, y - h * 0.65);
+    ctx.stroke();
+
+    // Batang Utama
+    ctx.strokeStyle = pr < 0.7 ? '#4ade80' : (k === 'tebu' ? '#84cc16' : '#65a30d');
+    ctx.lineWidth = k === 'tebu' ? 4.5 : 3;
+    ctx.beginPath();
+    ctx.moveTo(bx, y);
+    ctx.quadraticCurveTo(bx + sway * 0.4, y - h * 0.5, tx, ty);
+    ctx.stroke();
+
+    // Hasil Panen saat mulai matang (pr >= 0.65)
+    if (pr >= 0.65) {
+      if (k === 'padi') {
+        // Bulir-bulir padi emas merunduk
+        ctx.fillStyle = '#facc15';
+        for (let g = 0; g < 4; g++) {
+          ctx.beginPath();
+          ctx.ellipse(tx + (g - 1.5) * 2.5, ty + g * 2.2, 2.5, 4, 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (k === 'jagung') {
+        // Tongkol jagung kuning + kelobot hijau
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.ellipse(tx, y - h * 0.62, 4.5, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(tx - 2, y - h * 0.66, 4, 2);
+        ctx.fillRect(tx - 2, y - h * 0.58, 4, 2);
+      } else {
+        // Ruas batang tebu manis ungu-hijau & daun pucuk rimbun
+        ctx.fillStyle = '#581c87';
+        ctx.fillRect(bx - 2.5 + sway * 0.3, y - h * 0.35, 5, 2.5);
+        ctx.fillRect(bx - 2.5 + sway * 0.6, y - h * 0.68, 5, 2.5);
+        ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty); ctx.lineTo(tx - 9, ty - 8);
+        ctx.moveTo(tx, ty); ctx.lineTo(tx + 9, ty - 8);
+        ctx.stroke();
+      }
     }
   }
 }
-function draw() {
-  const now = Date.now(), n = started ? near() : null;
-  ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 400, 600);
-  ctx.fillStyle = '#16883f'; for (let y = 0; y < 600; y += 40) ctx.fillRect(0, y, 400, 20);
-  ctx.fillStyle = '#a8a29e'; ctx.fillRect(185, 160, 30, 90);
-  drawHouse(S.house);
-  if (n && n.t === 'h') { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(170, 100, 60, 70); }
-  ctx.textAlign = 'center'; ctx.font = '700 13px Fredoka, sans-serif';
-  PL.forEach((q, i) => {
-    ctx.fillStyle = '#78350f'; ctx.fillRect(q.x, q.y, 70, 70);
-    ctx.fillStyle = '#5b2a0c'; for (let k = 1; k < 4; k++) ctx.fillRect(q.x, q.y + k * 17, 70, 3);
-    const s = S.plots[i];
-    if (s) {
-      const pr = Math.min(1, (now - s.s) / (s.e - s.s));
-      drawCrop(s.c, q.x + 35, q.y + 62, pr);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(pr < 1 ? fmt(s.e - now) : 'Panen!', q.x + 35, q.y - 6 - (pr >= 1 ? Math.abs(Math.sin(now / 200)) * 5 : 0));
+
+// 3. Gambar Player Stickman Petani + Animasi Tanam (Cangkul) & Panen (Sabit)
+function drawStickman(now) {
+  ctx.save();
+  ctx.translate(P.x, P.y);
+
+  // Bayangan kaki
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 12, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const d = P.dir; // 1 kanan, -1 kiri
+  let legSwing = P.moving ? Math.sin(P.walkCycle) * 8 : 0;
+  let armSwing = P.moving ? -Math.sin(P.walkCycle) * 8 : Math.sin(now / 400) * 1.5;
+  let bodyTilt = P.moving ? d * 0.08 : 0;
+  let toolAngle = 0;
+  let animProg = 0;
+
+  if (P.anim) {
+    animProg = Math.min(1, (now - P.anim.start) / P.anim.dur);
+    // Ayunan badan membungkuk saat mencangkul / menyabit
+    const strike = Math.sin(animProg * Math.PI * 3); // 3 kali ayunan
+    bodyTilt = d * (0.25 + Math.abs(strike) * 0.22);
+    legSwing = 4;
+    toolAngle = strike * 1.15;
+
+    // Trigger efek partikel di tengah animasi
+    if (animProg >= 0.45 && !P.anim.fxDone) {
+      P.anim.fxDone = true;
+      const q = PL[P.anim.plotIdx];
+      spawnParticles(q.x + 34, q.y + 38, P.anim.type === 'plant' ? '#78350f' : '#facc15', 10, 'dirt');
     }
-    if (n && n.t === 'p' && n.i === i) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(q.x - 3, q.y - 3, 76, 76); }
-  });
-  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(P.x, P.y + 14, 12, 5, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = '#34d399'; ctx.beginPath(); ctx.arc(P.x, P.y, 14, 0, 7); ctx.fill();
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(P.x - 7, P.y - 4, 14, 8); ctx.fillStyle = '#6ee7b7'; ctx.fillRect(P.x - 5, P.y - 2, 3, 3); ctx.fillRect(P.x + 2, P.y - 2, 3, 3);
-  ctx.fillStyle = '#fbbf24'; ctx.font = '700 16px Fredoka, sans-serif';
-  floats.forEach(f => { ctx.globalAlpha = Math.min(1, f.t / 30); ctx.fillText(f.s, f.x, f.y - (70 - f.t) * .8); f.t--; }); ctx.globalAlpha = 1;
-  floats = floats.filter(f => f.t > 0);
-  // tombol aksi
-  const b = $('act');
-  if (!started || !n) { b.disabled = true; b.textContent = 'Dekati kebun'; }
-  else if (n.t === 'h') { b.disabled = false; b.textContent = 'Rumah'; }
-  else { const q = S.plots[n.i]; b.disabled = !!q && now < q.e; b.textContent = !q ? 'Tanam' : now >= q.e ? 'Panen' : 'Tumbuh ' + fmt(q.e - now); }
+    // Selesai animasi
+    if (animProg >= 1) {
+      const doneAnim = P.anim;
+      P.anim = null;
+      if (doneAnim.type === 'plant') finalizePlant(doneAnim.plotIdx, doneAnim.cropKey);
+      else if (doneAnim.type === 'harvest') harvest(doneAnim.plotIdx);
+    }
+  }
+
+  ctx.rotate(bodyTilt);
+
+  // Kaki Stickman (Celana Denim Petani)
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#1e3a8a';
+  ctx.lineWidth = 4.2;
+  ctx.beginPath();
+  ctx.moveTo(0, 4); ctx.lineTo(-5 + legSwing, 17);
+  ctx.moveTo(0, 4); ctx.lineTo(5 - legSwing, 17);
+  ctx.stroke();
+
+  // Sepatu Boots Cokelat
+  ctx.fillStyle = '#451a03';
+  ctx.fillRect(-8 + legSwing, 15, 6, 4);
+  ctx.fillRect(3 - legSwing, 15, 6, 4);
+
+  // Badan Stickman (Baju Hijau Emerald + Overall)
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(0, -12);
+  ctx.lineTo(0, 5);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 3.2;
+  ctx.beginPath();
+  ctx.moveTo(0, -11);
+  ctx.lineTo(0, 4);
+  ctx.stroke();
+
+  // Tangan Belakang
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(0, -9);
+  ctx.lineTo(-d * 7 - armSwing * 0.5, 1);
+  ctx.stroke();
+
+  // Tangan Depan & Alat Pertanian (Cangkul saat Tanam / Sabit saat Panen)
+  ctx.save();
+  ctx.translate(0, -9);
+  if (P.anim) {
+    ctx.rotate(d * (-0.5 + toolAngle));
+    // Lengan mengayun alat
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 3.8;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(d * 12, 4);
+    ctx.stroke();
+
+    if (P.anim.type === 'plant') {
+      // Gambar Cangkul (Hoe) + Taburan Bibit
+      ctx.strokeStyle = '#92400e';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(d * 4, 2);
+      ctx.lineTo(d * 24, 10);
+      ctx.stroke();
+      // Mata besi cangkul
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(d * 23, 8);
+      ctx.lineTo(d * 20, 17);
+      ctx.stroke();
+    } else if (P.anim.type === 'harvest') {
+      // Gambar Sabit Emas (Golden Sickle) + Efek Slash
+      ctx.strokeStyle = '#92400e';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(d * 6, 2);
+      ctx.lineTo(d * 14, 6);
+      ctx.stroke();
+      // Bilah sabit melengkung berkilau
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(d * 18, 2, 9, d > 0 ? 0.2 : Math.PI - 1.8, d > 0 ? 1.9 : Math.PI - 0.2);
+      ctx.stroke();
+    }
+  } else {
+    // Tangan normal saat berjalan
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(d * 7 + armSwing * 0.6, 9);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Kepala Stickman Bulat
+  ctx.fillStyle = '#fde68a';
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, -19, 7.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Mata menghadap arah jalan
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(d * 2.8, -19.5, 1.4, 0, Math.PI * 2);
+  ctx.arc(d * 6.0, -19.5, 1.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Topi Caping / Jerami Petani
+  ctx.fillStyle = '#f59e0b';
+  ctx.strokeStyle = '#78350f';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(0, -25, 13, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -25, 7, Math.PI, 0);
+  ctx.fill();
+  ctx.stroke();
+  // Pita topi merah
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(-6.5, -26.5, 13, 2);
+
+  ctx.restore();
 }
+
+function draw() {
+  const now = performance.now();
+  const epoch = Date.now();
+  const n = started ? near() : null;
+
+  // 1. Latar Rumput Gradasi Realistis & Langit/Taman Atas
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 600);
+  bgGrad.addColorStop(0, '#065f46');
+  bgGrad.addColorStop(0.28, '#15803d');
+  bgGrad.addColorStop(1, '#14532d');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 400, 600);
+
+  // Tekstur hamparan rumput lembut
+  ctx.fillStyle = 'rgba(22, 163, 74, 0.35)';
+  for (let y = 160; y < 600; y += 36) ctx.fillRect(0, y, 400, 18);
+
+  // Semak & Pohon Hias di sekitar Rumah
+  ctx.fillStyle = '#064e3b';
+  [[38, 138, 22], [65, 145, 16], [362, 138, 22], [335, 145, 16]].forEach(([bx, by, br]) => {
+    ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#047857';
+    ctx.beginPath(); ctx.arc(bx - 4, by - 4, br * 0.75, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#064e3b';
+  });
+
+  // Jalan Setapak Batu (Cobblestone) dari Rumah ke Kebun
+  ctx.fillStyle = '#78716c';
+  ctx.fillRect(182, 150, 36, 56);
+  ctx.fillStyle = '#a8a29e';
+  [[186, 155], [202, 158], [188, 172], [204, 176], [190, 190], [202, 193]].forEach(([sx, sy]) => {
+    ctx.beginPath(); ctx.ellipse(sx + 5, sy + 4, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // 2. Gambar Rumah Sesuai Tingkat
+  drawHouse(S.house, now);
+  if (n && n.t === 'h') {
+    ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3;
+    ctx.strokeRect(145, 84, 110, 74);
+  }
+
+  // 3. Gambar 12 Petak Lahan (Terbuka vs Terkunci / Bisa Dibeli)
+  ctx.textAlign = 'center';
+  ctx.font = '700 12px Fredoka, sans-serif';
+
+  PL.forEach((q, i) => {
+    const unlocked = i < S.unlockedPlots;
+    // Bayangan petak
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(q.x + 3, q.y + 4, 68, 68);
+
+    if (unlocked) {
+      // Bingkai kayu pematang lahan
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(q.x - 2, q.y - 2, 72, 72);
+      // Tanah gembur subur
+      ctx.fillStyle = '#5c2d0c';
+      ctx.fillRect(q.x, q.y, 68, 68);
+      // Alur cangkulan tanah
+      ctx.fillStyle = '#3b1906';
+      for (let k = 1; k <= 4; k++) ctx.fillRect(q.x + 4, q.y + k * 13, 60, 4);
+
+      const s = S.plots[i];
+      if (s) {
+        const pr = Math.min(1, (epoch - s.s) / (s.e - s.s));
+        drawCrop(s.c, q.x + 34, q.y + 58, pr, now);
+        ctx.fillStyle = pr >= 1 ? '#fde047' : '#ffffff';
+        ctx.fillText(pr < 1 ? fmt(s.e - epoch) : '✨ Panen!', q.x + 34, q.y - 5 - (pr >= 1 ? Math.abs(Math.sin(now / 180)) * 4 : 0));
+      }
+    } else {
+      // Lahan Belum Dibeli (Rumput gelap + Pagar Kayu + Papan Harga)
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(q.x, q.y, 68, 68);
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(q.x + 2, q.y + 2, 64, 64);
+      ctx.setLineDash([]);
+
+      // Papan Kayu "Beli Lahan"
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(q.x + 31, q.y + 32, 6, 20);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(q.x + 12, q.y + 16, 44, 20);
+      ctx.strokeStyle = '#451a03'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(q.x + 12, q.y + 16, 44, 20);
+
+      ctx.fillStyle = '#fef08a';
+      ctx.font = '700 10px Fredoka, sans-serif';
+      ctx.fillText(i === S.unlockedPlots ? '🪙 ' + LAND_PRICES[i] : '🔒 #' + (i + 1), q.x + 34, q.y + 29);
+      ctx.font = '700 12px Fredoka, sans-serif';
+    }
+
+    if (n && n.t === 'p' && n.i === i) {
+      ctx.strokeStyle = unlocked ? '#ffffff' : '#fbbf24';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(q.x - 4, q.y - 4, 76, 76);
+    }
+  });
+
+  // 4. Gambar Karakter Stickman Petani
+  drawStickman(now);
+
+  // 5. Render Partikel Tanah / Bibit / Panen
+  particles.forEach(pt => {
+    ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+    ctx.fillStyle = pt.c;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, pt.sz, 0, Math.PI * 2);
+    ctx.fill();
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.vy += 0.12; // gravitasi
+    pt.life--;
+  });
+  ctx.globalAlpha = 1;
+  particles = particles.filter(pt => pt.life > 0);
+
+  // 6. Teks Melayang (+Koin)
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = '700 16px Fredoka, sans-serif';
+  floats.forEach(f => {
+    ctx.globalAlpha = Math.min(1, f.t / 30);
+    ctx.fillText(f.s, f.x, f.y - (75 - f.t) * .8);
+    f.t--;
+  });
+  ctx.globalAlpha = 1;
+  floats = floats.filter(f => f.t > 0);
+
+  // 7. Update Tombol Aksi Kanan Bawah
+  const b = $('act');
+  if (!started || !n) {
+    b.disabled = true; b.textContent = 'Dekati kebun';
+  } else if (P.anim) {
+    b.disabled = true; b.textContent = P.anim.type === 'plant' ? 'Menanam…' : 'Memanen…';
+  } else if (n.t === 'h') {
+    b.disabled = false; b.textContent = '🏠 Rumah';
+  } else if (n.i >= S.unlockedPlots) {
+    b.disabled = false;
+    b.textContent = n.i === S.unlockedPlots ? `Beli (${LAND_PRICES[n.i]})` : 'Beli Lahan';
+  } else {
+    const q = S.plots[n.i];
+    b.disabled = !!q && epoch < q.e;
+    b.textContent = !q ? '🌱 Tanam' : epoch >= q.e ? '🌾 Panen' : 'Tumbuh ' + fmt(q.e - epoch);
+  }
+}
+
 function loop() {
   let dx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0) + jv.x;
   let dy = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0) + jv.y;
-  const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
-  if ($('panel').classList.contains('hidden')) {
-    P.x = Math.max(14, Math.min(386, P.x + dx * 3.2));
-    const top = (P.x > 120 && P.x < 280) ? 172 : 100;
-    P.y = Math.max(top, Math.min(580, P.y + dy * 3.2));
+  const m = Math.hypot(dx, dy);
+  if (m > 1) { dx /= m; dy /= m; }
+
+  if ($('panel').classList.contains('hidden') && !P.anim) {
+    P.moving = m > 0.08;
+    if (P.moving) {
+      if (Math.abs(dx) > 0.05) P.dir = dx > 0 ? 1 : -1;
+      P.walkCycle += m * 0.28;
+    }
+    P.x = Math.max(16, Math.min(384, P.x + dx * 3.2));
+    const top = (P.x > 110 && P.x < 290) ? 162 : 105;
+    P.y = Math.max(top, Math.min(575, P.y + dy * 3.2));
+  } else {
+    P.moving = false;
   }
-  draw(); requestAnimationFrame(loop);
+
+  draw();
+  requestAnimationFrame(loop);
 }
 
 /* ============ INPUT ============ */
@@ -276,6 +935,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
 $('act').onclick = act;
+
 const jz = $('joyZone'), kn = $('knob'); let jid = null;
 function jmove(e) {
   const r = jz.getBoundingClientRect(), R = r.width / 2 - 10;
