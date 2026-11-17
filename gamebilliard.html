@@ -46,6 +46,9 @@ input{font-family:inherit;color:inherit}input.px-3{padding:.625rem .75rem;border
 #toast{position:absolute;left:50%;top:50px;transform:translateX(-50%);z-index:6;background:rgba(2,6,23,.92);border:1px solid #10b981;color:#d1fae5;font-weight:700;font-size:12px;padding:6px 12px;border-radius:12px;text-align:center;pointer-events:none;transition:opacity .4s;max-width:70%}
 #fine{position:absolute;left:8px;top:54px;bottom:12px;width:42px;border-radius:12px;background:#0b1220 repeating-linear-gradient(0deg,transparent 0 9px,rgba(51,65,85,.9) 9px 10px);border:2px solid #475569;touch-action:none;z-index:4}
 #fine .cuepic{position:absolute;left:50%;top:7%;bottom:5%;width:9px;margin-left:-4.5px;border-radius:5px;background:linear-gradient(#bfdbfe 0 2%,#f8fafc 2% 5%,#fde68a 5% 62%,#d4a017 62% 64%,#7c2d12 64% 94%,#111827 94%);box-shadow:0 0 6px rgba(0,0,0,.6);pointer-events:none}
+#conn{position:absolute;inset:0;z-index:9;background:rgba(2,6,23,.78);display:flex;align-items:center;justify-content:center;padding:16px}
+#conn .cb{max-width:340px;background:#0f172a;border:2px solid #f59e0b;border-radius:18px;padding:16px;text-align:center}
+#conn h3{margin:0 0 6px;font-size:18px;color:#fbbf24}#conn p{margin:0 0 12px;font-size:12px;color:#cbd5e1;line-height:1.45}#conn .rw{display:flex;gap:8px}#conn .rw button{flex:1}
 #pbar{position:absolute;right:8px;top:118px;bottom:12px;width:42px;border-radius:12px;background:linear-gradient(90deg,#64748b,#f1f5f9 38%,#e2e8f0 62%,#64748b);border:2px solid #0b1220;touch-action:none;z-index:4}
 #pbar .trk{position:absolute;left:7px;right:7px;top:8px;bottom:8px;border-radius:6px;background:linear-gradient(#22c55e,#eab308 55%,#ef4444);overflow:hidden}
 #pbar .mask{position:absolute;left:0;right:0;bottom:0;height:100%;background:#0b1220 repeating-linear-gradient(0deg,transparent 0 7px,rgba(148,163,184,.55) 7px 8px)}
@@ -115,6 +118,7 @@ input{font-family:inherit;color:inherit}input.px-3{padding:.625rem .75rem;border
     <div id="fine"><div class="cuepic"></div></div>
     <div id="spin"><i id="sdot"></i></div>
     <div id="pbar"><div class="trk"><div class="mask" id="pmask"></div></div><div class="knob" id="pknob" style="top:8px"></div></div>
+    <div id="conn" class="hidden"><div class="cb"><h3 id="connT"></h3><p id="connS"></p><div class="rw"><button class="btn btn-p" onclick="reconnect(true)">Hubungkan ulang</button><button class="btn" onclick="toMenu()">Keluar</button></div></div></div>
     <input id="pw" type="hidden" value="50"><span id="pwv" class="hidden">50</span>
   </div>
 </div>
@@ -129,6 +133,7 @@ input{font-family:inherit;color:inherit}input.px-3{padding:.625rem .75rem;border
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Membidik:</b> geser jari di meja ke arah sasaran, atau geser panel stik di kiri untuk bidikan halus. <b>Tembak:</b> tarik bar kekuatan di kanan ke bawah lalu lepas (Spasi di desktop). <b>Putaran bola:</b> sentuh bola putih kecil di kanan atas untuk memilih titik pukul (atas = maju, bawah = tarik, samping = efek).</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Bola 8:</b> masukkan semua bola kelompokmu (solid 1–7 atau stripe 9–15), lalu bola 8. Kelompok ditentukan dari bola pertama yang masuk setelah pecah. Memasukkan bola 8 terlalu cepat atau bersama foul berarti kalah.</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Bola 9:</b> selalu kenai bola bernomor terkecil dulu. Masukkan bola 9 secara sah untuk menang.</div>
+  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Koneksi:</b> jika lawan atau koneksi Anda terputus, muncul peringatan. Permainan lanjut otomatis saat tersambung lagi, atau tekan <b>Hubungkan ulang</b>. Jika halaman ditutup, masuk lagi ke ruang yang sama untuk melanjutkan.</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Foul</b> (bola putih masuk, tidak kena bola, salah sasaran): lawan mendapat <b>bola di tangan</b>, geser bola putih ke mana saja lalu bidik.</div>
   <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><b>Coin &amp; Toko:</b> lawan bot memberi coin sedikit, multiplayer dengan kontak memberi jauh lebih banyak. Tukar coin dengan stik (garis bidik lebih panjang) dan meja custom. <b>Jaringan:</b> ping di pojok atas (hijau bagus, kuning sedang, merah buruk).</div>
   <button class="btn btn-p w-full mt-2" onclick="$('help').classList.add('hidden')">Mengerti</button>
@@ -441,12 +446,13 @@ function renderInvites() {
 
 /* ===== navigasi & jaringan ===== */
 let mode = 'bot', me = 0, phase = 'menu', started = false, ch = null, room = '', isHost = false, oppName = 'Lawan', simming = false, waitEnd = false, pendingEnd = null, shooter = 0, awarded = false, botT = null;
+let selfOk = true, lastRx = Date.now(), syncPending = false, oppWas = false, oppPhone = null, oppDownSince = 0, lastTry = 0, lastAim = '', lastAimT = 0; const ra = { a: 0, d: 0, pw: 0, pd: 0, on: false, init: false };
 const opt = { typ: '8', level: 2 }, myId = Math.random().toString(36).slice(2, 8);
 const scr = id => ['sMenu', 'sLobby', 'sShop', 'sGame'].forEach(x => $(x).classList.toggle('hidden', x !== id));
 const send = p => ch && ch.send({ type: 'broadcast', event: 'b', payload: p });
-const meta = pl => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, playing: !!pl });
+const meta = pl => ({ name: uname(), phone: user?.phone_4 || null, host: isHost, playing: !!pl, opp: oppPhone });
 function pickOpt(k, v, el) { opt[k] = v; [...el.parentNode.children].forEach(b => b.classList.remove('on')); el.classList.add('on'); }
-function closeRoom() { if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
+function closeRoom() { hideWarn(); oppWas = false; oppDownSince = 0; ra.on = false; ra.init = false; if (ch && sb) { try { sb.removeChannel(ch); } catch (e) {} } ch = null; room = ''; }
 function toMenu() { closeRoom(); clearTimeout(botT); phase = 'menu'; started = false; simming = false; $('res').classList.add('hidden'); scr('sMenu'); $('title').textContent = 'NexBilliard'; $('sub').textContent = ''; updateAcct(); }
 function leaveWith(m) { toMenu(); $('mMsg').textContent = m; }
 function createRoom() {
@@ -464,8 +470,8 @@ function joinRoomUI(c) {
 function openRoom(code, host) {
   closeRoom(); room = code; isHost = host; mode = 'online'; me = host ? 0 : 1; $('mMsg').textContent = '';
   ch = sb.channel('nexbil_' + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
-  ch.on('broadcast', { event: 'b' }, ({ payload }) => onNet(payload)); ch.on('presence', { event: 'sync' }, onPresence);
-  ch.subscribe(s => { if (s === 'SUBSCRIBED') ch.track(meta(false)); });
+  ch.on('broadcast', { event: 'b' }, ({ payload }) => onNet(payload)); ch.on('presence', { event: 'sync' }, onPresenceX);
+  ch.subscribe(netStatus);
   phase = 'lobby'; scr('sLobby'); $('title').textContent = 'Ruang Biliar'; $('sub').textContent = host ? 'Anda host' : 'Menunggu host'; renderLobby([]); renderInvites();
 }
 const presenceList = () => { if (!ch) return []; const st = ch.presenceState(); return Object.keys(st).sort().map(k => ({ id: k, ...st[k][0] })); };
@@ -476,20 +482,75 @@ function renderLobby(l) {
 }
 function onPresence() {
   const l = presenceList(); const h = l.find(x => x.host);
-  if (!isHost && phase === 'lobby' && h && h.playing) { leaveWith('Permainan sedang berlangsung.'); return; }
+  if (!isHost && phase === 'lobby' && h && h.playing) { if (user && h.opp && h.opp === user.phone_4) $('waitTxt').textContent = 'Menyambung kembali ke permainan…'; else { leaveWith('Permainan sedang berlangsung.'); return; } }
   if (l.length > 2 && l.findIndex(x => x.id === myId) >= 2) { leaveWith('Ruang penuh (2 pemain).'); return; }
-  const o = l.find(x => x.id !== myId); if (o) oppName = o.name || 'Lawan';
+  const o = l.find(x => x.id !== myId); if (o) { oppName = o.name || 'Lawan'; oppPhone = o.phone || oppPhone; }
   if (phase === 'lobby') renderLobby(l); else if (phase === 'game' && mode === 'online' && l.length < 2 && !over) $('info').textContent = 'Lawan terputus…';
 }
 function hostStart() { const l = presenceList(); if (!isHost || l.length < 2) return; const seed = Math.floor(Math.random() * 1e9); ch.track(meta(true)); send({ t: 'start', typ: opt.typ, seed }); newGame(opt.typ, seed); }
 function goLobby() { phase = 'lobby'; started = false; simming = false; if (isHost && ch) ch.track(meta(false)); $('res').classList.add('hidden'); scr('sLobby'); renderLobby(); renderInvites(); }
 function onNet(p) {
+  lastRx = Date.now(); if (p.t === 'hb' || p.t === 'hello') return;
+  if (p.t === 'aim') { onAim(p); return; } if (p.t === 'sync') { onSync(p.st); return; } if (p.t === 'need') { if (started && !over) trySync(); return; }
   if (p.t === 'start' && !isHost && phase !== 'game') newGame(p.typ, p.seed);
   else if (p.t === 'shot' && started && !simming && !over && turn !== me) fire(p.vx, p.vy, p.cx, p.cy, p.sx, p.sy);
   else if (p.t === 'end') { if (simming || !waitEnd) pendingEnd = p.st; else applyEnd(p.st); }
   else if (p.t === 'resign' && started && !over) { winner = me; over = true; msg = 'Lawan menyerah'; refreshInfo(); showResult(); }
   else if (p.t === 'again' && !isHost) goLobby();
 }
+
+/* ===== sinkron bidikan, deteksi putus & sambung ulang ===== */
+const angDiff = x => ((x + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+function netStatus(st) {
+  if (st === 'SUBSCRIBED') { selfOk = true; lastRx = Date.now(); if (ch) ch.track(meta(started && phase === 'game')); if (started && !over) send({ t: 'need' }); }
+  else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') selfOk = false;
+}
+function onPresenceX() {
+  onPresence(); const present = presenceList().some(x => x.id !== myId);
+  if (present && !oppWas) { oppWas = true; lastRx = Date.now(); if (started && mode === 'online' && !over) trySync(); } else if (!present) oppWas = false;
+}
+function reconnect(manual) {
+  if (mode !== 'online' || !room || !sb) return; lastTry = Date.now(); $('connS').textContent = 'Menghubungkan ulang…';
+  try { if (ch) sb.removeChannel(ch); } catch (e) {} selfOk = false;
+  ch = sb.channel('nexbil_' + room, { config: { broadcast: { self: false }, presence: { key: myId } } });
+  ch.on('broadcast', { event: 'b' }, ({ payload }) => onNet(payload)); ch.on('presence', { event: 'sync' }, onPresenceX); ch.subscribe(netStatus);
+}
+function showWarn(kind) {
+  $('conn').classList.remove('hidden');
+  if (kind === 'self') { $('connT').textContent = '⚠️ Koneksi Anda terputus'; $('connS').textContent = navigator.onLine ? 'Mencoba menghubungkan ulang otomatis… Anda juga bisa menekan tombol di bawah.' : 'Tidak ada internet. Periksa jaringan Anda; permainan lanjut otomatis saat tersambung.'; }
+  else { const t = Math.round((Date.now() - oppDownSince) / 1000); $('connT').textContent = '⚠️ ' + oppName + ' terputus'; $('connS').textContent = 'Menunggu lawan kembali… ' + t + ' dtk. Permainan lanjut otomatis begitu lawan tersambung lagi.'; }
+}
+function hideWarn() { const c = $('conn'); if (c) c.classList.add('hidden'); }
+function connTick() {
+  if (mode !== 'online' || !started || over || phase !== 'game') { hideWarn(); oppDownSince = 0; return; }
+  const present = presenceList().some(x => x.id !== myId), selfDown = !navigator.onLine || !selfOk, oppDown = !present || Date.now() - lastRx > 7000;
+  if (oppDown && !oppDownSince) oppDownSince = Date.now(); if (!oppDown) oppDownSince = 0;
+  if (selfDown) { showWarn('self'); if (navigator.onLine && Date.now() - lastTry > 3500) reconnect(); }
+  else if (oppDown) { showWarn('opp'); if (waitEnd && Date.now() - oppDownSince > 6000) { waitEnd = false; pendingEnd = null; resolve(); syncPending = true; post(); } }
+  else hideWarn();
+}
+const fullState = () => ({ ...snap(), typ });
+function sendSync() { if (mode === 'online' && started && !over && !simming && !waitEnd) send({ t: 'sync', st: fullState() }); }
+function trySync() { if (simming || waitEnd) syncPending = true; else sendSync(); }
+function onSync(st) {
+  if (mode !== 'online' || !st || simming) return;
+  if (!(!started || phase !== 'game' || st.shots > shots || (st.over && !over))) return;
+  newGame(st.typ, 1); st.b.forEach((a, i) => { const b = balls[i]; b.x = a[0]; b.y = a[1]; b.p = !!a[2]; b.vx = b.vy = 0; });
+  ({ turn, groups, bih, bihLimit, over, winner, msg, shots } = st); if (ch) ch.track(meta(true)); hideWarn(); post(); toast('Permainan tersambung kembali');
+}
+function onAim(p) {
+  if (mode !== 'online' || !started || simming || over || turn === me) return;
+  ra.a = p.a; ra.pw = p.pw || 0; ra.on = true; if (!ra.init) { ra.d = p.a; ra.pd = ra.pw; ra.init = true; }
+  if (bih && p.cx != null && free(p.cx, p.cy, 0)) { const c = balls[0]; c.x = p.cx; c.y = p.cy; c.p = false; }
+}
+function aimTick() {
+  if (mode !== 'online' || !started || over || simming || shootAnim || turn !== me || !selfOk || phase !== 'game') return;
+  const c = balls[0], o = { t: 'aim', a: +aimAng.toFixed(4), pw: pwDrag ? +$('pw').value : 0, cx: +c.x.toFixed(1), cy: +c.y.toFixed(1) }, key = JSON.stringify(o);
+  if (key !== lastAim || Date.now() - lastAimT > 1000) { lastAim = key; lastAimT = Date.now(); send(o); }
+}
+setInterval(aimTick, 70); setInterval(connTick, 1000); setInterval(() => { if (mode === 'online' && ch && selfOk && (phase === 'game' || phase === 'lobby')) send({ t: 'hb' }); }, 2000);
+addEventListener('online', () => { if (mode === 'online' && started) reconnect(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && mode === 'online' && started && !over) { if (!selfOk || !navigator.onLine) reconnect(); else send({ t: 'need' }); } });
 
 /* ===== alur permainan ===== */
 function startBot() { mode = 'bot'; me = 0; level = opt.level; closeRoom(); newGame(opt.typ, Math.floor(Math.random() * 1e9)); }
@@ -507,8 +568,8 @@ function refreshInfo() {
   else { s = 'Giliran ' + nm(turn); if (typ === '8') { const g = groups[turn]; s += g ? ' · ' + (g === 's' ? 'Kecil 1–7' : 'Besar 9–15') : ' · Meja terbuka'; } else { let low = 99; for (let i = 1; i <= 9; i++) if (!balls[i].p && i < low) low = i; s += ' · Target: bola ' + low; } if (bih) s += ' · Bola di tangan'; }
   $('info').textContent = s + (msg ? '  [' + msg + ']' : ''); renderHud();
 }
-const canAim = () => !shootAnim && started && phase === 'game' && !simming && !waitEnd && !over && (mode === 'local' || (mode === 'bot' ? turn === 0 : turn === me));
-function fire(vx, vy, cx, cy, sx, sy) { clearTimeout(botT); if (cx != null) { balls[0].x = cx; balls[0].y = cy; } balls[0].p = false; balls[0].vx = vx; balls[0].vy = vy; balls[0].sx = sx || 0; balls[0].sy = sy || 0; newShot(); simming = true; acc = 0; shooter = turn; bih = false; refreshInfo(); }
+const canAim = () => (mode !== 'online' || selfOk) && !shootAnim && started && phase === 'game' && !simming && !waitEnd && !over && (mode === 'local' || (mode === 'bot' ? turn === 0 : turn === me));
+function fire(vx, vy, cx, cy, sx, sy) { ra.on = false; clearTimeout(botT); if (cx != null) { balls[0].x = cx; balls[0].y = cy; } balls[0].p = false; balls[0].vx = vx; balls[0].vy = vy; balls[0].sx = sx || 0; balls[0].sy = sy || 0; newShot(); simming = true; acc = 0; shooter = turn; bih = false; refreshInfo(); }
 function doShoot() { if (!canAim()) return; const v = 120 + (+$('pw').value) * 12.6, c = balls[0], vx = Math.cos(aimAng) * v, vy = Math.sin(aimAng) * v; shootAnim = { t: 0, pull: 6 + (+$('pw').value) * .8, vx, vy, cx: c.x, cy: c.y, sx: SPIN.x, sy: SPIN.y }; pwDrag = false; setSpin(0, 0); showPow(0); }
 const snap = () => ({ b: balls.map(b => [+b.x.toFixed(2), +b.y.toFixed(2), b.p ? 1 : 0]), turn, groups, bih, bihLimit, over, winner, msg, shots });
 function endSim() {
@@ -517,7 +578,7 @@ function endSim() {
   else { waitEnd = true; if (pendingEnd) { const st = pendingEnd; pendingEnd = null; applyEnd(st); } }
 }
 function applyEnd(st) { st.b.forEach((a, i) => { const b = balls[i]; b.x = a[0]; b.y = a[1]; b.p = !!a[2]; b.vx = b.vy = 0; }); ({ turn, groups, bih, bihLimit, over, winner, msg, shots } = st); waitEnd = false; post(); }
-function post() { if (bih && balls[0].p) defaultCue(); refreshInfo(); if (over) { showResult(); return; } if (mode === 'bot' && turn === 1) scheduleBot(); }
+function post() { ra.on = false; if (bih && balls[0].p) defaultCue(); refreshInfo(); if (syncPending) { syncPending = false; sendSync(); } if (over) { showResult(); return; } if (mode === 'bot' && turn === 1) scheduleBot(); }
 function scheduleBot() {
   $('info').textContent = 'Bot membidik…'; clearTimeout(botT);
   botT = setTimeout(() => { if (!started || over || mode !== 'bot' || turn !== 1 || simming) return; const pl = botPlan(); aimAng = pl.ang; botT = setTimeout(() => { if (started && !over && mode === 'bot' && !simming) fire(pl.vx, pl.vy, pl.cx, pl.cy); }, 700); }, 700);
@@ -596,16 +657,18 @@ function castRay(x, y, dx, dy) {
   return { t: tm, hit };
 }
 function drawCue() {
-  const c = balls[0]; if (c.p) return; const cu = CUES[GA.cue], pull = shootAnim ? shootAnim.pull * (1 - Math.pow(Math.min(1, shootAnim.t / .11), 2)) : 6 + (pwDrag ? +$('pw').value : 0) * .8, dx = Math.cos(aimAng), dy = Math.sin(aimAng);
-  if (canAim()) {
+  const c = balls[0]; if (c.p) return; const rv = ra.on && mode === 'online' && started && !simming && !over && turn !== me; if (rv) { ra.d += angDiff(ra.a - ra.d) * .35; ra.pd += (ra.pw - ra.pd) * .35; }
+  const ang = rv ? ra.d : aimAng, cu = CUES[GA.cue], pull = rv ? 6 + ra.pd * .8 : shootAnim ? shootAnim.pull * (1 - Math.pow(Math.min(1, shootAnim.t / .11), 2)) : 6 + (pwDrag ? +$('pw').value : 0) * .8, dx = Math.cos(ang), dy = Math.sin(ang);
+  if (canAim() || rv) {
+    if (rv) ctx.globalAlpha = .5;
     const r = castRay(c.x, c.y, dx, dy), mx = 760 * cu.guide, len = Math.min(r.t, mx);
     ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(c.x + dx * R, c.y + dy * R); ctx.lineTo(c.x + dx * len, c.y + dy * len); ctx.stroke();
     if (r.t <= mx) { const ex = c.x + dx * r.t, ey = c.y + dy * r.t; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(ex, ey, R, 0, 7); ctx.stroke(); ctx.lineWidth = 2;
       if (r.hit) { let nx = r.hit.x - ex, ny = r.hit.y - ey; const nl = Math.sqrt(nx * nx + ny * ny) || 1; nx /= nl; ny /= nl; ctx.beginPath(); ctx.moveTo(r.hit.x, r.hit.y); ctx.lineTo(r.hit.x + nx * 62 * cu.guide, r.hit.y + ny * 62 * cu.guide); ctx.stroke(); const dt2 = dx * nx + dy * ny, tx = dx - dt2 * nx, ty = dy - dt2 * ny; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + tx * 46 * cu.guide, ey + ty * 46 * cu.guide); ctx.stroke(); } }
-    ctx.lineCap = 'butt';
+    ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
   }
   if (simming) return;
-  ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(aimAng); const s0 = R + 4 + (canAim() ? pull : 6), Ls = 340;
+  ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(ang); const s0 = R + 4 + ((canAim() || rv) ? pull : 6), Ls = 340;
   const poly = (o) => { ctx.beginPath(); ctx.moveTo(-s0, -1.9 + o); ctx.lineTo(-s0 - Ls, -4.8 + o); ctx.lineTo(-s0 - Ls, 4.8 + o); ctx.lineTo(-s0, 1.9 + o); ctx.closePath(); };
   poly(5); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fill();
   const g = ctx.createLinearGradient(-s0, 0, -s0 - Ls, 0); [[0, '#93c5fd'], [.012, '#f8fafc'], [.04, '#f1f5f9'], [.05, cu.shaft], [.55, cu.shaft], [.56, '#fbbf24'], [.575, '#fbbf24'], [.58, cu.butt], [.93, cu.butt], [.94, '#fbbf24'], [.955, '#fbbf24'], [.96, '#0f172a'], [1, '#0f172a']].forEach(a => g.addColorStop(a[0], a[1]));
