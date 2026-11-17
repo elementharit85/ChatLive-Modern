@@ -34,7 +34,9 @@ input{width:100%;padding:11px;border-radius:12px;background:#0b1120;border:1px s
 
  <div id="sMenu" class="scr">
   <p id="acct"></p>
-  <div class="card"><h2>🤖 Lawan Bot</h2><p>Menang dapat koin kecil (3 / 5 / 8). Kalah dapat 1 koin.</p>
+  <div class="card"><h2>🏟️ Pilih Tempat</h2><div class="seg" id="stSeg"><button class="on" onclick="pickStage(0,this)">🌙 Tangga</button><button onclick="pickStage(1,this)">🌄 Lembah</button><button onclick="pickStage(2,this)">🏰 Benteng</button></div>
+  <canvas id="stPrev" width="400" height="200" style="width:100%;height:auto;border-radius:12px;display:block"></canvas><p id="stDesc"></p><p>Pertandingan 3 ronde: siapa lebih dulu menang 2 ronde, dialah pemenang. Untuk duel online, tempat dipilih oleh host.</p></div>
+ <div class="card"><h2>🤖 Lawan Bot</h2><p>Menang dapat koin kecil (3 / 5 / 8). Kalah dapat 1 koin.</p>
    <div class="seg" id="lvSeg"><button onclick="pick(0,this)">Mudah</button><button class="on" onclick="pick(1,this)">Sedang</button><button onclick="pick(2,this)">Sulit</button></div>
    <button class="btn p w" onclick="startBot()">Mulai lawan bot</button></div>
   <div class="card"><h2>🌐 Lawan Teman (Online)</h2><p>Menang dapat 50 koin, kalah tetap dapat 10 koin. Hanya untuk akun yang masuk lewat chat.</p>
@@ -135,14 +137,14 @@ function onPresence() { const l = presenceList(), h = l.find(x => x.host);
  if (l.length > 2 && l.findIndex(x => x.id === myId) >= 2) { leaveWith('Ruang penuh (2 pemain).'); return; }
  const o = l.find(x => x.id !== myId); if (o) oppName = o.name || 'Lawan';
  if (phase === 'lobby') renderLobby(l); else if (phase === 'game' && l.length < 2 && !over) end(me, true); }
-function hostStart() { if (!isHost || presenceList().length < 2) return; ch.track(meta(true)); send({ t: 'start' }); newMatch(); }
+function hostStart() { if (!isHost || presenceList().length < 2) return; ch.track(meta(true)); send({ t: 'start', s: stage }); newMatch(); }
 function goLobby() { phase = 'lobby'; started = false; if (isHost && ch) ch.track(meta(false)); $('res').classList.add('hidden'); scr('sLobby'); renderLobby(); renderInvites(); }
 function again() { if (mode === 'bot') newMatch(); else goLobby(); }
 function onNet(p) {
- if (p.t === 'start' && phase === 'lobby' && !isHost) return newMatch(); if (!started) return; const o = P[1 - me];
- if (p.t === 's') { o.tx = p.x; o.ty = p.y; o.mhp = p.m; if (p.h < o.hp) o.hurt = .2; o.hp = p.h; }
+ if (p.t === 'start' && phase === 'lobby' && !isHost) { stage = (p.s | 0) % STG.length; return newMatch(); } if (!started) return; const o = P[1 - me];
+ if (p.t === 's') { o.tx = p.x; o.ty = p.y; o.mhp = p.m; if (rst === 'play' && p.h > 0) { if (p.h < o.hp) o.hurt = .2; o.hp = p.h; } }
  else if (p.t === 'a') { o.x = o.tx = p.x; o.y = o.ty = p.y; o.pd = p.d; o.at = p.k; o.att = 0; o.fx = 0; }
- else if (p.t === 'ko' && !over) end(me);
+ else if (p.t === 'ko' && !over) roundEnd(me);
 }
 async function ensureG() { if (gch) return; gch = sb.channel('nexchat_global_room', { config: { broadcast: { self: false } } }); await new Promise(r => { gch.subscribe(s => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s)) r(); }); setTimeout(r, 3000); }); }
 let gch = null;
@@ -157,77 +159,166 @@ function renderInvites() { if (!isHost || !user) { $('inviteBox').classList.add(
 (async () => { const c = new URLSearchParams(location.search).get('room'); if (!c) return; await authReady; history.replaceState(null, '', location.pathname); joinRoomUI(c.toUpperCase()); })();
 
 /* ===== game ===== */
-const GY = 340, CD = [.35, .9, 3], DM = [7, 13, 20], RG = [62, 90], cl = (v, a, b) => Math.max(a, Math.min(b, v));
-let P = [], proj = [], sparks = [], key = { l: 0, r: 0, u: 0 }, sendT = 0;
-const mk = i => ({ i, x: i ? 640 : 160, y: GY, vx: 0, vy: 0, hp: 100, mhp: 100, f: i ? -1 : 1, cd: [0, 0, 0], at: -1, att: 0, fx: 0, pd: 0, w: 0, hurt: 0, st: 0, eq: [-1, -1, -1], dm: 1, sp: 1, name: '', col: i ? '#f472b6' : '#38bdf8' });
+const CD = [.35, .9, 3], DM = [7, 13, 20], RG = [62, 90], cl = (v, a, b) => Math.max(a, Math.min(b, v)), sm = t => { t = cl(t, 0, 1); return t * t * (3 - 2 * t); }, STEP = 14, REACH = 70;
+/* ===== arena & medan ===== */
+const pyr = (x, c, w, n, s) => s * Math.max(0, n - Math.floor(Math.abs(x - c) / w));              // tangga bertingkat (naik)
+const vly = (x, c, r, d) => Math.abs(x - c) < r ? -d * (1 + Math.cos(Math.PI * (x - c) / r)) / 2 : 0; // lembah halus (turun)
+const STG = [
+ { n: 'Dojo Tangga', e: '🌙', d: 'Tangga batu di tengah arena. Berlindung di baliknya dari Chi, atau panjat untuk posisi tinggi.', base: 340, sp: [130, 670], h: x => pyr(x, 400, 34, 3, 22), sky: ['#0f172a', '#1e3a5f'], gr: ['#1e293b', '#111a2e'], edge: '#475569' },
+ { n: 'Lembah Senja', e: '🌄', d: 'Lembah dalam di tengah. Di dasar lembah kamu aman dari Chi, tapi lawan di tepi punya posisi tinggi.', base: 285, sp: [130, 670], h: x => vly(x, 400, 150, 85), sky: ['#1e1b4b', '#9a3412', '#fb923c'], gr: ['#7c2d12', '#431407'], edge: '#fdba74' },
+ { n: 'Benteng Reruntuhan', e: '🏰', d: 'Tangga perlindungan di dekat tiap pemain dan lembah di tengah. Bertahan atau menyerbu?', base: 305, sp: [60, 740], h: x => pyr(x, 190, 28, 2, 28) + pyr(x, 610, 28, 2, 28) + vly(x, 400, 110, 55), sky: ['#0b1120', '#243447', '#475569'], gr: ['#334155', '#1e293b'], edge: '#94a3b8' }];
+let P = [], proj = [], sparks = [], key = { l: 0, r: 0, u: 0 }, sendT = 0, stage = 0, wins = [0, 0], round = 1, rst = 'intro', rtm = 0, rw = 0, fT = 0, bgc = null;
+const Gs = (s, x) => s.base - s.h(cl(x, 0, 800)), G = x => Gs(STG[stage], x);
+const clear = (x1, x2, y) => { const a = Math.min(x1, x2), b = Math.max(x1, x2); for (let x = a; x <= b; x += 6) if (G(x) < y) return false; return G(b) >= y; }; // tidak ada medan yang menghalangi
+function paintBG(i) {
+ const s = STG[i], b = document.createElement('canvas'); b.width = 1600; b.height = 800; const c = b.getContext('2d'); c.setTransform(2, 0, 0, 2, 0, 0);
+ const g = c.createLinearGradient(0, 0, 0, 400); s.sky.forEach((x, k) => g.addColorStop(k / (s.sky.length - 1), x)); c.fillStyle = g; c.fillRect(0, 0, 800, 400);
+ if (i === 0) { c.fillStyle = 'rgba(255,255,255,.7)'; for (let k = 0; k < 24; k++) c.fillRect((k * 97) % 800, (k * 53) % 150, 1.5, 1.5); c.fillStyle = '#e2e8f0'; c.beginPath(); c.arc(660, 60, 22, 0, 7); c.fill();
+  for (let k = 0; k < 13; k++) { const w = 40 + (k * 37) % 30, h = 50 + (k * 53) % 80, x = k * 64 - 10; c.fillStyle = '#0c1a30'; c.fillRect(x, s.base - h, w, h + 30); c.fillStyle = 'rgba(250,204,21,.35)'; for (let y = s.base - h + 8; y < s.base - 6; y += 14) { c.fillRect(x + 8, y, 4, 5); c.fillRect(x + w - 14, y, 4, 5); } } }
+ else if (i === 1) { c.fillStyle = 'rgba(253,224,71,.25)'; c.beginPath(); c.arc(540, 130, 70, 0, 7); c.fill(); c.fillStyle = '#fde68a'; c.beginPath(); c.arc(540, 130, 38, 0, 7); c.fill();
+  const mt = (col, pts) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, 400); pts.forEach(([x, y]) => c.lineTo(x, y)); c.lineTo(800, 400); c.fill(); };
+  mt('#5b21b6', [[0, 200], [90, 130], [190, 210], [300, 120], [420, 220], [560, 140], [680, 215], [800, 150]]); mt('#3b0764', [[0, 250], [120, 190], [250, 260], [380, 200], [520, 265], [660, 195], [800, 255]]); }
+ else { c.fillStyle = 'rgba(255,255,255,.6)'; for (let k = 0; k < 18; k++) c.fillRect((k * 89) % 800, (k * 47) % 130, 1.5, 1.5); c.fillStyle = 'rgba(226,232,240,.85)'; c.beginPath(); c.arc(150, 70, 20, 0, 7); c.fill();
+  c.fillStyle = '#1b2638'; [[70, 110], [330, 150], [470, 150], [740, 125]].forEach(([x, h]) => { c.fillRect(x - 14, s.base - h, 28, h + 30); c.fillRect(x - 19, s.base - h - 8, 38, 8); }); c.fillRect(316, s.base - 166, 168, 10); }
+ c.beginPath(); c.moveTo(0, 400); for (let x = 0; x <= 800; x++) c.lineTo(x, Gs(s, x) + 4); c.lineTo(800, 400); c.closePath();
+ const tg = c.createLinearGradient(0, s.base - 70, 0, 400); tg.addColorStop(0, s.gr[0]); tg.addColorStop(1, s.gr[1]); c.fillStyle = tg; c.fill();
+ c.beginPath(); for (let x = 0; x <= 800; x++) { const y = Gs(s, x) + 4; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.strokeStyle = s.edge; c.lineWidth = 3; c.stroke();
+ return b;
+}
+function pickStage(i, el) { stage = i; if (el) [...el.parentNode.children].forEach(b => b.classList.toggle('on', b === el)); $('stDesc').textContent = STG[i].e + ' ' + STG[i].n + ' — ' + STG[i].d; $('stPrev').getContext('2d').drawImage(paintBG(i), 0, 0, 400, 200); }
+
+/* ===== pemain ===== */
+const mk = i => ({ i, x: 0, y: 0, vx: 0, vy: 0, hp: 100, mhp: 100, f: i ? -1 : 1, cd: [0, 0, 0], at: -1, att: 0, fx: 0, pd: 0, w: 0, hurt: 0, st: 0, eq: [-1, -1, -1], dm: 1, sp: 1, name: '', col: i ? '#f472b6' : '#38bdf8',
+ sv: 0, lx: 0, air: 0, rv: 0, ph: Math.random() * 6, ln: 0, e: 0, aw: 0, cw: 0, kw: 0, hw: 0, sq: 0, tm: Math.random() * 6, kt: 0, blk: 0 });
 function setStats(p) { const s = stats(p.eq); p.mhp = s.hp; p.dm = s.dm; p.sp = s.sp; p.hp = p.mhp; }
+function resetRound() {
+ const s = STG[stage]; P.forEach((p, i) => { p.x = s.sp[i]; p.y = G(p.x); p.vx = p.vy = 0; p.hp = p.mhp; p.f = i ? -1 : 1; p.cd = [0, 0, 0]; p.at = -1; p.att = 0; p.fx = 0; p.hurt = 0; p.st = 0; p.kt = 0; p.sv = 0; p.lx = p.x; p.tx = p.x; p.ty = p.y; p.air = 0; p.rv = 0; p.e = p.aw = p.cw = p.kw = p.hw = p.sq = 0; p.blk = 0; p.ln = 0; });
+ proj = []; sparks = []; rst = 'intro'; rtm = 1.7; fT = 0;
+}
 function newMatch() {
- P = [mk(0), mk(1)]; proj = []; sparks = []; over = false; started = true; phase = 'game'; scr('sGame'); $('res').classList.add('hidden');
+ P = [mk(0), mk(1)]; over = false; started = true; phase = 'game'; scr('sGame'); $('res').classList.add('hidden');
  if (mode === 'bot') { me = 0; P[0].eq = eqArr(); P[0].name = uname(); P[1].name = 'Bot ' + ['Mudah', 'Sedang', 'Sulit'][level]; P[1].eq = [[-1, -1, -1], [-1, 4, 6], [1, 5, 7]][level]; }
  else { const o = presenceList().find(x => x.id !== myId) || {}; P[me].eq = eqArr(); P[me].name = uname(); P[1 - me].eq = o.eq || [-1, -1, -1]; P[1 - me].name = oppName; }
  P.forEach(setStats); if (mode === 'bot') P[1].mhp = P[1].hp = Math.round(P[1].mhp * [.8, 1, 1.15][level]);
- $('title').textContent = mode === 'bot' ? 'Lawan Bot' : 'Duel Online'; P.forEach(p => { p.tx = p.x; p.ty = p.y; });
+ $('title').textContent = mode === 'bot' ? 'Lawan Bot' : 'Duel Online'; wins = [0, 0]; round = 1; bgc = paintBG(stage); resetRound();
 }
+/* ===== ronde ===== */
+function roundEnd(w) {
+ if (rst !== 'play' || over) return; rw = w; wins[w]++; const l = P[1 - w]; l.hp = 0; l.st = 99; l.kt = 0; l.at = -1;
+ if (wins[w] >= 2) { rst = 'final'; rtm = 1.9; } else { rst = 'ko'; rtm = 2.3; }
+}
+function nextRound() { round++; resetRound(); }
+
+/* ===== pertarungan ===== */
 const canHit = d => mode !== 'online' || d.i === me;
-function atk(p, k) { if (over || p.cd[k] > 0 || p.st > 0 || p.at >= 0) return; p.cd[k] = CD[k]; p.at = k; p.att = 0; p.fx = 0; p.pd = Math.round(DM[k] * p.dm); if (mode === 'online' && p.i === me) send({ t: 'a', k, x: p.x, y: p.y, d: p.pd }); }
-function hurt(d, dmg, dir, k) { d.hp = Math.max(0, d.hp - dmg); d.hurt = .25; d.st = k === 1 ? .35 : .22; d.vx = dir * (k === 1 ? 300 : 180); d.at = -1; for (let i = 0; i < 6; i++) sparks.push({ x: d.x, y: d.y - 50, vx: (Math.random() - .5) * 300, vy: -Math.random() * 250, t: .35 });
- if (d.hp <= 0 && !over) { if (mode === 'online') send({ t: 'ko' }); end(1 - d.i); } }
-function fx(p) { const d = P[1 - p.i];
+function atk(p, k) { if (over || rst !== 'play' || p.cd[k] > 0 || p.st > 0 || p.at >= 0) return; p.cd[k] = CD[k]; p.at = k; p.att = 0; p.fx = 0; p.pd = Math.round(DM[k] * p.dm); if (mode === 'online' && p.i === me) send({ t: 'a', k, x: p.x, y: p.y, d: p.pd }); }
+function hurt(d, dmg, dir, k) { if (rst !== 'play') return; d.hp = Math.max(0, d.hp - dmg); d.hurt = .25; d.st = k === 1 ? .35 : .22; d.vx = dir * (k === 1 ? 300 : 180); d.at = -1; for (let i = 0; i < 6; i++) sparks.push({ x: d.x, y: d.y - 50, vx: (Math.random() - .5) * 300, vy: -Math.random() * 250, t: .35 });
+ if (d.hp <= 0) { d.st = 99; d.kt = 0; if (mode === 'online') send({ t: 'ko' }); roundEnd(1 - d.i); } }
+function fx(p) { if (rst !== 'play') return; const d = P[1 - p.i];
  if (p.at === 2) proj.push({ x: p.x + p.f * 30, y: p.y - 52, d: p.f, o: p.i, dm: p.pd, t: 0 });
- else if (canHit(d)) { const dx = (d.x - p.x) * p.f; if (dx > -10 && dx < RG[p.at] && Math.abs(d.y - p.y) < 60) hurt(d, p.pd, p.f, p.at); } }
+ else if (canHit(d) && d.hp > 0) { const dx = (d.x - p.x) * p.f; if (dx > -10 && dx < RG[p.at] && Math.abs(d.y - p.y) < REACH && clear(p.x, d.x, Math.min(p.y, d.y) - 30)) hurt(d, p.pd, p.f, p.at); } }
 function upd(p, dt, inp, remote) {
  for (let k = 0; k < 3; k++) p.cd[k] = Math.max(0, p.cd[k] - dt); p.hurt = Math.max(0, p.hurt - dt); p.st = Math.max(0, p.st - dt);
- const o = P[1 - p.i]; p.f = o.x >= p.x ? 1 : -1;
+ const o = P[1 - p.i]; if (p.hp > 0) p.f = o.x >= p.x ? 1 : -1;
  if (p.at >= 0) { p.att += dt; if (!p.fx && p.att >= (p.at === 2 ? .18 : .1)) { p.fx = 1; fx(p); } if (p.att >= (p.at === 2 ? .4 : p.at ? .35 : .22)) { p.at = -1; p.fx = 0; } }
- if (remote) { const px = p.x; p.x += (p.tx - p.x) * Math.min(1, dt * 14); p.y += (p.ty - p.y) * Math.min(1, dt * 14); p.w += Math.abs(p.x - px) * .25; return; }
- if (p.st <= 0) { p.vx = p.at >= 0 ? 0 : ((inp.r ? 1 : 0) - (inp.l ? 1 : 0)) * 230 * p.sp; if (inp.u && p.y >= GY && p.at < 0) p.vy = -640; } else p.vx *= .9;
- p.x = cl(p.x + p.vx * dt, 30, 770); p.vy += 1900 * dt; p.y += p.vy * dt; if (p.y >= GY) { p.y = GY; p.vy = 0; } p.w += Math.abs(p.vx) * dt * .05;
- const dx = Math.abs(p.x - o.x); if (dx < 28 && Math.abs(p.y - o.y) < 40) p.x = cl(p.x - p.f * (28 - dx) * .5, 30, 770);
+ if (remote) { p.x += (p.tx - p.x) * Math.min(1, dt * 14); p.y += (p.ty - p.y) * Math.min(1, dt * 14); return; }
+ if (p.st <= 0) { p.vx = p.at >= 0 ? 0 : ((inp.r ? 1 : 0) - (inp.l ? 1 : 0)) * 230 * p.sp; if (inp.u && p.y >= G(p.x) - 1 && p.at < 0) p.vy = -640; } else p.vx *= .9;
+ const nx = cl(p.x + p.vx * dt, 30, 770), lead = nx + (nx > p.x ? 7 : nx < p.x ? -7 : 0);
+ if (nx !== p.x && G(lead) < p.y - STEP) { p.blk = 1; p.vx = 0; } else { p.blk = 0; p.x = nx; }   // tembok tangga menghalangi
+ p.vy += 1900 * dt; const v0 = p.vy; p.y += p.vy * dt; const g = G(p.x); if (p.y >= g) { if (v0 > 280) p.sq = Math.min(1, v0 / 900); p.y = g; p.vy = 0; }
+ const dx = Math.abs(p.x - o.x); if (dx < 28 && Math.abs(p.y - o.y) < 40) { const n2 = cl(p.x - p.f * (28 - dx) * .5, 30, 770); if (G(n2 + (n2 > p.x ? 7 : -7)) >= p.y - STEP) p.x = n2; }
 }
 function ai(p, dt) {
- const o = P[0], dx = o.x - p.x, ad = Math.abs(dx), inp = { l: 0, r: 0, u: 0 }, L = [{ r: .5, a: .5 }, { r: .3, a: .75 }, { r: .16, a: 1 }][level]; p.th = (p.th || 0) - dt;
+ const o = P[0], dx = o.x - p.x, ad = Math.abs(dx), inp = { l: 0, r: 0, u: 0 }, L = [{ r: .5, a: .5 }, { r: .3, a: .75 }, { r: .16, a: 1 }][level], vis = clear(p.x, o.x, Math.min(p.y, o.y) - 30); p.th = (p.th || 0) - dt;
  if (p.th <= 0) { p.th = L.r * (.6 + Math.random() * .8); const r = Math.random(); p.go = ad > 75 ? (r < L.a ? 1 : 0) : (ad < 45 && r < .3 ? -1 : 0);
-  if (ad < 78 && r < L.a) atk(p, Math.random() < .6 ? 0 : 1); else if (ad > 190 && r < L.a * .45) atk(p, 2); }
+  if (ad < 78 && r < L.a && vis && Math.abs(o.y - p.y) < REACH) atk(p, Math.random() < .6 ? 0 : 1); else if (ad > 190 && r < L.a * .45 && vis) atk(p, 2); }
  const tw = dx > 0 ? 'r' : 'l', aw = dx > 0 ? 'l' : 'r'; if (p.go === 1) inp[tw] = 1; else if (p.go === -1) inp[aw] = 1;
+ if (p.blk && (inp.l || inp.r)) inp.u = 1;
  if (level && proj.some(q => q.o === 0 && Math.abs(q.x - p.x) < 150) && Math.random() < .03 * (level + 1)) inp.u = 1; return inp;
 }
 function end(w, quiet) {
  if (over) return; over = true; const win = w === me; let c = 0; if (mode === 'bot') c = win ? [3, 5, 8][level] : 1; else if (!quiet) c = win ? 50 : 10;
- $('rTitle').textContent = win ? '🏆 Menang!' : '💀 Kalah'; $('rSub').textContent = quiet ? 'Lawan terputus.' : win ? 'KO! Kamu mengalahkan ' + P[1 - me].name : 'Dikalahkan ' + P[1 - me].name;
+ $('rTitle').textContent = win ? '🏆 Menang!' : '💀 Kalah'; $('rSub').textContent = quiet ? 'Lawan terputus.' : (win ? 'KO! Kamu mengalahkan ' : 'Dikalahkan ') + P[1 - me].name + ' · ronde ' + wins[me] + '–' + wins[1 - me];
  $('rCoin').textContent = user ? '+' + c + ' coin' : 'Masuk lewat chat untuk mendapat coin'; $('res').classList.remove('hidden'); if (user && c) addCoins(c);
 }
+/* animasi halus: nilai pose dihaluskan tiap frame supaya tidak patah-patah */
+function pose(p, dt) {
+ const k = r => Math.min(1, dt * r), v = dt > 0 ? (p.x - p.lx) / dt : 0; p.lx = p.x; p.sv += (cl(v, -420, 420) - p.sv) * k(16);
+ p.air += ((G(p.x) - p.y > 4 ? 1 : 0) - p.air) * k(16);
+ p.rv += (Math.min(1, Math.abs(p.sv) / 140) * (1 - p.air) - p.rv) * k(12);
+ if (p.air < .5) p.ph += Math.abs(p.sv) * dt * .052;
+ p.sq = Math.max(0, p.sq - dt * 4.5); p.tm += dt; p.kt = p.hp <= 0 ? p.kt + dt : 0;
+ const a = p.at; let e = 0;
+ if (a >= 0) { const dur = a === 2 ? .4 : a ? .35 : .22, tp = (a === 2 ? .18 : .1) / dur, pr = cl(p.att / dur, 0, 1);
+  e = pr < tp * .4 ? -.3 * sm(pr / (tp * .4)) : pr < tp ? -.3 + 1.3 * sm((pr - tp * .4) / (tp * .6)) : 1 - sm((pr - tp) / (1 - tp)); }   // antisipasi → pukulan → pemulihan
+ p.e += (e - p.e) * k(40);
+ p.aw += ((a === 0 ? 1 : 0) - p.aw) * k(30); p.cw += ((a === 2 ? 1 : 0) - p.cw) * k(30); p.kw += ((a === 1 ? 1 : 0) - p.kw) * k(30); p.hw += ((p.hurt > 0 && p.hp > 0 ? 1 : 0) - p.hw) * k(28);
+ const f = p.f, tl = cl(p.sv / 230, -1, 1) * 7 * (1 - p.air * .4) + (a === 0 || a === 2 ? f * p.e * 7 : 0) - (a === 1 ? f * p.e * 5 : 0) - f * 10 * p.hw;
+ p.ln += (tl - p.ln) * k(14);
+}
 function frame(t) { requestAnimationFrame(frame); const dt = Math.min(.04, (t - (frame.l || t)) / 1000); frame.l = t; if (phase !== 'game' || !P.length) return;
- if (!over) { const m = P[me]; if (mode === 'bot') { upd(P[0], dt, key); upd(P[1], dt, ai(P[1], dt)); } else { upd(m, dt, key); upd(P[1 - me], dt, null, true); sendT -= dt; if (sendT <= 0) { sendT = .06; send({ t: 's', x: m.x, y: m.y, h: m.hp, m: m.mhp }); } }
-  for (let i = proj.length - 1; i >= 0; i--) { const q = proj[i], d = P[1 - q.o]; q.x += q.d * 520 * dt; q.t += dt; let dead = q.x < 0 || q.x > 800 || q.t > 1.6;
-   if (!dead && canHit(d) && Math.abs(q.x - d.x) < 24 && Math.abs(q.y - (d.y - 50)) < 45) { hurt(d, q.dm, q.d, 2); dead = true; } if (dead) proj.splice(i, 1); } }
+ if (!over && rtm > 0) { rtm -= dt; if (rtm <= 0) { if (rst === 'intro') { rst = 'play'; fT = .7; } else if (rst === 'ko') nextRound(); else if (rst === 'final') end(rw); } }
+ if (fT > 0) fT -= dt;
+ if (!over) { const m = P[me], Z = { l: 0, r: 0, u: 0 }, I = rst === 'play' ? key : Z; if (mode === 'bot') { upd(P[0], dt, I); upd(P[1], dt, rst === 'play' ? ai(P[1], dt) : Z); } else { upd(m, dt, I); upd(P[1 - me], dt, null, true); sendT -= dt; if (sendT <= 0) { sendT = .06; send({ t: 's', x: m.x, y: m.y, h: m.hp, m: m.mhp }); } }
+  for (let i = proj.length - 1; i >= 0; i--) { const q = proj[i], d = P[1 - q.o]; q.x += q.d * 520 * dt; q.t += dt; let dead = q.x < 0 || q.x > 800 || q.t > 1.6 || q.y >= G(q.x);   // terhalang medan = berlindung
+   if (!dead && rst === 'play' && d.hp > 0 && canHit(d) && Math.abs(q.x - d.x) < 24 && Math.abs(q.y - (d.y - 50)) < 45) { hurt(d, q.dm, q.d, 2); dead = true; } if (dead) proj.splice(i, 1); } }
+ P.forEach(p => pose(p, dt));
  sparks.forEach(s => { s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 900 * dt; }); sparks = sparks.filter(s => s.t > 0);
  document.querySelectorAll('.sk').forEach(b => { const k = +b.dataset.k; b.style.setProperty('--p', (100 - P[me].cd[k] / CD[k] * 100) + '%'); }); draw();
 }
 /* ===== gambar ===== */
 const cv = $('cv'), ctx = cv.getContext('2d');
+const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+function ik(hx, hy, fx, fy, a, b, bx, by) { // sendi dua tulang (lutut / siku)
+ let dx = fx - hx, dy = fy - hy, d = Math.hypot(dx, dy) || .01; const mx = a + b - .01; if (d > mx) { fx = hx + dx / d * mx; fy = hy + dy / d * mx; dx = fx - hx; dy = fy - hy; d = mx; }
+ const l = (d * d + a * a - b * b) / (2 * d), h = Math.sqrt(Math.max(0, a * a - l * l)), ux = dx / d, uy = dy / d; let nx = -uy, ny = ux; if (nx * bx + ny * by < 0) { nx = -nx; ny = -ny; }
+ return [[hx, hy], [hx + ux * l + nx * h, hy + uy * l + ny * h], [fx, fy]];
+}
 function man(c, p) {
- const f = p.f, sw = Math.sin(p.w) * (p.y < GY ? .3 : 1), a = p.at, e = a >= 0 ? Math.sin(Math.min(1, p.att / (a === 2 ? .4 : a ? .35 : .22)) * Math.PI) : 0, col = p.hurt > 0 ? '#fff' : p.col, [eh, eb, ew] = p.eq.map(i => IT[i]);
- c.save(); c.translate(p.x, p.y); c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, GY - p.y + 5, 22 - (GY - p.y) * .05, 5, 0, 0, 7); c.fill();
- c.lineCap = c.lineJoin = 'round'; c.strokeStyle = col; c.lineWidth = 5; const ln = (x1, y1, x2, y2) => { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); };
- ln(0, -38, -sw * 14, 0); if (a === 1) ln(0, -38, f * (15 + 58 * e), -4 - 34 * e); else ln(0, -38, sw * 14, 0);
- if (eb && eb.hp) { c.strokeStyle = eb.c; c.lineWidth = eb.hp > 30 ? 13 : 9; ln(0, -40, 0, -62); c.strokeStyle = col; c.lineWidth = 5; } else ln(0, -38, 0, -66);
- if (eb && eb.sp && !eb.hp) { c.strokeStyle = eb.c; ln(0, -64, -f * 24, -58 - sw * 5); c.strokeStyle = col; }
- const bx = -f * 10 + sw * 4, hx = a === 0 ? f * (14 + 44 * e) : a === 2 ? f * (18 + 14 * e) : f * 12 - sw * 4, hy = a === 0 ? -64 + 3 * e : a === 2 ? -62 : -50;
- ln(0, -64, bx, -48); ln(0, -64, hx, hy); if (a === 2) { ln(0, -64, f * (22 + 12 * e), -62); const g = c.createRadialGradient(f * 40, -62, 1, f * 40, -62, 6 + 20 * e); g.addColorStop(0, '#e0f2fe'); g.addColorStop(1, 'rgba(56,189,248,0)'); c.fillStyle = g; c.beginPath(); c.arc(f * 40, -62, 6 + 20 * e, 0, 7); c.fill(); }
- c.fillStyle = '#0b1120'; c.beginPath(); c.arc(0, -80, 11, 0, 7); c.fill(); c.stroke();
- if (eh) { c.fillStyle = c.strokeStyle = eh.c; c.lineWidth = 4; if (eh.p < 100) { ln(-11, -84, 11, -84); ln(-11, -84, -f * 22, -80 + sw * 3); } else if (eh.p < 200) { c.beginPath(); c.arc(0, -82, 12, Math.PI, 0); c.fill(); } else { c.beginPath(); c.moveTo(-11, -88); c.lineTo(-11, -102); c.lineTo(-5, -94); c.lineTo(0, -106); c.lineTo(5, -94); c.lineTo(11, -102); c.lineTo(11, -88); c.fill(); } }
- if (ew) { c.strokeStyle = ew.c; c.lineWidth = ew.d > .3 ? 5 : 4; const tx = a === 0 ? hx + f * 30 : hx + f * 12, ty = a === 0 ? hy - 3 : hy - 32; if (ew.d > .3) { c.shadowColor = '#f97316'; c.shadowBlur = 12; } ln(hx, hy, tx, ty); c.shadowBlur = 0; }
+ const f = p.f, rv = p.rv, ph = p.ph, dm = p.sv >= 0 ? 1 : -1, e = p.e, air = p.air, col = p.hurt > 0 ? '#fff' : p.col, [eh, eb, ew] = p.eq.map(i => IT[i]), gap = G(p.x) - p.y, ko = p.hp <= 0 ? sm(p.kt / .4) : 0, sway = Math.sin(p.tm * 3.2);
+ c.save(); c.translate(p.x, p.y); c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, gap + 4, Math.max(8, 22 - gap * .06), 5, 0, 0, 7); c.fill();
+ if (ko) c.rotate(-f * ko * 1.5);   // jatuh ke belakang saat KO
+ c.lineCap = c.lineJoin = 'round'; c.strokeStyle = col; c.lineWidth = 5;
+ const poly = a => { c.beginPath(); c.moveTo(a[0][0], a[0][1]); for (let i = 1; i < a.length; i++) c.lineTo(a[i][0], a[i][1]); c.stroke(); }, ln = (x1, y1, x2, y2) => poly([[x1, y1], [x2, y2]]);
+ /* kerangka */
+ const by = -35 + sway * 1.1 * (1 - rv) - Math.abs(Math.cos(ph)) * 3 * rv + p.sq * 8, bx = f * e * (5 * (p.aw + p.cw) - 3 * p.kw) + p.ln * .25, sx = bx + p.ln, sy = by - 27, qx = sx + p.ln * .3 + f * 1.5, qy = sy - 16 + sway * .4;
+ let fa = lerp([f * 11, 0], [dm * Math.sin(ph) * 17, -Math.max(0, Math.cos(ph)) * 9], rv), fb = lerp([-f * 11, 0], [-dm * Math.sin(ph) * 17, -Math.max(0, -Math.cos(ph)) * 9], rv);
+ fa = lerp(fa, [f * 12, -14 + cl(p.vy * .02, -6, 10)], air); fb = lerp(fb, [-f * 8, -9 + cl(p.vy * .01, -3, 5)], air);
+ if (p.kw > .01) fa = lerp(fa, e < 0 ? [f * 12, 80 * e] : [f * (15 + 58 * e), -4 - 34 * e], p.kw);
+ const kl = 21 + 9 * Math.max(0, e) * p.kw, legB = ik(bx, by, fb[0], fb[1], 21, 21, f, -.5), legA = ik(bx, by, fa[0], fa[1], kl, kl, f, -.5);
+ let hf = lerp([sx + f * 18, sy + 6 + sway * .8], [sx + f * 10 - dm * Math.sin(ph) * 11, sy + 12 - Math.max(0, -Math.cos(ph)) * 4], rv * .8), hb = lerp([sx + f * 9, sy + 12 + sway * .5], [sx + f * 5 + dm * Math.sin(ph) * 11, sy + 13 - Math.max(0, Math.cos(ph)) * 4], rv * .8);
+ hf = lerp(hf, [sx + f * 14, sy - 6], air * .9); hb = lerp(hb, [sx - f * 8, sy], air * .9);
+ hf = lerp(hf, [sx + f * (16 + 44 * e), sy + 2 - 2 * e], p.aw);
+ hf = lerp(hf, [sx + f * (20 + 14 * e), sy + 3], p.cw); hb = lerp(hb, [sx + f * (14 + 12 * e), sy + 1], p.cw);
+ hf = lerp(hf, [sx - f * 12, sy - 8], p.hw); hb = lerp(hb, [sx - f * 6, sy - 4], p.hw);
+ const al = 21 + 5 * Math.max(0, e) * p.aw, armF = ik(sx, sy, hf[0], hf[1], al, al, -f * .3, 1), armB = ik(sx, sy, hb[0], hb[1], 21, 21, -f * .3, 1);
+ /* gambar: sisi belakang → badan → sisi depan */
+ c.globalAlpha = .65; poly(legB); poly(armB); c.globalAlpha = 1;
+ poly([[bx, by], [sx, sy], [qx, qy + 6]]);
+ if (eb && eb.hp) { c.strokeStyle = eb.c; c.lineWidth = eb.hp > 30 ? 13 : 9; const q = t => [bx + (sx - bx) * t, by + (sy - by) * t]; poly([q(.1), q(.92)]); c.strokeStyle = col; c.lineWidth = 5; }
+ if (eb && eb.sp && !eb.hp) { c.strokeStyle = eb.c; const fl = Math.sin(p.tm * 9) * (.4 + rv); poly([[sx, sy + 2], [sx - f * 12, sy + 4 + fl * 2], [sx - f * 24 - dm * rv * 6, sy + 8 + fl * 4]]); c.strokeStyle = col; }
+ poly(legA);
+ c.save(); c.translate(qx, qy + 80); c.fillStyle = '#0b1120'; c.beginPath(); c.arc(0, -80, 11, 0, 7); c.fill(); c.stroke(); c.fillStyle = col; c.beginPath(); c.arc(f * 4.5, -81, 1.8, 0, 7); c.fill();
+ if (eh) { const sw = Math.sin(p.tm * 9) * (.4 + rv); c.fillStyle = c.strokeStyle = eh.c; c.lineWidth = 4; if (eh.p < 100) { ln(-11, -84, 11, -84); ln(-11, -84, -f * 22, -80 + sw * 3); } else if (eh.p < 200) { c.beginPath(); c.arc(0, -82, 12, Math.PI, 0); c.fill(); } else { c.beginPath(); c.moveTo(-11, -88); c.lineTo(-11, -102); c.lineTo(-5, -94); c.lineTo(0, -106); c.lineTo(5, -94); c.lineTo(11, -102); c.lineTo(11, -88); c.fill(); } }
+ c.restore();
+ poly(armF);
+ if (p.cw > .05) { const gx = armF[2][0] + f * 16, gy = armF[2][1], r = Math.max(2, (6 + 20 * Math.max(0, e)) * p.cw), g = c.createRadialGradient(gx, gy, 1, gx, gy, r); g.addColorStop(0, '#e0f2fe'); g.addColorStop(1, 'rgba(56,189,248,0)'); c.fillStyle = g; c.beginPath(); c.arc(gx, gy, r, 0, 7); c.fill(); }
+ if (ew) { c.strokeStyle = ew.c; c.lineWidth = ew.d > .3 ? 5 : 4; const wx = armF[2][0], wy = armF[2][1]; if (ew.d > .3) { c.shadowColor = '#f97316'; c.shadowBlur = 12; } ln(wx, wy, wx + f * (12 + 18 * p.aw), wy - 32 + 29 * p.aw); c.shadowBlur = 0; }
  c.restore();
 }
 function draw() {
- const c = ctx; c.setTransform(2, 0, 0, 2, 0, 0); const g = c.createLinearGradient(0, 0, 0, 400); g.addColorStop(0, '#0f172a'); g.addColorStop(1, '#1e3a5f'); c.fillStyle = g; c.fillRect(0, 0, 800, 400);
- c.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 24; i++) c.fillRect((i * 97) % 800, (i * 53) % 150, 1.5, 1.5); c.fillStyle = '#e2e8f0'; c.beginPath(); c.arc(660, 60, 22, 0, 7); c.fill();
- c.fillStyle = '#1e293b'; c.fillRect(0, GY + 6, 800, 60); c.fillStyle = '#334155'; c.fillRect(0, GY + 6, 800, 4);
+ const c = ctx; c.setTransform(2, 0, 0, 2, 0, 0); if (!bgc) bgc = paintBG(stage); c.drawImage(bgc, 0, 0, 800, 400);
  P.forEach(p => man(c, p));
  proj.forEach(q => { const r = c.createRadialGradient(q.x, q.y, 1, q.x, q.y, 20); r.addColorStop(0, '#fff'); r.addColorStop(.4, P[q.o].col); r.addColorStop(1, 'rgba(56,189,248,0)'); c.fillStyle = r; c.beginPath(); c.arc(q.x, q.y, 20, 0, 7); c.fill(); });
  c.fillStyle = '#fbbf24'; sparks.forEach(s => c.fillRect(s.x, s.y, 4, 4));
  P.forEach((p, i) => { const w = 320, x = i ? 780 - w : 20; c.fillStyle = '#0f172a'; c.fillRect(x, 24, w, 14); c.fillStyle = i ? '#f472b6' : '#38bdf8'; const hw = w * p.hp / p.mhp; c.fillRect(i ? x + w - hw : x, 24, hw, 14); c.strokeStyle = '#475569'; c.lineWidth = 1; c.strokeRect(x, 24, w, 14);
-  c.fillStyle = '#e2e8f0'; c.font = '700 13px system-ui'; c.textAlign = i ? 'right' : 'left'; c.fillText(p.name + ' · ' + Math.ceil(p.hp) + '/' + p.mhp, i ? x + w : x, 18); });
+  c.fillStyle = '#e2e8f0'; c.font = '700 13px system-ui'; c.textAlign = i ? 'right' : 'left'; c.fillText(p.name + ' · ' + Math.ceil(p.hp) + '/' + p.mhp, i ? x + w : x, 18);
+  for (let k = 0; k < 2; k++) { c.beginPath(); c.arc(i ? x + w - 8 - k * 16 : x + 8 + k * 16, 50, 5, 0, 7); if (k < wins[i]) { c.fillStyle = '#facc15'; c.fill(); } c.strokeStyle = '#facc15'; c.lineWidth = 1.5; c.stroke(); } });
+ c.textAlign = 'center'; c.fillStyle = '#e2e8f0'; c.font = '700 12px system-ui'; c.fillText('RONDE ' + round + ' / 3', 400, 34); c.fillStyle = '#94a3b8'; c.font = '11px system-ui'; c.fillText(STG[stage].e + ' ' + STG[stage].n, 400, 50);
+ let bt = '', sub = '', al = 1, bc = '#fbbf24';
+ if (rst === 'intro') { if (rtm > .6) { bt = 'RONDE ' + round; al = Math.min(1, (1.7 - rtm) * 5); } } else if (rst === 'play') { if (fT > 0) { bt = 'FIGHT!'; bc = '#34d399'; al = Math.min(1, fT / .35); } } else { bt = 'KO!'; bc = '#f87171'; sub = P[rw].name + (rst === 'final' ? ' memenangkan pertandingan' : ' memenangkan ronde ' + round); }
+ if (bt) { c.save(); c.globalAlpha = al; c.font = '900 56px system-ui'; c.lineWidth = 7; c.strokeStyle = '#0b1120'; c.strokeText(bt, 400, 160); c.fillStyle = bc; c.fillText(bt, 400, 160); if (sub) { c.font = '700 16px system-ui'; c.lineWidth = 4; c.strokeText(sub, 400, 190); c.fillStyle = '#e2e8f0'; c.fillText(sub, 400, 190); } c.restore(); }
+ c.textAlign = 'left';
 }
 /* ===== kontrol ===== */
 document.querySelectorAll('.k').forEach(b => { const d = b.dataset.d, on = v => e => { e.preventDefault(); key[d] = v; b.classList.toggle('d', !!v); }; b.addEventListener('pointerdown', on(1)); ['pointerup', 'pointerleave', 'pointercancel'].forEach(n => b.addEventListener(n, on(0))); });
@@ -235,7 +326,7 @@ document.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', 
 const KM = { ArrowLeft: 'l', a: 'l', ArrowRight: 'r', d: 'r', ArrowUp: 'u', w: 'u', ' ': 'u' }, SM = { j: 0, k: 1, l: 2 };
 addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = e.key.length > 1 ? e.key : e.key.toLowerCase(); if (KM[k]) { key[KM[k]] = 1; e.preventDefault(); } if (k in SM && !e.repeat && started && P[me]) atk(P[me], SM[k]); });
 addEventListener('keyup', e => { const k = e.key.length > 1 ? e.key : e.key.toLowerCase(); if (KM[k]) key[KM[k]] = 0; });
-requestAnimationFrame(frame); updateAcct();
+requestAnimationFrame(frame); updateAcct(); pickStage(0);
 function startBot() { mode = 'bot'; closeRoom(); newMatch(); }
 </script>
 </body>
